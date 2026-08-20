@@ -1,0 +1,6 @@
+{
+  "name": "AURA Atelier - Modern Fashion E-Commerce",
+  "description": "Production-ready dual-view responsive e-commerce web application with customer storefront, protected admin inventory/order management, local Base64 image uploads, dynamic brand customization, and standalone single-file export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
