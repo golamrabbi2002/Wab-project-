@@ -5,11 +5,13 @@ import { Sparkles, Mail, Phone, MapPin, Check, Truck, ShieldCheck } from 'lucide
 interface FooterProps {
   config: StoreConfig;
   onOpenPolicy: (type: 'shipping' | 'returns' | 'privacy' | 'terms') => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   config,
   onOpenPolicy,
+  onOpenAdmin,
 }) => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
@@ -131,6 +133,16 @@ export const Footer: React.FC<FooterProps> = ({
                 Terms of Craft & Sale
               </button>
             </li>
+            {onOpenAdmin && (
+              <li className="pt-2 border-t border-neutral-800">
+                <button
+                  onClick={onOpenAdmin}
+                  className="text-neutral-500 hover:text-amber-400 transition-colors text-left flex items-center gap-1 text-[11px]"
+                >
+                  <span>Store Admin Portal</span>
+                </button>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -176,8 +188,20 @@ export const Footer: React.FC<FooterProps> = ({
 
       {/* Bottom Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-neutral-850 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-neutral-400">
-        <div>
-          © {new Date().getFullYear()} {config.brandName}. All rights reserved. Artisanal Fashion & Lifestyle.
+        <div className="flex items-center gap-3">
+          <span>© {new Date().getFullYear()} {config.brandName}. All rights reserved.</span>
+          {onOpenAdmin && (
+            <>
+              <span className="text-neutral-700">•</span>
+              <button
+                onClick={onOpenAdmin}
+                className="text-neutral-600 hover:text-neutral-300 transition-colors"
+                title="Open Store Administration Dashboard"
+              >
+                Admin
+              </button>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-4 text-neutral-400">
           <span className="flex items-center gap-1.5">

@@ -528,6 +528,7 @@ export const App: React.FC = () => {
       <Footer
         config={config}
         onOpenPolicy={(type) => setPolicyModalType(type)}
+        onOpenAdmin={navigateToAdmin}
       />
 
       {/* MODALS & DRAWERS */}
