@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Global store configuration and branding",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "logoText": { "type": "string" },
+        "logoImage": { "type": "string" },
+        "heroHeadline": { "type": "string" },
+        "heroSubheadline": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "announcementText": { "type": "string" },
+        "showAnnouncement": { "type": "boolean" },
+        "currencySymbol": { "type": "string" },
+        "currencyCode": { "type": "string" },
+        "taxRate": { "type": "number" },
+        "freeShippingThreshold": { "type": "number" },
+        "contactEmail": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "studioAddress": { "type": "string" },
+        "shippingPolicy": { "type": "string" },
+        "returnPolicy": { "type": "string" },
+        "privacyPolicy": { "type": "string" },
+        "termsOfService": { "type": "string" },
+        "adminPin": { "type": "string" },
+        "googleClientId": { "type": "string" },
+        "googleSheetUrl": { "type": "string" },
+        "googleDriveFolderUrl": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["brandName"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Store products collection",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "image": { "type": "string" },
+        "additionalImages": { "type": "array", "items": { "type": "string" } },
+        "sizes": { "type": "array", "items": { "type": "string" } },
+        "stock": { "type": "number" },
+        "sku": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "description": { "type": "string" },
+        "material": { "type": "string" },
+        "careInstructions": { "type": "string" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "price", "category"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Store customer orders",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["orderNumber", "customerName", "total"]
+    }
+  },
+  "firestore": {
+    "/store/config": {
+      "entity": "StoreConfig",
+      "description": "Global store configuration document"
+    },
+    "/products/{productId}": {
+      "entity": "Product",
+      "description": "All active products"
+    },
+    "/orders/{orderId}": {
+      "entity": "Order",
+      "description": "Customer orders"
+    }
+  }
+}

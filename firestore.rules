@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Store configuration: Anyone can read, anyone can write for store management
+    match /store/config {
+      allow read, write: if true;
+    }
+    
+    // Products: Anyone can read products, store management can create/update/delete
+    match /products/{productId} {
+      allow read, write: if true;
+    }
+    
+    // Orders: Anyone can create orders, read and manage orders
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // Default fallback
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { Product, StoreConfig, Coupon, Order, Customer, CartItem } from '../types';
 import { initialStoreConfig, initialProducts, initialCoupons, initialOrders } from '../data/initialData';
+import { FirestoreSyncService } from './firestoreService';
 
 const KEYS = {
   CONFIG: 'aura_store_config',
@@ -37,6 +38,10 @@ export const StorageService = {
     try {
       localStorage.setItem(KEYS.CONFIG, JSON.stringify(config));
       window.dispatchEvent(new CustomEvent('aura_config_updated', { detail: config }));
+      // Background Sync to Firebase Firestore
+      FirestoreSyncService.saveConfig(config).catch(err => {
+        console.warn('Background Firestore config sync notice:', err);
+      });
     } catch (e) {
       console.error('Failed to save config', e);
     }
@@ -58,6 +63,10 @@ export const StorageService = {
     try {
       localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
       window.dispatchEvent(new CustomEvent('aura_products_updated', { detail: products }));
+      // Background Sync to Firebase Firestore
+      FirestoreSyncService.saveAllProducts(products).catch(err => {
+        console.warn('Background Firestore products sync notice:', err);
+      });
     } catch (e) {
       console.error('Failed to save products', e);
     }
@@ -72,11 +81,17 @@ export const StorageService = {
       products.unshift(product);
     }
     this.saveProducts(products);
+    FirestoreSyncService.saveProduct(product).catch(err => {
+      console.warn('Background Firestore single product sync notice:', err);
+    });
   },
 
   deleteProduct(productId: string): void {
     const products = this.getProducts().filter(p => p.id !== productId);
     this.saveProducts(products);
+    FirestoreSyncService.deleteProduct(productId).catch(err => {
+      console.warn('Background Firestore delete product notice:', err);
+    });
   },
 
   decrementStock(items: { productId: string; quantity: number }[]): void {
@@ -122,6 +137,9 @@ export const StorageService = {
     orders.unshift(newOrder);
     this.saveOrders(orders);
     this.decrementStock(newOrder.items);
+    FirestoreSyncService.saveOrder(newOrder).catch(err => {
+      console.warn('Background Firestore order sync notice:', err);
+    });
     return newOrder;
   },
 
@@ -134,6 +152,9 @@ export const StorageService = {
         order.trackingNumber = trackingNumber;
       }
       this.saveOrders(orders);
+      FirestoreSyncService.updateOrderStatus(orderId, status).catch(err => {
+        console.warn('Background Firestore order status sync notice:', err);
+      });
     }
   },
 
@@ -285,7 +306,7 @@ export const StorageService = {
       orders: this.getOrders(),
       coupons: this.getCoupons(),
       customers: this.getAllCustomers(),
-      version: '1.0.0',
+      version: '2.0.0 (Firestore Connected)',
       exportedAt: new Date().toISOString()
     };
     return JSON.stringify(data, null, 2);
@@ -335,12 +356,12 @@ export const StorageService = {
   addToCart(product: Product, size: string, quantity = 1): CartItem[] {
     const cart = this.getCart();
     const existingIndex = cart.findIndex(
-      (item) => item.product.id === product.id && item.size === size
+      (item) => item.product.id === product.id && item.selectedSize === size
     );
     if (existingIndex >= 0) {
       cart[existingIndex].quantity += quantity;
     } else {
-      cart.push({ product, size, quantity });
+      cart.push({ product, selectedSize: size, quantity });
     }
     this.saveCart(cart);
     return cart;
@@ -349,7 +370,7 @@ export const StorageService = {
   updateCartQuantity(productId: string, size: string, delta: number): CartItem[] {
     let cart = this.getCart();
     const existingIndex = cart.findIndex(
-      (item) => item.product.id === productId && item.size === size
+      (item) => item.product.id === productId && item.selectedSize === size
     );
     if (existingIndex >= 0) {
       const newQty = cart[existingIndex].quantity + delta;
@@ -365,7 +386,7 @@ export const StorageService = {
 
   removeFromCart(productId: string, size: string): CartItem[] {
     const cart = this.getCart().filter(
-      (item) => !(item.product.id === productId && item.size === size)
+      (item) => !(item.product.id === productId && item.selectedSize === size)
     );
     this.saveCart(cart);
     return cart;

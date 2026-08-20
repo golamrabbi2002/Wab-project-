@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Product, Order, StoreConfig, CartItem, Coupon, Customer } from './types';
 import { storageService } from './services/storageService';
+import { FirestoreSyncService } from './services/firestoreService';
 import { Navbar } from './components/Navbar';
 import { AnnouncementBar } from './components/AnnouncementBar';
 import { HeroBanner } from './components/HeroBanner';
@@ -95,6 +96,31 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadState();
 
+    // Initialize Firestore defaults and subscribe to real-time updates
+    FirestoreSyncService.initDefaults().catch(console.warn);
+
+    const unsubConfig = FirestoreSyncService.subscribeConfig((cloudConfig) => {
+      if (cloudConfig) {
+        setConfig(cloudConfig);
+        try {
+          localStorage.setItem('aura_store_config', JSON.stringify(cloudConfig));
+        } catch (e) {
+          console.warn('LocalStorage sync warning:', e);
+        }
+      }
+    });
+
+    const unsubProducts = FirestoreSyncService.subscribeProducts((cloudProducts) => {
+      if (cloudProducts && cloudProducts.length > 0) {
+        setProducts(cloudProducts);
+        try {
+          localStorage.setItem('aura_products', JSON.stringify(cloudProducts));
+        } catch (e) {
+          console.warn('LocalStorage sync warning:', e);
+        }
+      }
+    });
+
     const handleStorageChange = () => {
       loadState();
     };
@@ -118,6 +144,8 @@ export const App: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      unsubConfig();
+      unsubProducts();
       window.removeEventListener('aura_storage_update', handleStorageChange);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('popstate', handleUrlChange);

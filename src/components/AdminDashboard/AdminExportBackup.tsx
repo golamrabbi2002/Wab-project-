@@ -2,7 +2,21 @@ import React, { useState } from 'react';
 import { Product, Order, StoreConfig, Coupon, Customer } from '../../types';
 import { generateStandaloneHtml } from '../../services/htmlExporter';
 import { storageService } from '../../services/storageService';
-import { Download, Copy, Check, FileCode, Database, Upload, RefreshCw, ExternalLink, Sparkles, ShieldCheck } from 'lucide-react';
+import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
+import { 
+  Download, 
+  Copy, 
+  Check, 
+  FileCode, 
+  Database, 
+  Upload, 
+  RefreshCw, 
+  ExternalLink, 
+  Sparkles, 
+  ShieldCheck,
+  FileSpreadsheet,
+  HardDrive
+} from 'lucide-react';
 
 interface AdminExportBackupProps {
   products: Product[];
@@ -23,6 +37,16 @@ export const AdminExportBackup: React.FC<AdminExportBackupProps> = ({
 }) => {
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  // Export Products to CSV (Google Sheets format)
+  const handleExportProductsCsv = () => {
+    GoogleDriveSheetService.exportProductsToCSV(products);
+  };
+
+  // Export Orders to CSV (Google Sheets format)
+  const handleExportOrdersCsv = () => {
+    GoogleDriveSheetService.exportOrdersToCSV(orders);
+  };
 
   // Download Standalone HTML file
   const handleDownloadHtml = () => {
@@ -109,6 +133,63 @@ export const AdminExportBackup: React.FC<AdminExportBackupProps> = ({
 
   return (
     <div className="space-y-8 animate-fadeIn text-xs">
+
+      {/* CARD 0: GOOGLE SHEETS & DRIVE DIRECT EXPORT */}
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+        <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
+          <div className="p-2 bg-emerald-400/10 text-emerald-400 rounded-lg">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white uppercase tracking-wider">
+              গুগল স্প্রেডশিট & গুগল ড্রাইভ ডাটা সিংক (Google Sheets / Drive)
+            </h3>
+            <p className="text-neutral-400">
+              অ্যাডমিন প্যানেলের সমস্ত প্রোডাক্ট, স্টক, অর্ডার ও কাস্টমার লিস্ট এক ক্লিকে গুগল শিট ফরম্যাটে নামান বা ওপেন করুন।
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="bg-neutral-900/60 p-5 rounded-xl border border-neutral-800 space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 font-bold text-white uppercase tracking-wider mb-1">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span>প্রোডাক্ট ক্যাটালগ (Google Sheets CSV)</span>
+              </div>
+              <p className="text-neutral-400 text-xs">
+                সমস্ত কাপড়ের নাম, ছবি লিংক, সাইজ, স্টক ও দাম গুগল শিটে সরাসরি আপলোডযোগ্য ফরম্যাটে ডাউনলোড করুন।
+              </p>
+            </div>
+            <button
+              onClick={handleExportProductsCsv}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Products Google Sheet CSV</span>
+            </button>
+          </div>
+
+          <div className="bg-neutral-900/60 p-5 rounded-xl border border-neutral-800 space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 font-bold text-white uppercase tracking-wider mb-1">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span>অর্ডার রেজিস্ট্রি (Google Sheets CSV)</span>
+              </div>
+              <p className="text-neutral-400 text-xs">
+                কাস্টমারদের নাম, ঠিকানা, ফোন নম্বর, bKash পেমেন্ট মেথড ও অর্ডারের মোট টাকার হিসাব গুগল শিটে এক্সপোর্ট করুন।
+              </p>
+            </div>
+            <button
+              onClick={handleExportOrdersCsv}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Orders Google Sheet CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
       
       {/* CARD 1: SINGLE-FILE STANDALONE HTML EXPORT */}
       <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">

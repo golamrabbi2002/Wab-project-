@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StoreConfig } from '../../types';
+import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
 import {
   Save,
   Upload,
@@ -17,6 +18,12 @@ import {
   Truck,
   Eye,
   EyeOff,
+  Cloud,
+  FileSpreadsheet,
+  HardDrive,
+  Database,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 
 interface AdminStoreSettingsProps {
@@ -34,6 +41,12 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
   const [announcementText, setAnnouncementText] = useState(config.announcementText);
   const [showAnnouncement, setShowAnnouncement] = useState(config.showAnnouncement);
   
+  // Cloud, Google Sheets & Google Drive Integration
+  const [googleSheetUrl, setGoogleSheetUrl] = useState(config.googleSheetUrl || '');
+  const [googleDriveFolderUrl, setGoogleDriveFolderUrl] = useState(config.googleDriveFolderUrl || '');
+  const [autoSyncGoogleSheets, setAutoSyncGoogleSheets] = useState(config.autoSyncGoogleSheets ?? true);
+  const [autoSyncGoogleDrive, setAutoSyncGoogleDrive] = useState(config.autoSyncGoogleDrive ?? true);
+
   // Currency & Commerce
   const [currencySymbol, setCurrencySymbol] = useState(config.currencySymbol || '৳');
   const [currencyCode, setCurrencyCode] = useState(config.currencyCode || 'BDT');
@@ -69,7 +82,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
     setCurrencyCode(code);
   };
 
-  // Direct Local Logo Upload via FileReader (Base64)
+  // Direct Local Logo Upload via FileReader (with auto Google Drive URL format support)
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -82,7 +95,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
     reader.readAsDataURL(file);
   };
 
-  // Direct Local Hero Background Upload via FileReader (Base64)
+  // Direct Local Hero Background Upload via FileReader
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,6 +126,10 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
       taxRate: Number(taxRate) / 100,
       freeShippingThreshold: Number(freeShippingThreshold),
       googleClientId: googleClientId.trim(),
+      googleSheetUrl: googleSheetUrl.trim(),
+      googleDriveFolderUrl: googleDriveFolderUrl.trim(),
+      autoSyncGoogleSheets,
+      autoSyncGoogleDrive,
       deliveryDhakaCity: Number(deliveryDhakaCity),
       deliveryOutsideDhaka: Number(deliveryOutsideDhaka),
       bkashMerchantNumber: bkashMerchantNumber.trim(),
@@ -136,6 +153,73 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
   return (
     <form onSubmit={handleSave} className="space-y-8 animate-fadeIn text-xs">
       
+      {/* SECTION 0: CLOUD LIVE SYNC STATUS (FIRESTORE + GOOGLE DRIVE + GOOGLE SHEETS) */}
+      <div className="bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 border border-amber-500/40 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-400/10 text-amber-400 rounded-xl border border-amber-400/30">
+              <Database className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white uppercase tracking-wider">
+                  ক্লাউড লাইভ ডাটাবেজ & গুগল ড্রাইভ / শিট সিংক
+                </h3>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-emerald-500/30">
+                  Firebase Live Active
+                </span>
+              </div>
+              <p className="text-neutral-400 mt-0.5">
+                অ্যাডমিন থেকে যা পরিবর্তন করবেন, তা সরাসরি ফায়ারবেস ক্লাউড ডাটাবেজে পার্মানেন্ট সেভ হবে এবং রিয়েল-টাইমে ভিজিটরদের কাছে আপডেট হবে।
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Google Sheets & Drive Connectors */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-neutral-900/90 p-4 rounded-xl border border-neutral-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase">
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Google Sheets Live Link</span>
+              </div>
+              <span className="text-[10px] text-neutral-500 font-mono">স্প্রেডশিট সিংক</span>
+            </div>
+            <input
+              type="url"
+              value={googleSheetUrl}
+              onChange={(e) => setGoogleSheetUrl(e.target.value)}
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-amber-400 text-xs font-mono"
+            />
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              আপনার গুগল স্প্রেডশিট লিংক এখানে যুক্ত রাখলে সরাসরি অ্যাডমিন প্যানেল থেকে সমস্ত অর্ডার ও প্রোডাক্ট সিংক করা যাবে।
+            </p>
+          </div>
+
+          <div className="bg-neutral-900/90 p-4 rounded-xl border border-neutral-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-blue-400 font-bold text-xs uppercase">
+                <HardDrive className="w-4 h-4" />
+                <span>Google Drive Assets Folder</span>
+              </div>
+              <span className="text-[10px] text-neutral-500 font-mono">ড্রাইভ স্টোরেজ</span>
+            </div>
+            <input
+              type="url"
+              value={googleDriveFolderUrl}
+              onChange={(e) => setGoogleDriveFolderUrl(e.target.value)}
+              placeholder="https://drive.google.com/drive/folders/..."
+              className="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-amber-400 text-xs font-mono"
+            />
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              গুগল ড্রাইভ ফোল্ডার লিংক এখানে পেস্ট করলে প্রোডাক্ট ও লোগোর সরাসরি গুগল ড্রাইভ লিঙ্ক কোটার কোনো ঝামেলা ছাড়াই কাজ করবে।
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* SECTION 1: GOOGLE DEVELOPER OAUTH INTEGRATION */}
       <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
         <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
@@ -445,10 +529,10 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
             />
           </div>
 
-          {/* Local Brand Logo File Upload (Base64) */}
+          {/* Local Brand Logo File Upload (Base64 or Direct Link) */}
           <div className="sm:col-span-2 bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 space-y-3">
             <label className="block font-semibold uppercase tracking-wider text-amber-300">
-              Direct Local Brand Logo (Base64 File Upload)
+              Direct Brand Logo (Upload File or Paste Drive URL)
             </label>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="h-14 w-36 bg-neutral-950 border border-neutral-700 rounded-xl flex items-center justify-center p-2 overflow-hidden shrink-0">
@@ -458,22 +542,34 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
                   <span className="text-[11px] text-neutral-500">No Custom Logo</span>
                 )}
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-2 w-full">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleLogoUpload}
                   className="block w-full text-xs text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-400 file:text-neutral-950 hover:file:bg-amber-300 font-semibold cursor-pointer"
                 />
-                {logoImage && (
-                  <button
-                    type="button"
-                    onClick={() => setLogoImage('')}
-                    className="text-[11px] text-rose-400 hover:underline"
-                  >
-                    Remove custom logo image
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={logoImage}
+                    onChange={(e) => {
+                      const val = GoogleDriveSheetService.formatGoogleDriveImageUrl(e.target.value);
+                      setLogoImage(val);
+                    }}
+                    placeholder="Or paste Direct Image / Google Drive Shareable Link"
+                    className="flex-1 bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white text-[11px] font-mono focus:outline-none focus:border-amber-400"
+                  />
+                  {logoImage && (
+                    <button
+                      type="button"
+                      onClick={() => setLogoImage('')}
+                      className="text-[11px] text-rose-400 hover:underline shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -565,13 +661,23 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
           {/* Hero background local upload */}
           <div className="bg-neutral-900/60 p-4 rounded-xl border border-neutral-800 space-y-3">
             <label className="block font-semibold uppercase tracking-wider text-amber-300">
-              Direct Hero Background Photo (Base64 File Upload)
+              Direct Hero Background Photo (Upload File or Paste Drive URL)
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleHeroImageUpload}
               className="block w-full text-xs text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-400 file:text-neutral-950 hover:file:bg-amber-300 font-semibold cursor-pointer"
+            />
+            <input
+              type="text"
+              value={heroImage}
+              onChange={(e) => {
+                const val = GoogleDriveSheetService.formatGoogleDriveImageUrl(e.target.value);
+                setHeroImage(val);
+              }}
+              placeholder="Or paste Direct Image / Google Drive Shareable Link"
+              className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white text-[11px] font-mono focus:outline-none focus:border-amber-400"
             />
           </div>
         </div>
@@ -702,7 +808,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
         <div>
           {savedSuccess && (
             <span className="text-emerald-400 font-bold flex items-center gap-1.5 text-xs">
-              <Check className="w-4 h-4" /> Brand & OAuth settings saved & applied live!
+              <Check className="w-4 h-4" /> Brand, Firestore Cloud & Google Drive settings saved live!
             </span>
           )}
         </div>
@@ -718,4 +824,3 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
     </form>
   );
 };
-

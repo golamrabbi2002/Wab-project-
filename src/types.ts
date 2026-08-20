@@ -108,6 +108,11 @@ export interface StoreConfig {
   adminPin: string;
   // Google OAuth Developer Client ID
   googleClientId?: string;
+  // Google Drive & Google Sheets Live Integration
+  googleSheetUrl?: string;
+  googleDriveFolderUrl?: string;
+  autoSyncGoogleSheets?: boolean;
+  autoSyncGoogleDrive?: boolean;
   // Bangladesh & Global Delivery and Payment Settings
   deliveryDhakaCity?: number;
   deliveryOutsideDhaka?: number;

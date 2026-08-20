@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, StoreConfig } from '../../types';
-import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, Check, X, Sparkles, Search } from 'lucide-react';
+import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
+import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, Check, X, Sparkles, Search, HardDrive, Link as LinkIcon } from 'lucide-react';
 
 interface AdminProductsProps {
   products: Product[];
@@ -35,9 +36,10 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
   const [badges, setBadges] = useState<('New' | 'Sale' | 'Bestseller' | 'Limited')[]>(['New']);
   const [featured, setFeatured] = useState(false);
 
-  // Local Image Upload State (Base64)
+  // Local Image Upload & Google Drive URL State
   const [imageBase64, setImageBase64] = useState<string>('');
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
+  const [driveImageUrl, setDriveImageUrl] = useState<string>('');
   const [imageError, setImageError] = useState<string | null>(null);
 
   const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
@@ -59,6 +61,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     setBadges(['New']);
     setFeatured(false);
     setImageBase64('');
+    setDriveImageUrl('');
     setAdditionalImages([]);
     setImageError(null);
     setIsModalOpen(true);
@@ -80,6 +83,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     setBadges(p.badges || []);
     setFeatured(!!p.featured);
     setImageBase64(p.image);
+    setDriveImageUrl(p.image.startsWith('http') ? p.image : '');
     setAdditionalImages(p.additionalImages || []);
     setImageError(null);
     setIsModalOpen(true);
@@ -99,6 +103,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     reader.onload = (event) => {
       if (typeof event.target?.result === 'string') {
         setImageBase64(event.target.result);
+        setDriveImageUrl('');
         setImageError(null);
       }
     };
@@ -106,6 +111,16 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
       setImageError('Failed to read file from local device.');
     };
     reader.readAsDataURL(file);
+  };
+
+  // Google Drive or Direct URL Input Handler
+  const handleDriveUrlChange = (url: string) => {
+    setDriveImageUrl(url);
+    if (url.trim()) {
+      const formatted = GoogleDriveSheetService.formatGoogleDriveImageUrl(url.trim());
+      setImageBase64(formatted);
+      setImageError(null);
+    }
   };
 
   // Additional Gallery Photos Local Upload (Base64)
@@ -136,7 +151,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     e.preventDefault();
 
     if (!imageBase64) {
-      setImageError('Please upload a product photo from your device.');
+      setImageError('Please upload a product photo or provide a Google Drive / Web image URL.');
       return;
     }
 
@@ -215,7 +230,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
           className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-98"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Garment (Local Upload)</span>
+          <span>Add New Garment (Local / Drive Upload)</span>
         </button>
       </div>
 
@@ -344,7 +359,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
         </div>
       </div>
 
-      {/* ADD / EDIT PRODUCT MODAL (WITH DIRECT LOCAL BASE64 IMAGE UPLOAD) */}
+      {/* ADD / EDIT PRODUCT MODAL (WITH DIRECT LOCAL BASE64 & GOOGLE DRIVE IMAGE UPLOAD) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
           <div className="relative bg-neutral-900 border border-neutral-800 text-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -356,7 +371,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                   {editingProduct ? 'Edit Garment Details' : 'Add New Atelier Garment'}
                 </h3>
                 <p className="text-xs text-neutral-400">
-                  Direct local image upload via FileReader API with localStorage persistence
+                  Upload directly from device or paste Google Drive share link
                 </p>
               </div>
               <button
@@ -370,14 +385,14 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
             {/* Modal Form */}
             <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1 text-xs">
               
-              {/* DIRECT LOCAL IMAGE UPLOAD SECTION */}
+              {/* DIRECT LOCAL IMAGE UPLOAD OR GOOGLE DRIVE LINK SECTION */}
               <div className="bg-neutral-950 border border-neutral-800 p-5 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
                     <Upload className="w-4 h-4" />
-                    <span>Direct Local Garment Photo (Base64 File Input)</span>
+                    <span>Garment Photo (Device Upload or Google Drive)</span>
                   </label>
-                  <span className="text-[10px] text-neutral-400">No external links needed</span>
+                  <span className="text-[10px] text-neutral-400">Auto-synced to Cloud</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -394,16 +409,31 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                   </div>
 
                   {/* Upload Controls */}
-                  <div className="flex-1 space-y-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePrimaryImageUpload}
-                      className="block w-full text-xs text-neutral-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-400 file:text-neutral-950 hover:file:bg-amber-300 cursor-pointer"
-                    />
-                    <p className="text-[11px] text-neutral-500">
-                      Select JPG, PNG, WEBP or SVG from your phone/computer. FileReader automatically encodes it to persistent local Base64.
-                    </p>
+                  <div className="flex-1 space-y-3 w-full">
+                    <div>
+                      <span className="text-[11px] text-neutral-300 font-semibold block mb-1">Option 1: Upload from Phone / PC</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePrimaryImageUpload}
+                        className="block w-full text-xs text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-400 file:text-neutral-950 hover:file:bg-amber-300 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="border-t border-neutral-800 pt-2">
+                      <span className="text-[11px] text-blue-300 font-semibold block mb-1 flex items-center gap-1.5">
+                        <HardDrive className="w-3.5 h-3.5" />
+                        <span>Option 2: Google Drive Share Link or Image URL</span>
+                      </span>
+                      <input
+                        type="text"
+                        value={driveImageUrl}
+                        onChange={(e) => handleDriveUrlChange(e.target.value)}
+                        placeholder="e.g. https://drive.google.com/file/d/.../view"
+                        className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-white font-mono text-[11px] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
                     {imageError && (
                       <p className="text-xs text-rose-400 font-semibold">{imageError}</p>
                     )}
