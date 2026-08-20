@@ -21,7 +21,8 @@ export const initialStoreConfig: StoreConfig = {
   returnPolicy: 'We gladly accept complimentary returns and exchanges on unworn, unwashed garments within 30 days of delivery with original tags attached.',
   privacyPolicy: 'We respect your personal privacy. Customer information, shipping addresses, and transaction records are encrypted and stored solely for fulfillment.',
   termsOfService: 'By accessing Aura Atelier storefront, you agree to our standard terms of purchase, craftsmanship guarantee, and exchange guidelines.',
-  adminPin: 'admin123'
+  adminPin: 'admin123',
+  googleClientId: '461741220295-rqq6hdsnrijiopvkc8j2g6j39ch0h33o.apps.googleusercontent.com'
 };
 
 export const initialProducts: Product[] = [

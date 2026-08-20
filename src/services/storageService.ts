@@ -18,7 +18,14 @@ export const StorageService = {
   getConfig(): StoreConfig {
     try {
       const stored = localStorage.getItem(KEYS.CONFIG);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (!parsed.googleClientId && initialStoreConfig.googleClientId) {
+          parsed.googleClientId = initialStoreConfig.googleClientId;
+          this.saveConfig(parsed);
+        }
+        return parsed;
+      }
     } catch (e) {
       console.warn('Failed to load store config', e);
     }

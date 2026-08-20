@@ -72,7 +72,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 setPin(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder="Enter PIN (e.g. admin123)"
+              placeholder="Enter Master PIN"
               autoFocus
               className="w-full bg-neutral-950 border border-neutral-700 rounded-xl py-3 px-4 text-center text-lg tracking-[0.2em] font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
             />
@@ -108,10 +108,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </button>
           </div>
         </form>
-
-        <div className="mt-6 pt-5 border-t border-neutral-800/80 text-[11px] text-neutral-500">
-          Default Master PIN: <code className="text-amber-400 bg-neutral-950 px-2 py-0.5 rounded font-mono">admin123</code> (Configurable in settings)
-        </div>
       </div>
     </div>
   );

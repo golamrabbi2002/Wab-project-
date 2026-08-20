@@ -15,6 +15,8 @@ import {
   Key,
   ExternalLink,
   Truck,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface AdminStoreSettingsProps {
@@ -57,6 +59,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
   const [privacyPolicy, setPrivacyPolicy] = useState(config.privacyPolicy);
   const [termsOfService, setTermsOfService] = useState(config.termsOfService);
   const [adminPin, setAdminPin] = useState(config.adminPin || 'admin123');
+  const [showAdminPin, setShowAdminPin] = useState(false);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -675,13 +678,22 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
           <label className="block font-semibold uppercase tracking-wider text-neutral-300 mb-2">
             Master Security PIN
           </label>
-          <input
-            type="text"
-            required
-            value={adminPin}
-            onChange={(e) => setAdminPin(e.target.value)}
-            className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white font-mono text-sm tracking-widest focus:outline-none focus:border-amber-400"
-          />
+          <div className="relative">
+            <input
+              type={showAdminPin ? 'text' : 'password'}
+              required
+              value={adminPin}
+              onChange={(e) => setAdminPin(e.target.value)}
+              className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 pr-10 text-white font-mono text-sm tracking-widest focus:outline-none focus:border-amber-400"
+            />
+            <button
+              type="button"
+              onClick={() => setShowAdminPin(!showAdminPin)}
+              className="absolute right-3 top-3 text-neutral-400 hover:text-white"
+            >
+              {showAdminPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       </div>
 

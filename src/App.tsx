@@ -340,7 +340,7 @@ export const App: React.FC = () => {
                     setAdminPinInput(e.target.value);
                     if (adminGateError) setAdminGateError(null);
                   }}
-                  placeholder="Enter Master PIN (e.g. admin123)"
+                  placeholder="Enter Master PIN"
                   autoFocus
                   className="w-full bg-neutral-950 border border-neutral-700 rounded-2xl py-3.5 px-4 text-center text-lg tracking-[0.25em] font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
                 />
@@ -370,9 +370,6 @@ export const App: React.FC = () => {
             </form>
 
             <div className="mt-8 pt-6 border-t border-neutral-800/80 text-[11px] text-neutral-500 flex flex-col items-center gap-2">
-              <div>
-                Default Master PIN: <code className="text-amber-400 bg-neutral-950 px-2 py-0.5 rounded font-mono">admin123</code>
-              </div>
               <button
                 onClick={navigateToStorefront}
                 className="text-neutral-400 hover:text-white underline underline-offset-4 text-xs transition-colors"
@@ -528,7 +525,6 @@ export const App: React.FC = () => {
       <Footer
         config={config}
         onOpenPolicy={(type) => setPolicyModalType(type)}
-        onOpenAdmin={navigateToAdmin}
       />
 
       {/* MODALS & DRAWERS */}

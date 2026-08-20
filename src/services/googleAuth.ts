@@ -60,6 +60,8 @@ export interface GoogleUserProfile {
   verifiedEmail?: boolean;
 }
 
+export const DEFAULT_GOOGLE_CLIENT_ID = '461741220295-rqq6hdsnrijiopvkc8j2g6j39ch0h33o.apps.googleusercontent.com';
+
 // Decode Google JWT Token securely without external dependencies
 export function parseJwt(token: string): any {
   try {
@@ -144,7 +146,10 @@ export class GoogleAuthService {
       return configClientId.trim();
     }
     const envClientId = ((import.meta as any).env?.VITE_GOOGLE_CLIENT_ID as string) || '';
-    return envClientId.trim();
+    if (envClientId && envClientId.trim()) {
+      return envClientId.trim();
+    }
+    return DEFAULT_GOOGLE_CLIENT_ID;
   }
 
   // Render official Google Sign-In button into a DOM container
