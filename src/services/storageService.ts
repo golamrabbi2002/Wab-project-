@@ -36,10 +36,14 @@ export const StorageService = {
 
   saveConfig(config: StoreConfig): void {
     try {
-      localStorage.setItem(KEYS.CONFIG, JSON.stringify(config));
-      window.dispatchEvent(new CustomEvent('aura_config_updated', { detail: config }));
+      const configWithTimestamp: StoreConfig = {
+        ...config,
+        updatedAt: config.updatedAt || new Date().toISOString()
+      };
+      localStorage.setItem(KEYS.CONFIG, JSON.stringify(configWithTimestamp));
+      window.dispatchEvent(new CustomEvent('aura_config_updated', { detail: configWithTimestamp }));
       // Background Sync to Firebase Firestore
-      FirestoreSyncService.saveConfig(config).catch(err => {
+      FirestoreSyncService.saveConfig(configWithTimestamp).catch(err => {
         console.warn('Background Firestore config sync notice:', err);
       });
     } catch (e) {
@@ -61,10 +65,15 @@ export const StorageService = {
 
   saveProducts(products: Product[]): void {
     try {
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
-      window.dispatchEvent(new CustomEvent('aura_products_updated', { detail: products }));
+      const now = new Date().toISOString();
+      const updatedProducts = products.map(p => ({
+        ...p,
+        updatedAt: p.updatedAt || now
+      }));
+      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(updatedProducts));
+      window.dispatchEvent(new CustomEvent('aura_products_updated', { detail: updatedProducts }));
       // Background Sync to Firebase Firestore
-      FirestoreSyncService.saveAllProducts(products).catch(err => {
+      FirestoreSyncService.saveAllProducts(updatedProducts).catch(err => {
         console.warn('Background Firestore products sync notice:', err);
       });
     } catch (e) {
@@ -74,14 +83,18 @@ export const StorageService = {
 
   saveProduct(product: Product): void {
     const products = this.getProducts();
+    const productWithTimestamp: Product = {
+      ...product,
+      updatedAt: new Date().toISOString()
+    };
     const index = products.findIndex(p => p.id === product.id);
     if (index >= 0) {
-      products[index] = product;
+      products[index] = productWithTimestamp;
     } else {
-      products.unshift(product);
+      products.unshift(productWithTimestamp);
     }
     this.saveProducts(products);
-    FirestoreSyncService.saveProduct(product).catch(err => {
+    FirestoreSyncService.saveProduct(productWithTimestamp).catch(err => {
       console.warn('Background Firestore single product sync notice:', err);
     });
   },

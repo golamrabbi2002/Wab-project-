@@ -158,25 +158,58 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadState();
 
-    // Initialize Firestore defaults and subscribe to real-time updates
-    FirestoreSyncService.initDefaults().catch(console.warn);
+    // Initialize Firestore defaults with current local customized data and subscribe to real-time updates
+    const currentLocalConfig = storageService.getConfig();
+    const currentLocalProducts = storageService.getProducts();
+    FirestoreSyncService.initDefaults(currentLocalConfig, currentLocalProducts).catch(console.warn);
 
     const unsubConfig = FirestoreSyncService.subscribeConfig((cloudConfig) => {
       if (cloudConfig) {
-        setConfig(cloudConfig);
-        try {
-          localStorage.setItem('aura_store_config', JSON.stringify(cloudConfig));
-        } catch (e) {
-          console.warn('LocalStorage sync warning:', e);
+        const localConfig = storageService.getConfig();
+        const localTime = localConfig.updatedAt ? new Date(localConfig.updatedAt).getTime() : 0;
+        const cloudTime = cloudConfig.updatedAt ? new Date(cloudConfig.updatedAt).getTime() : 0;
+
+        // Prevent overwriting freshly edited local config with stale cloud snapshots
+        if (!localTime || cloudTime >= localTime) {
+          setConfig(cloudConfig);
+          try {
+            localStorage.setItem('aura_store_config', JSON.stringify(cloudConfig));
+          } catch (e) {
+            console.warn('LocalStorage sync warning:', e);
+          }
+        } else {
+          // If local config is newer, sync it to cloud
+          FirestoreSyncService.saveConfig(localConfig).catch(console.warn);
         }
       }
     });
 
     const unsubProducts = FirestoreSyncService.subscribeProducts((cloudProducts) => {
       if (cloudProducts && cloudProducts.length > 0) {
-        setProducts(cloudProducts);
+        const localProducts = storageService.getProducts();
+        // Intelligent two-way merge by ID and timestamp to ensure custom garments never disappear
+        const mergedMap = new Map<string, Product>();
+        cloudProducts.forEach((p) => mergedMap.set(p.id, p));
+
+        localProducts.forEach((lp) => {
+          const cp = mergedMap.get(lp.id);
+          if (!cp) {
+            mergedMap.set(lp.id, lp);
+            FirestoreSyncService.saveProduct(lp).catch(console.warn);
+          } else {
+            const lpTime = lp.updatedAt ? new Date(lp.updatedAt).getTime() : 0;
+            const cpTime = cp.updatedAt ? new Date(cp.updatedAt).getTime() : 0;
+            if (lpTime > cpTime) {
+              mergedMap.set(lp.id, lp);
+              FirestoreSyncService.saveProduct(lp).catch(console.warn);
+            }
+          }
+        });
+
+        const finalProducts = Array.from(mergedMap.values());
+        setProducts(finalProducts);
         try {
-          localStorage.setItem('aura_products', JSON.stringify(cloudProducts));
+          localStorage.setItem('aura_products', JSON.stringify(finalProducts));
         } catch (e) {
           console.warn('LocalStorage sync warning:', e);
         }

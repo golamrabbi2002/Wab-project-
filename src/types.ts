@@ -18,6 +18,7 @@ export interface Product {
   badges?: ('New' | 'Sale' | 'Bestseller' | 'Limited')[];
   featured?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CartItem {
@@ -119,6 +120,7 @@ export interface StoreConfig {
   bkashMerchantNumber?: string;
   nagadMerchantNumber?: string;
   rocketMerchantNumber?: string;
+  updatedAt?: string;
 }
 
 export interface Coupon {

@@ -77,6 +77,40 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Sync state when config updates externally
+  React.useEffect(() => {
+    setBrandName(config.brandName);
+    setTagline(config.tagline);
+    setLogoImage(config.logoImage || '');
+    setHeroHeadline(config.heroHeadline);
+    setHeroSubheadline(config.heroSubheadline);
+    setHeroImage(config.heroImage || '');
+    setAnnouncementText(config.announcementText);
+    setShowAnnouncement(config.showAnnouncement);
+    setGoogleSheetUrl(config.googleSheetUrl || '');
+    setGoogleDriveFolderUrl(config.googleDriveFolderUrl || '');
+    setAutoSyncGoogleSheets(config.autoSyncGoogleSheets ?? true);
+    setAutoSyncGoogleDrive(config.autoSyncGoogleDrive ?? true);
+    setCurrencySymbol(config.currencySymbol || '৳');
+    setCurrencyCode(config.currencyCode || 'BDT');
+    setTaxRate(config.taxRate * 100);
+    setFreeShippingThreshold(config.freeShippingThreshold || 3000);
+    setGoogleClientId(config.googleClientId || '');
+    setDeliveryDhakaCity(config.deliveryDhakaCity ?? 70);
+    setDeliveryOutsideDhaka(config.deliveryOutsideDhaka ?? 130);
+    setBkashMerchantNumber(config.bkashMerchantNumber || '01712-345678');
+    setNagadMerchantNumber(config.nagadMerchantNumber || '01812-345678');
+    setRocketMerchantNumber(config.rocketMerchantNumber || '01912-345678');
+    setContactEmail(config.contactEmail);
+    setContactPhone(config.contactPhone);
+    setStudioAddress(config.studioAddress);
+    setShippingPolicy(config.shippingPolicy);
+    setReturnPolicy(config.returnPolicy);
+    setPrivacyPolicy(config.privacyPolicy);
+    setTermsOfService(config.termsOfService);
+    setAdminPin(config.adminPin || 'admin123');
+  }, [config]);
+
   // Quick Currency Preset handler
   const handleSelectCurrency = (sym: string, code: string) => {
     setCurrencySymbol(sym);

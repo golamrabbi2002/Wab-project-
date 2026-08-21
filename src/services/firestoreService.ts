@@ -107,18 +107,19 @@ const ORDERS_COLLECTION = 'orders';
 export class FirestoreSyncService {
   private static isInitialized = false;
 
-  // Initialize and ensure default documents exist in Firestore
-  static async initDefaults(): Promise<void> {
+  // Initialize and ensure default documents exist in Firestore without overwriting local custom data
+  static async initDefaults(currentLocalConfig?: StoreConfig, currentLocalProducts?: Product[]): Promise<void> {
     if (this.isInitialized) return;
     try {
       // Check if store config exists
       const configRef = doc(db, STORE_COLLECTION, STORE_CONFIG_DOC);
       const configSnap = await getDoc(configRef);
       if (!configSnap.exists()) {
+        const configToSave = currentLocalConfig || initialStoreConfig;
         try {
           await setDoc(configRef, {
-            ...initialStoreConfig,
-            updatedAt: new Date().toISOString()
+            ...configToSave,
+            updatedAt: configToSave.updatedAt || new Date().toISOString()
           });
         } catch (err) {
           handleFirestoreError(err, OperationType.WRITE, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
@@ -128,11 +129,17 @@ export class FirestoreSyncService {
       // Check if products exist
       const productsRef = collection(db, PRODUCTS_COLLECTION);
       const productsSnap = await getDocs(productsRef);
-      if (productsSnap.empty && initialProducts.length > 0) {
-        for (const product of initialProducts) {
+      if (productsSnap.empty) {
+        const prodsToSave = (currentLocalProducts && currentLocalProducts.length > 0) 
+          ? currentLocalProducts 
+          : initialProducts;
+        for (const product of prodsToSave) {
           const pDoc = doc(db, PRODUCTS_COLLECTION, product.id);
           try {
-            await setDoc(pDoc, product);
+            await setDoc(pDoc, {
+              ...product,
+              updatedAt: product.updatedAt || new Date().toISOString()
+            });
           } catch (err) {
             handleFirestoreError(err, OperationType.WRITE, `${PRODUCTS_COLLECTION}/${product.id}`);
           }
