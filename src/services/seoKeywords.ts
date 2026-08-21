@@ -2,7 +2,12 @@
 // Fully invisible to users on UI, embedded directly for Googlebot, Bingbot, Yandex, Gemini & ChatGPT AI Indexers
 
 export const SEO_KEYWORDS_COLLECTION = [
-  // 1. Brand & Core E-Commerce (1-100)
+  // 1. Brand & Core E-Commerce (Bismillah Collection & Variations)
+  "Bismillah Collection", "Bismillah Collection BD", "Bismillah Collection Bangladesh", "Bismillah Collection Dhaka",
+  "Bismillah Collection online shop", "Bismillah Collection clothing", "Bismillah Collection dress", "Bismillah Collection panjabi",
+  "Bismillah Collection saree", "Bismillah Collection shirt", "Bismillah Collection official", "Bismillah Collection website",
+  "বিসমিল্লাহ কালেকশন", "বিসমিল্লাহ কালেকশন অনলাইন", "বিসমিল্লাহ শপ", "বিসমিল্লাহ পোশাকের দোকান", "বিসমিল্লাহ ক্লোথিং",
+  "বিসমিল্লাহ পাঞ্জাবি কালেকশন", "বিসমিল্লাহ শাড়ি কালেকশন", "বিসমিল্লাহ থ্রি পিস", "বিসমিল্লাহ ফ্যাশন",
   "Aura Atelier", "Aura Atelier Bangladesh", "Aura Fashion Store", "Aura Clothing Brand", "Aura Luxury",
   "Aura Online Shopping", "Aura Designer Wear", "Aura Capsule Wardrobe", "Aura Atelier Dhaka", "Aura Atelier Boutique",
   "Aura Official Store", "Aura Modern Clothing", "Aura Sustainable Fashion", "Aura Atelier Website", "Aura Shopping App",
