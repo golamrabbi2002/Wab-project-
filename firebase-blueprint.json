@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Public store brand settings and configuration",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string", "maxLength": 100 },
+        "tagline": { "type": "string", "maxLength": 200 },
+        "heroHeadline": { "type": "string", "maxLength": 200 },
+        "heroSubheadline": { "type": "string", "maxLength": 500 },
+        "announcementText": { "type": "string", "maxLength": 300 },
+        "announcementEnabled": { "type": "boolean" },
+        "currencySymbol": { "type": "string", "maxLength": 10 },
+        "currencyCode": { "type": "string", "maxLength": 10 },
+        "taxRate": { "type": "number" },
+        "shippingCost": { "type": "number" },
+        "freeShippingThreshold": { "type": "number" },
+        "contactEmail": { "type": "string", "maxLength": 150 },
+        "contactPhone": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 300 },
+        "bkashNumber": { "type": "string", "maxLength": 30 },
+        "nagadNumber": { "type": "string", "maxLength": 30 },
+        "rocketNumber": { "type": "string", "maxLength": 30 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["brandName", "currencySymbol"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product inventory and catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 2500 },
+        "price": { "type": "number" },
+        "category": { "type": "string", "maxLength": 100 },
+        "image": { "type": "string", "maxLength": 2000 },
+        "sku": { "type": "string", "maxLength": 50 },
+        "stock": { "type": "number" },
+        "isFeatured": { "type": "boolean" }
+      },
+      "required": ["id", "title", "price", "category", "image"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 50 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerEmail": { "type": "string", "maxLength": 150 },
+        "customerPhone": { "type": "string", "maxLength": 50 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "tax": { "type": "number" },
+        "shippingCost": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "maxLength": 50 },
+        "paymentMethod": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "orderNumber", "customerName", "customerPhone", "total", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Registered customer profile and preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name", "email"]
+    }
+  },
+  "firestore": {
+    "/store/config": {
+      "schema": "StoreConfig",
+      "description": "Store-wide public configuration document"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Public catalogue of products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Secured customer purchase orders"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Secured customer profile record"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CartItem, StoreConfig, Coupon, Customer, Order } from '../types';
 import { X, CheckCircle2, ShieldCheck, Truck, CreditCard, Sparkles, Download, Lock, Smartphone, MapPin, AlertCircle } from 'lucide-react';
+import { SecurityService } from '../services/securityService';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface CheckoutModalProps {
   customer: Customer | null;
   onSaveCustomerShipping?: (address: any) => void;
   onOrderPlaced: (order: Order) => void;
+  onOpenOrderTracking?: () => void;
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -22,6 +24,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   customer,
   onSaveCustomerShipping,
   onOrderPlaced,
+  onOpenOrderTracking,
 }) => {
   const [step, setStep] = useState<'details' | 'payment' | 'confirmation'>('details');
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
@@ -36,6 +39,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [zip, setZip] = useState(customer?.shippingAddress?.zip || '1212');
   const [country, setCountry] = useState(customer?.shippingAddress?.country || 'Bangladesh');
   
+  // Luxury Gift Packaging Option
+  const [includeGiftWrap, setIncludeGiftWrap] = useState(false);
+  const [giftMessage, setGiftMessage] = useState('');
+
   // Delivery Zone
   const [deliveryZone, setDeliveryZone] = useState<'dhaka' | 'outside_dhaka' | 'express'>('dhaka');
   const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'rocket' | 'cod' | 'card'>('bkash');
@@ -64,6 +71,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const isFreeStandard = subtotal >= (config.freeShippingThreshold || 3000);
   const dhakaFee = config.deliveryDhakaCity ?? 70;
   const outsideDhakaFee = config.deliveryOutsideDhaka ?? 130;
+  const giftWrapFee = includeGiftWrap ? 150 : 0;
 
   const shippingCost =
     deliveryZone === 'dhaka'
@@ -73,7 +81,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       : 200; // Urgent express
 
   const tax = (subtotal - discount) * (config.taxRate || 0.05);
-  const total = Math.max(0, subtotal - discount + shippingCost + tax);
+  const total = Math.max(0, subtotal - discount + shippingCost + tax + giftWrapFee);
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,31 +106,42 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         ? 'Cash on Delivery (ক্যাশ অন ডেলিভারি)'
         : 'Credit / Debit Card';
 
+    const cleanName = SecurityService.sanitizeText(name, 80);
+    const cleanEmail = SecurityService.sanitizeEmail(email) || 'customer@guest.com';
+    const cleanPhone = SecurityService.sanitizePhone(phone);
+    const cleanStreet = SecurityService.sanitizeText(street, 200);
+    const cleanCity = SecurityService.sanitizeText(city, 80);
+    const cleanState = SecurityService.sanitizeText(state, 80);
+    const cleanZip = SecurityService.sanitizeText(zip, 20);
+    const cleanTxId = SecurityService.sanitizeTransactionId(transactionId);
+    const cleanGiftMessage = giftMessage ? SecurityService.sanitizeText(giftMessage, 300) : '';
+
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       orderNumber,
       customerId: customer?.id || `guest-${Date.now()}`,
-      customerName: name,
-      customerEmail: email,
-      customerPhone: phone,
-      shippingAddress: { street, city, state, zip, country },
+      customerName: cleanName,
+      customerEmail: cleanEmail,
+      customerPhone: cleanPhone,
+      shippingAddress: { street: cleanStreet, city: cleanCity, state: cleanState, zip: cleanZip, country: country || 'Bangladesh' },
       items: cart.map((c) => ({
         productId: c.product.id,
-        title: c.product.title,
+        title: SecurityService.sanitizeText(c.product.title, 120),
         size: c.selectedSize,
-        price: c.product.price,
-        quantity: c.quantity,
+        price: Number(c.product.price) || 0,
+        quantity: Math.max(1, Math.min(99, Number(c.quantity) || 1)),
         image: c.product.image,
       })),
-      subtotal,
-      discount,
-      couponCode: appliedCoupon?.code,
-      tax,
-      shippingCost,
-      total,
+      subtotal: Math.max(0, Number(subtotal) || 0),
+      discount: Math.max(0, Number(discount) || 0),
+      couponCode: appliedCoupon?.code ? SecurityService.sanitizeText(appliedCoupon.code, 30) : undefined,
+      tax: Math.max(0, Number(tax) || 0),
+      shippingCost: Math.max(0, Number(shippingCost) || 0),
+      total: Math.max(0, Number(total) || 0),
       status: 'Pending',
       paymentMethod: paymentLabel,
-      transactionId: transactionId.trim() || undefined,
+      transactionId: cleanTxId || undefined,
+      notes: includeGiftWrap ? `[Signature Gift Packaging & Calligraphy Note]: ${cleanGiftMessage || 'Complimentary Gift Ribbon'}` : undefined,
       deliveryZone:
         deliveryZone === 'dhaka'
           ? 'Inside Dhaka (ঢাকা সিটি)'
@@ -186,7 +205,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex gap-2 overflow-x-auto py-1">
                   {cart.map((item) => (
                     <div key={`${item.product.id}-${item.selectedSize}`} className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-neutral-200 shrink-0 text-xs">
-                      <img src={item.product.image} alt="" className="w-7 h-8 object-cover rounded" />
+                      {item.product.image ? (
+                        <img src={item.product.image} alt="" className="w-7 h-8 object-cover rounded" />
+                      ) : null}
                       <div>
                         <span className="font-semibold text-neutral-900 block truncate max-w-[120px]">{item.product.title}</span>
                         <span className="text-[10px] text-neutral-500 font-mono">Size {item.selectedSize} × {item.quantity}</span>
@@ -358,6 +379,45 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <span className="font-mono font-bold text-neutral-950">{config.currencySymbol}200.00</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Luxury Gift Packaging Section */}
+              <div className="p-4 bg-gradient-to-r from-amber-50/70 to-neutral-50 rounded-2xl border border-amber-200/80 space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeGiftWrap}
+                    onChange={(e) => setIncludeGiftWrap(e.target.checked)}
+                    className="mt-0.5 rounded border-neutral-300 text-neutral-950 focus:ring-neutral-950"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-neutral-950 uppercase tracking-wide flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Luxury Atelier Signature Gift Packaging</span>
+                      </span>
+                      <span className="text-xs font-bold font-mono text-amber-900">+৳150.00</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">
+                      Handcrafted rigid gift box, satin gold ribbon tie, scented tissue lining & handwritten calligraphy message card.
+                    </p>
+                  </div>
+                </label>
+
+                {includeGiftWrap && (
+                  <div className="pt-2 animate-fadeIn">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                      Personalized Message for Calligraphy Card:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={giftMessage}
+                      onChange={(e) => setGiftMessage(e.target.value)}
+                      placeholder="e.g. Happy Anniversary my love! Wishing you endless grace and joy."
+                      className="w-full text-xs p-2.5 bg-white border border-amber-300 rounded-xl focus:ring-1 focus:ring-neutral-950 focus:outline-none placeholder:text-neutral-400"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Submit to Step 2 */}
@@ -709,6 +769,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
 
               <div className="flex flex-wrap justify-center gap-3">
+                {onOpenOrderTracking && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenOrderTracking();
+                    }}
+                    className="px-6 py-3.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-md flex items-center gap-2"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Track This Parcel Live</span>
+                  </button>
+                )}
+
                 <button
                   onClick={onClose}
                   className="px-8 py-3.5 bg-neutral-950 text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-neutral-800 transition-colors shadow-md"

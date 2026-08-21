@@ -5,11 +5,15 @@ import { Sparkles, Mail, Phone, MapPin, Check, Truck, ShieldCheck } from 'lucide
 interface FooterProps {
   config: StoreConfig;
   onOpenPolicy: (type: 'shipping' | 'returns' | 'privacy' | 'terms') => void;
+  onOpenOrderTracking?: () => void;
+  onOpenSizeGuide?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   config,
   onOpenPolicy,
+  onOpenOrderTracking,
+  onOpenSizeGuide,
 }) => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
@@ -111,6 +115,20 @@ export const Footer: React.FC<FooterProps> = ({
             Client Services
           </h5>
           <ul className="space-y-2 text-neutral-400">
+            {onOpenOrderTracking && (
+              <li>
+                <button onClick={() => onOpenOrderTracking()} className="text-amber-400 hover:text-amber-300 font-semibold transition-colors text-left flex items-center gap-1.5">
+                  <span>📦 Live Parcel Tracking</span>
+                </button>
+              </li>
+            )}
+            {onOpenSizeGuide && (
+              <li>
+                <button onClick={() => onOpenSizeGuide()} className="hover:text-white transition-colors text-left flex items-center gap-1.5">
+                  <span>📏 Size & Measurement Guide</span>
+                </button>
+              </li>
+            )}
             <li>
               <button onClick={() => onOpenPolicy('shipping')} className="hover:text-white transition-colors text-left">
                 Courier & Transit Schedule

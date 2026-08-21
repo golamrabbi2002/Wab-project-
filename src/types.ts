@@ -140,3 +140,61 @@ export interface Review {
   comment: string;
   verifiedPurchase: boolean;
 }
+
+export type ThreatRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface HoneypotIntrusionLog {
+  id: string;
+  timestamp: string; // ISO format
+  trapType:
+    | 'Fake Root Terminal'
+    | 'Vulnerable DB Backup'
+    | 'SQL Injection Sandbox'
+    | 'WP-Admin Emulation'
+    | 'API Debug Leak'
+    | 'Config Dump Probe'
+    | 'Hidden Canary Crawler';
+  path: string;
+  ip: string;
+  country: string;
+  countryCode: string;
+  city: string;
+  region: string;
+  latitude: number;
+  longitude: number;
+  isp: string;
+  org: string;
+  timezone: string;
+  device: {
+    browser: string;
+    os: string;
+    screen: string;
+    language: string;
+    hardwareConcurrency: number;
+    deviceMemory?: number;
+    touchSupport: boolean;
+    webglRenderer?: string;
+    canvasFingerprint?: string;
+    audioFingerprint?: string;
+    webrtcCandidateIps?: string[];
+  };
+  vpnTorDetection: {
+    isVpnOrProxy: boolean;
+    isTor: boolean;
+    confidenceScore: number; // 0 - 100%
+    timezoneMismatch: boolean;
+    webrtcLeakDetected: boolean;
+    reasons: string[];
+  };
+  payload: {
+    usernameAttempted?: string;
+    passwordAttempted?: string;
+    injectedCommands?: string;
+    queryParameters?: Record<string, string>;
+    headers?: Record<string, string>;
+  };
+  emailAlertSent: boolean;
+  alertRecipient?: string;
+  riskLevel: ThreatRiskLevel;
+  status: 'Intercepted' | 'Quarantined' | 'Simulated';
+}

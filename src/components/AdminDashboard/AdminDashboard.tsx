@@ -7,6 +7,7 @@ import { AdminCustomers } from './AdminCustomers';
 import { AdminStoreSettings } from './AdminStoreSettings';
 import { AdminCoupons } from './AdminCoupons';
 import { AdminExportBackup } from './AdminExportBackup';
+import { AdminThreatMap } from './AdminThreatMap';
 import {
   LayoutDashboard,
   Package,
@@ -22,6 +23,8 @@ import {
   Eye,
   Link as LinkIcon,
   Check,
+  Radio,
+  ShieldAlert
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -60,7 +63,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRefreshData,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'products' | 'orders' | 'customers' | 'settings' | 'coupons' | 'export'
+    'analytics' | 'products' | 'orders' | 'customers' | 'settings' | 'coupons' | 'export' | 'threat_map'
   >('analytics');
 
   const [copiedLink, setCopiedLink] = useState(false);
@@ -223,6 +226,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('threat_map')}
+            className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === 'threat_map'
+                ? 'border-rose-400 text-rose-400 bg-rose-950/20'
+                : 'border-transparent text-rose-400/80 hover:text-rose-300'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 text-rose-400 animate-pulse" />
+            <span>Threat Radar & Honeypot Map</span>
+            <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[9px] font-bold font-mono">
+              LIVE
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('export')}
             className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'export'
@@ -335,6 +353,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             customers={customers}
             onRefreshData={onRefreshData}
           />
+        )}
+
+        {activeTab === 'threat_map' && (
+          <AdminThreatMap />
         )}
       </main>
     </div>

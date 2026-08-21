@@ -115,7 +115,9 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ products, orders
                   className="flex items-center justify-between p-3 bg-neutral-900/60 rounded-xl border border-neutral-800/80 text-xs"
                 >
                   <div className="flex items-center gap-3">
-                    <img src={p.image} alt={p.title} className="w-10 h-12 object-cover rounded bg-neutral-800" />
+                    {p.image ? (
+                      <img src={p.image} alt={p.title} className="w-10 h-12 object-cover rounded bg-neutral-800" />
+                    ) : null}
                     <div>
                       <h4 className="font-bold text-white line-clamp-1">{p.title}</h4>
                       <span className="text-[10px] text-neutral-400 font-mono">SKU: {p.sku}</span>

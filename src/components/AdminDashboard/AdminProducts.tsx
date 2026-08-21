@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, StoreConfig } from '../../types';
 import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
+import { SecurityService } from '../../services/securityService';
 import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, Check, X, Sparkles, Search, HardDrive, Link as LinkIcon } from 'lucide-react';
 
 interface AdminProductsProps {
@@ -157,21 +158,21 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
 
     const newProduct: Product = {
       id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
-      title,
-      subtitle,
+      title: SecurityService.sanitizeText(title, 120),
+      subtitle: SecurityService.sanitizeText(subtitle, 150),
       category,
-      price: Number(price),
-      originalPrice: Number(originalPrice),
-      image: imageBase64,
-      additionalImages,
+      price: Math.max(0, Number(price) || 0),
+      originalPrice: Math.max(0, Number(originalPrice) || 0),
+      image: imageBase64.trim(),
+      additionalImages: additionalImages.map(img => img.trim()),
       sizes: sizes.length > 0 ? sizes : ['One Size'],
-      stock: Number(stock),
-      sku: sku || `AUR-${Date.now().toString().slice(-4)}`,
+      stock: Math.max(0, Number(stock) || 0),
+      sku: SecurityService.sanitizeText(sku || `AUR-${Date.now().toString().slice(-4)}`, 50),
       rating: editingProduct ? editingProduct.rating : 5.0,
       reviewsCount: editingProduct ? editingProduct.reviewsCount : 1,
-      description,
-      material,
-      careInstructions,
+      description: SecurityService.sanitizeText(description, 2500),
+      material: SecurityService.sanitizeText(material, 200),
+      careInstructions: SecurityService.sanitizeText(careInstructions, 300),
       badges,
       featured,
       createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString(),
@@ -262,9 +263,11 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                     
                     {/* Image & Title */}
                     <td className="py-3 px-4 flex items-center gap-3.5">
-                      <div className="w-12 h-14 rounded-lg bg-neutral-900 overflow-hidden border border-neutral-700 shrink-0">
-                        <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
-                      </div>
+                      {p.image ? (
+                        <div className="w-12 h-14 rounded-lg bg-neutral-900 overflow-hidden border border-neutral-700 shrink-0">
+                          <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
+                        </div>
+                      ) : null}
                       <div>
                         <div className="font-bold text-white leading-snug line-clamp-1">{p.title}</div>
                         <div className="text-[10px] text-neutral-400 font-mono">SKU: {p.sku}</div>

@@ -188,7 +188,9 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <img src={item.image} alt="" className="w-10 h-12 object-cover rounded bg-neutral-200" />
+                            {item.image ? (
+                              <img src={item.image} alt="" className="w-10 h-12 object-cover rounded bg-neutral-200" />
+                            ) : null}
                             <div>
                               <div className="font-semibold text-neutral-900">{item.title}</div>
                               <div className="text-[11px] text-neutral-500 font-mono">
@@ -234,7 +236,9 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {wishlistProducts.map((p) => (
                     <div key={p.id} className="flex gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200">
-                      <img src={p.image} alt={p.title} className="w-16 h-20 object-cover rounded bg-neutral-200" />
+                      {p.image ? (
+                        <img src={p.image} alt={p.title} className="w-16 h-20 object-cover rounded bg-neutral-200" />
+                      ) : null}
                       <div className="flex-1 flex flex-col justify-between text-xs">
                         <div>
                           <h4 className="font-bold text-neutral-900 line-clamp-1">{p.title}</h4>

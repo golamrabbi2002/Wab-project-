@@ -621,7 +621,9 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                                 key={p.id}
                                 className="flex items-center gap-2 p-2 bg-neutral-950 rounded-lg border border-neutral-800 text-xs"
                               >
-                                <img src={p.image} alt={p.title} className="w-8 h-10 object-cover rounded" />
+                                {p.image ? (
+                                  <img src={p.image} alt={p.title} className="w-8 h-10 object-cover rounded" />
+                                ) : null}
                                 <div className="truncate flex-1">
                                   <span className="text-white block truncate">{p.title}</span>
                                   <span className="text-amber-400 font-mono text-[10px]">

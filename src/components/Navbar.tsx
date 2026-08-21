@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StoreConfig, Customer } from '../types';
-import { Search, ShoppingBag, User, Heart, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, User, Heart, Menu, X, Package, Ruler } from 'lucide-react';
 
 interface NavbarProps {
   config: StoreConfig;
@@ -10,6 +10,8 @@ interface NavbarProps {
   onOpenCart?: () => void;
   onOpenAuth?: () => void;
   onOpenWishlist?: () => void;
+  onOpenOrderTracking?: () => void;
+  onOpenSizeGuide?: () => void;
   onSelectCategory?: (cat: string) => void;
   onCategorySelect?: (cat: string) => void;
   selectedCategory?: string;
@@ -25,6 +27,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCart,
   onOpenAuth,
   onOpenWishlist,
+  onOpenOrderTracking,
+  onOpenSizeGuide,
   onSelectCategory,
   onCategorySelect,
   selectedCategory = 'All',
@@ -156,6 +160,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
+            {/* Track Order Button */}
+            {onOpenOrderTracking && (
+              <button
+                onClick={() => onOpenOrderTracking()}
+                className="hidden sm:flex items-center gap-1.5 p-1.5 px-3 text-neutral-800 hover:text-neutral-950 hover:bg-neutral-100 rounded-full transition-colors border border-neutral-200 text-xs font-semibold"
+                title="Track Parcel Delivery"
+              >
+                <Package className="w-3.5 h-3.5 text-neutral-700" />
+                <span>Track Order</span>
+              </button>
+            )}
+
             {/* Customer Account / Google Sign-in */}
             <button
               onClick={() => onOpenAuth?.()}
@@ -239,6 +255,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {cat}
               </button>
             ))}
+
+            <div className="pt-2 border-t border-neutral-100 space-y-1.5 px-2">
+              {onOpenOrderTracking && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenOrderTracking();
+                  }}
+                  className="w-full py-2.5 px-3 bg-neutral-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+                >
+                  <Package className="w-4 h-4" />
+                  <span>Track Parcel / Order</span>
+                </button>
+              )}
+              {onOpenSizeGuide && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenSizeGuide();
+                  }}
+                  className="w-full py-2.5 px-3 bg-white border border-neutral-300 text-neutral-800 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+                >
+                  <Ruler className="w-4 h-4" />
+                  <span>Size & Fitting Guide</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

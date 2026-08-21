@@ -254,7 +254,9 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpda
                       className="flex items-center justify-between p-3 bg-neutral-950 rounded-xl border border-neutral-800"
                     >
                       <div className="flex items-center gap-3">
-                        <img src={i.image} alt="" className="w-12 h-14 object-cover rounded bg-neutral-800" />
+                        {i.image ? (
+                          <img src={i.image} alt="" className="w-12 h-14 object-cover rounded bg-neutral-800" />
+                        ) : null}
                         <div>
                           <div className="font-bold text-white">{i.title}</div>
                           <div className="text-[11px] text-neutral-400 font-mono">

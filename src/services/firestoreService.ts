@@ -1,8 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { 
+  initializeFirestore,
   getFirestore, 
   doc, 
   getDoc, 
+  getDocFromServer,
   setDoc, 
   collection, 
   getDocs, 
@@ -19,10 +22,82 @@ import { initialStoreConfig, initialProducts } from '../data/initialData';
 // Initialize Firebase App instance safely
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore with custom database ID if specified in config
-export const db = firebaseConfig.firestoreDatabaseId 
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firebase Auth
+export const auth = getAuth(app);
+
+// Initialize Firestore with custom database ID if specified in config and long polling fallback
+function createFirestoreInstance() {
+  const dbId = firebaseConfig.firestoreDatabaseId || undefined;
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    }, dbId);
+  } catch {
+    return dbId ? getFirestore(app, dbId) : getFirestore(app);
+  }
+}
+
+export const db = createFirestoreInstance();
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const currentUser = auth.currentUser;
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: currentUser?.uid,
+      email: currentUser?.email,
+      emailVerified: currentUser?.emailVerified,
+      isAnonymous: currentUser?.isAnonymous,
+      tenantId: currentUser?.tenantId,
+      providerInfo: currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.warn('Firestore Operation Notice:', JSON.stringify(errInfo));
+}
+
+// Connection validator per Firebase Skill Guidelines
+export async function testConnection(): Promise<boolean> {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn('Firestore: Client operating in offline mode.');
+    }
+    return false;
+  }
+}
 
 const STORE_CONFIG_DOC = 'config';
 const STORE_COLLECTION = 'store';
@@ -40,10 +115,14 @@ export class FirestoreSyncService {
       const configRef = doc(db, STORE_COLLECTION, STORE_CONFIG_DOC);
       const configSnap = await getDoc(configRef);
       if (!configSnap.exists()) {
-        await setDoc(configRef, {
-          ...initialStoreConfig,
-          updatedAt: new Date().toISOString()
-        });
+        try {
+          await setDoc(configRef, {
+            ...initialStoreConfig,
+            updatedAt: new Date().toISOString()
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
+        }
       }
 
       // Check if products exist
@@ -52,12 +131,16 @@ export class FirestoreSyncService {
       if (productsSnap.empty && initialProducts.length > 0) {
         for (const product of initialProducts) {
           const pDoc = doc(db, PRODUCTS_COLLECTION, product.id);
-          await setDoc(pDoc, product);
+          try {
+            await setDoc(pDoc, product);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `${PRODUCTS_COLLECTION}/${product.id}`);
+          }
         }
       }
       this.isInitialized = true;
     } catch (error) {
-      console.warn('Firestore initial sync note:', error);
+      handleFirestoreError(error, OperationType.GET, STORE_COLLECTION);
     }
   }
 
@@ -70,7 +153,7 @@ export class FirestoreSyncService {
         callback(data);
       }
     }, (error) => {
-      console.warn('Firestore config subscription error:', error);
+      handleFirestoreError(error, OperationType.GET, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
     });
   }
 
@@ -84,7 +167,7 @@ export class FirestoreSyncService {
       }
       return null;
     } catch (error) {
-      console.warn('Error getting store config from Firestore:', error);
+      handleFirestoreError(error, OperationType.GET, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
       return null;
     }
   }
@@ -99,7 +182,7 @@ export class FirestoreSyncService {
       }, { merge: true });
       return true;
     } catch (error) {
-      console.error('Error saving store config to Firestore:', error);
+      handleFirestoreError(error, OperationType.WRITE, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
       throw error;
     }
   }
@@ -116,7 +199,7 @@ export class FirestoreSyncService {
         callback(products);
       }
     }, (error) => {
-      console.warn('Firestore products subscription error:', error);
+      handleFirestoreError(error, OperationType.GET, PRODUCTS_COLLECTION);
     });
   }
 
@@ -126,7 +209,7 @@ export class FirestoreSyncService {
       const productRef = doc(db, PRODUCTS_COLLECTION, product.id);
       await setDoc(productRef, product, { merge: true });
     } catch (error) {
-      console.error('Error saving product to Firestore:', error);
+      handleFirestoreError(error, OperationType.WRITE, `${PRODUCTS_COLLECTION}/${product.id}`);
       throw error;
     }
   }
@@ -139,7 +222,7 @@ export class FirestoreSyncService {
         await setDoc(productRef, product, { merge: true });
       }
     } catch (error) {
-      console.error('Error saving all products to Firestore:', error);
+      handleFirestoreError(error, OperationType.WRITE, PRODUCTS_COLLECTION);
       throw error;
     }
   }
@@ -150,7 +233,7 @@ export class FirestoreSyncService {
       const productRef = doc(db, PRODUCTS_COLLECTION, productId);
       await deleteDoc(productRef);
     } catch (error) {
-      console.error('Error deleting product from Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, `${PRODUCTS_COLLECTION}/${productId}`);
       throw error;
     }
   }
@@ -161,7 +244,7 @@ export class FirestoreSyncService {
       const orderRef = doc(db, ORDERS_COLLECTION, order.id);
       await setDoc(orderRef, order);
     } catch (error) {
-      console.error('Error saving order to Firestore:', error);
+      handleFirestoreError(error, OperationType.CREATE, `${ORDERS_COLLECTION}/${order.id}`);
     }
   }
 
@@ -171,7 +254,7 @@ export class FirestoreSyncService {
       const orderRef = doc(db, ORDERS_COLLECTION, orderId);
       await updateDoc(orderRef, { status });
     } catch (error) {
-      console.error('Error updating order status in Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COLLECTION}/${orderId}`);
     }
   }
 }

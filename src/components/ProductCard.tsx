@@ -44,12 +44,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Image Showcase Container */}
       <div className="relative aspect-[3/4] bg-neutral-100 overflow-hidden cursor-pointer" onClick={() => onQuickView(product)}>
-        <img
-          src={isHovered && product.additionalImages?.[0] ? product.additionalImages[0] : product.image}
-          alt={product.title}
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-          loading="lazy"
-        />
+        {(isHovered && product.additionalImages?.[0]) || product.image ? (
+          <img
+            src={(isHovered && product.additionalImages?.[0]) ? product.additionalImages[0] : product.image}
+            alt={product.title}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+            loading="lazy"
+          />
+        ) : null}
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">

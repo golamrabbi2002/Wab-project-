@@ -12,8 +12,15 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
 import { CustomerAccountModal } from './components/CustomerAccountModal';
 import { AdminDashboard } from './components/AdminDashboard/AdminDashboard';
+import { HoneypotPortal } from './components/Honeypot/HoneypotPortal';
+import { SeoDirectorySection } from './components/SeoDirectorySection';
 import { Footer } from './components/Footer';
 import { PolicyModal } from './components/PolicyModal';
+import { OrderTrackingModal } from './components/OrderTrackingModal';
+import { SizeGuideModal } from './components/SizeGuideModal';
+import { WhatsAppConcierge } from './components/WhatsAppConcierge';
+import { generateStoreJsonLd } from './services/seoKeywords';
+import { SecurityService } from './services/securityService';
 import {
   Sparkles,
   Check,
@@ -26,6 +33,8 @@ import {
   AlertCircle,
   ArrowLeft,
   Lock,
+  ShieldAlert,
+  Timer
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -40,7 +49,22 @@ export const App: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
-  // URL-based view state: 'storefront' | 'admin'
+  // Honeypot trap routes: /system-root-login, /wp-admin, /api/v1/debug, /db-backup.sql, /phpmyadmin, etc.
+  const isTargetHoneypot = () => {
+    const raw = (window.location.pathname + window.location.hash + window.location.search).toLowerCase();
+    return (
+      raw.includes('system-root') ||
+      raw.includes('wp-admin') ||
+      raw.includes('phpmyadmin') ||
+      raw.includes('db-backup') ||
+      raw.includes('config.env') ||
+      raw.includes('api/v1/debug') ||
+      raw.includes('secret-admin-portal') ||
+      raw.includes('honeypot')
+    );
+  };
+
+  // URL-based view state: 'storefront' | 'admin' | 'honeypot'
   const isTargetAdmin = () => {
     const isPathAdmin = window.location.pathname.toLowerCase().includes('/admin');
     const isHashAdmin = window.location.hash.toLowerCase().includes('admin');
@@ -51,14 +75,50 @@ export const App: React.FC = () => {
     return isPathAdmin || isHashAdmin || isSearchAdmin;
   };
 
-  const [view, setView] = useState<'storefront' | 'admin'>(() => {
-    return isTargetAdmin() ? 'admin' : 'storefront';
-  });
+  const getInitialView = (): 'storefront' | 'admin' | 'honeypot' => {
+    if (isTargetHoneypot()) return 'honeypot';
+    if (isTargetAdmin()) return 'admin';
+    return 'storefront';
+  };
+
+  const [view, setView] = useState<'storefront' | 'admin' | 'honeypot'>(getInitialView);
 
   // Dedicated Admin Gate PIN state (for direct /admin access)
   const [adminPinInput, setAdminPinInput] = useState('');
   const [showAdminPin, setShowAdminPin] = useState(false);
   const [adminGateError, setAdminGateError] = useState<string | null>(null);
+  const [isAdminVerifying, setIsAdminVerifying] = useState(false);
+  const [adminLockoutSec, setAdminLockoutSec] = useState(0);
+
+  // Check admin session and lockout status on load
+  useEffect(() => {
+    SecurityService.validateAdminSession().then((isValid) => {
+      if (isValid) {
+        setIsAdminAuthenticated(true);
+      }
+    });
+
+    const status = SecurityService.getLockoutStatus();
+    if (status.isLocked) {
+      setAdminLockoutSec(status.remainingSeconds);
+    }
+  }, []);
+
+  // Lockout countdown timer
+  useEffect(() => {
+    if (adminLockoutSec <= 0) return;
+    const timer = setInterval(() => {
+      setAdminLockoutSec((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setAdminGateError(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [adminLockoutSec]);
 
   // Filter & Search
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -70,6 +130,8 @@ export const App: React.FC = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCustomerAccountOpen, setIsCustomerAccountOpen] = useState(false);
+  const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [policyModalType, setPolicyModalType] = useState<'shipping' | 'returns' | 'privacy' | 'terms' | null>(null);
 
@@ -126,7 +188,13 @@ export const App: React.FC = () => {
     };
 
     const handleUrlChange = () => {
-      setView(isTargetAdmin() ? 'admin' : 'storefront');
+      if (isTargetHoneypot()) {
+        setView('honeypot');
+      } else if (isTargetAdmin()) {
+        setView('admin');
+      } else {
+        setView('storefront');
+      }
     };
 
     // Secret shortcut for shop owner: Ctrl+Shift+A or Cmd+Shift+A
@@ -255,22 +323,48 @@ export const App: React.FC = () => {
   };
 
   // Admin Auth & Portal Navigation
-  const handleAdminGateSubmit = (e: React.FormEvent) => {
+  const handleAdminGateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAdminVerifying || adminLockoutSec > 0) return;
+
+    const status = SecurityService.getLockoutStatus();
+    if (status.isLocked) {
+      setAdminLockoutSec(status.remainingSeconds);
+      setAdminGateError(`Too many failed attempts. Security Cooldown active (${status.remainingSeconds}s).`);
+      return;
+    }
+
+    setIsAdminVerifying(true);
+    setAdminGateError(null);
+
+    // Artificial verification delay to counter automated brute-force scripts
+    await new Promise((r) => setTimeout(r, 500));
+
+    const cleanInput = adminPinInput.trim();
     const correctPin = config.adminPin || 'admin123';
 
-    if (adminPinInput === correctPin) {
+    if (cleanInput === correctPin) {
       setAdminGateError(null);
       setAdminPinInput('');
+      await SecurityService.createAdminSession();
       storageService.setAdminAuthenticated(true);
       setIsAdminAuthenticated(true);
+      setIsAdminVerifying(false);
       showToast('Master Admin access granted.');
     } else {
-      setAdminGateError('Access Denied: Invalid Master Admin PIN.');
+      const record = SecurityService.recordFailedAttempt();
+      if (record.isLocked) {
+        setAdminLockoutSec(record.remainingSeconds);
+        setAdminGateError('Access Denied! Security Lockout activated for 15 minutes due to multiple failed attempts.');
+      } else {
+        setAdminGateError(`Access Denied: Invalid Master PIN. (${record.attemptsRemaining}/5 attempts remaining)`);
+      }
+      setIsAdminVerifying(false);
     }
   };
 
   const handleAdminLogout = () => {
+    SecurityService.clearAdminSession();
     storageService.setAdminAuthenticated(false);
     setIsAdminAuthenticated(false);
     navigateToStorefront();
@@ -324,6 +418,25 @@ export const App: React.FC = () => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // -------------------------------------------------------------
+  // INTERACTIVE HONEYPOT TRAP ROUTE (/system-root-login, /wp-admin, /db-backup.sql, etc.)
+  // -------------------------------------------------------------
+  if (view === 'honeypot') {
+    return (
+      <HoneypotPortal
+        onBackToStore={() => {
+          try {
+            window.history.pushState({}, '', '/');
+          } catch {
+            window.location.hash = '';
+          }
+          setView('storefront');
+        }}
+        trapRoute={window.location.hash || window.location.pathname || '#/system-root-login'}
+      />
+    );
+  }
+
+  // -------------------------------------------------------------
   // DEDICATED ADMIN ROUTE (/admin)
   // -------------------------------------------------------------
   if (view === 'admin') {
@@ -343,12 +456,20 @@ export const App: React.FC = () => {
             </button>
 
             {/* Shield Icon */}
-            <div className="w-16 h-16 bg-amber-400/10 border border-amber-400/30 rounded-2xl flex items-center justify-center mx-auto mb-6 text-amber-400 shadow-inner mt-4">
-              <KeyRound className="w-8 h-8" />
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner mt-4 transition-colors ${
+              adminLockoutSec > 0 
+                ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400' 
+                : 'bg-amber-400/10 border border-amber-400/30 text-amber-400'
+            }`}>
+              {adminLockoutSec > 0 ? <ShieldAlert className="w-8 h-8" /> : <KeyRound className="w-8 h-8" />}
             </div>
 
-            <div className="inline-block px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full text-[10px] uppercase font-mono tracking-widest mb-3">
-              Protected Admin Gateway • /admin
+            <div className={`inline-block px-3 py-1 rounded-full text-[10px] uppercase font-mono tracking-widest mb-3 border ${
+              adminLockoutSec > 0 
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+            }`}>
+              {adminLockoutSec > 0 ? 'Brute-Force Lockout Active' : 'Protected Admin Gateway • Zero-Trust Shield'}
             </div>
 
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-2">
@@ -359,43 +480,57 @@ export const App: React.FC = () => {
               Please enter the administrative master PIN to access stock control, courier dispatch, and customer management.
             </p>
 
-            <form onSubmit={handleAdminGateSubmit} className="space-y-4">
-              <div className="relative">
-                <input
-                  type={showAdminPin ? 'text' : 'password'}
-                  value={adminPinInput}
-                  onChange={(e) => {
-                    setAdminPinInput(e.target.value);
-                    if (adminGateError) setAdminGateError(null);
-                  }}
-                  placeholder="Enter Master PIN"
-                  autoFocus
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-2xl py-3.5 px-4 text-center text-lg tracking-[0.25em] font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPin(!showAdminPin)}
-                  className="absolute right-4 top-4 text-neutral-500 hover:text-neutral-300"
-                >
-                  {showAdminPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {adminGateError && (
-                <div className="flex items-center justify-center gap-2 text-xs text-rose-400 bg-rose-950/50 p-3 rounded-xl border border-rose-800/60 animate-shake">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{adminGateError}</span>
+            {adminLockoutSec > 0 ? (
+              <div className="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-5 text-center space-y-3 mb-4">
+                <div className="flex items-center justify-center gap-2 text-rose-400 font-bold text-sm">
+                  <Timer className="w-5 h-5 animate-spin" />
+                  <span>Cooldown: {Math.floor(adminLockoutSec / 60)}m {adminLockoutSec % 60}s</span>
                 </div>
-              )}
+                <p className="text-xs text-rose-300/80">
+                  Multiple failed login attempts detected. Access is temporarily locked to defend against dictionary & brute-force hacking attempts.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleAdminGateSubmit} className="space-y-4">
+                <div className="relative">
+                  <input
+                    type={showAdminPin ? 'text' : 'password'}
+                    value={adminPinInput}
+                    disabled={isAdminVerifying}
+                    onChange={(e) => {
+                      setAdminPinInput(e.target.value);
+                      if (adminGateError) setAdminGateError(null);
+                    }}
+                    placeholder="Enter Master PIN"
+                    autoFocus
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-2xl py-3.5 px-4 text-center text-lg tracking-[0.25em] font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPin(!showAdminPin)}
+                    className="absolute right-4 top-4 text-neutral-500 hover:text-neutral-300"
+                  >
+                    {showAdminPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
 
-              <button
-                type="submit"
-                className="w-full py-4 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold text-xs uppercase tracking-widest rounded-2xl transition-all shadow-xl hover:shadow-amber-500/20 active:scale-98 flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Verify PIN & Enter Admin Panel</span>
-              </button>
-            </form>
+                {adminGateError && (
+                  <div className="flex items-center justify-center gap-2 text-xs text-rose-400 bg-rose-950/50 p-3 rounded-xl border border-rose-800/60 animate-shake">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{adminGateError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isAdminVerifying || !adminPinInput.trim()}
+                  className="w-full py-4 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold text-xs uppercase tracking-widest rounded-2xl transition-all shadow-xl hover:shadow-amber-500/20 active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>{isAdminVerifying ? 'Authenticating...' : 'Verify PIN & Enter Admin Panel'}</span>
+                </button>
+              </form>
+            )}
 
             <div className="mt-8 pt-6 border-t border-neutral-800/80 text-[11px] text-neutral-500 flex flex-col items-center gap-2">
               <button
@@ -468,6 +603,8 @@ export const App: React.FC = () => {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAuth={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
         onOpenWishlist={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
           const el = document.getElementById('shop') || document.getElementById('catalog-section');
@@ -549,10 +686,38 @@ export const App: React.FC = () => {
         />
       </main>
 
+      {/* Structured Schema.org JSON-LD Script for Google & AI Search Bots */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(generateStoreJsonLd(config, products)) }}
+      />
+
+      {/* SEO 1,000+ Keyword Index & Category Directory */}
+      <SeoDirectorySection />
+
+      {/* Invisible Ethical Honeypot Canary Traps (Indexed only by automated bot crawlers & vulnerability scanners) */}
+      <div style={{ display: 'none', position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+        <a href="#/system-root-login" rel="nofollow" tabIndex={-1}>Root Terminal & SSH Web Shell</a>
+        <a href="#/wp-admin" rel="nofollow" tabIndex={-1}>Legacy WordPress Administration Panel</a>
+        <a href="#/api/v1/debug" rel="nofollow" tabIndex={-1}>Core API Debug & Environment Dump</a>
+        <a href="#/db-backup.sql" rel="nofollow" tabIndex={-1}>PostgreSQL Database Backup Archive</a>
+        <a href="#/phpmyadmin" rel="nofollow" tabIndex={-1}>Direct Database SQL Manager</a>
+        <a href="#/secret-admin-portal" rel="nofollow" tabIndex={-1}>Internal Super Admin Gateway</a>
+      </div>
+
       {/* Footer */}
       <Footer
         config={config}
         onOpenPolicy={(type) => setPolicyModalType(type)}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+      />
+
+      {/* WhatsApp Atelier Concierge Floating Suite */}
+      <WhatsAppConcierge
+        config={config}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
       />
 
       {/* MODALS & DRAWERS */}
@@ -581,17 +746,33 @@ export const App: React.FC = () => {
         customer={currentCustomer}
         onSaveCustomerShipping={handleUpdateShipping}
         onOrderPlaced={handlePlaceOrder}
+        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
       />
 
       {/* Quick View Modal */}
       <ProductQuickView
         isOpen={!!quickViewProduct}
         product={quickViewProduct}
+        allProducts={products}
         config={config}
         onClose={() => setQuickViewProduct(null)}
         onAddToCart={handleAddToCart}
         onToggleWishlist={handleToggleWishlist}
         isWishlisted={quickViewProduct ? currentCustomer?.wishlist?.includes(quickViewProduct.id) || false : false}
+      />
+
+      {/* Live Order Tracking Modal */}
+      <OrderTrackingModal
+        isOpen={isOrderTrackingOpen}
+        onClose={() => setIsOrderTrackingOpen(false)}
+        orders={orders}
+        config={config}
+      />
+
+      {/* Atelier Size Guide Modal */}
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
       />
 
       {/* Customer Auth Modal (Member Sign In / Register / Google OAuth with GIS) */}

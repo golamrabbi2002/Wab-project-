@@ -1,6 +1,6 @@
 {
   "name": "AURA Atelier - Modern Fashion E-Commerce",
-  "description": "Production-ready dual-view responsive e-commerce web application with customer storefront, protected admin inventory/order management, local Base64 image uploads, dynamic brand customization, and standalone single-file export.",
+  "description": "Production-ready modern fashion e-commerce platform with dual-view architecture, zero-trust admin gateway, interactive cyber honeypot canary traps, ethical anti-evasion threat intelligence de-anonymization (VPN/Tor unmasking, WebRTC & GPU fingerprinting), live intrusion radar threat map, and instant forensic email alerts.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

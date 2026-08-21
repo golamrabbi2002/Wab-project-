@@ -147,11 +147,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   key={`${item.product.id}-${item.selectedSize}`}
                   className="flex gap-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200/80 group transition-all hover:border-neutral-300"
                 >
-                  <img
-                    src={item.product.image}
-                    alt={item.product.title}
-                    className="w-20 h-24 object-cover object-center rounded-lg bg-neutral-200 shrink-0"
-                  />
+                  {item.product.image ? (
+                    <img
+                      src={item.product.image}
+                      alt={item.product.title}
+                      className="w-20 h-24 object-cover object-center rounded-lg bg-neutral-200 shrink-0"
+                    />
+                  ) : null}
 
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
