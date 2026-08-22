@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Product, StoreConfig } from '../../types';
 import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
 import { SecurityService } from '../../services/securityService';
-import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, Check, X, Sparkles, Search, HardDrive, Link as LinkIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, Check, X, Sparkles, Search, HardDrive, Link as LinkIcon, RefreshCw, Layers } from 'lucide-react';
 
 interface AdminProductsProps {
   products: Product[];
@@ -182,6 +182,31 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     setIsModalOpen(false);
   };
 
+  const handleQuickStockChange = (p: Product, delta: number) => {
+    const newStock = Math.max(0, p.stock + delta);
+    onSaveProduct({
+      ...p,
+      stock: newStock,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleRestockAllLowStock = () => {
+    const count = products.filter(p => p.stock <= 5).length;
+    if (count === 0) return;
+    if (confirm(`Do you want to restock ${count} sold-out / low-stock garments (+15 units each)?`)) {
+      products.forEach((p) => {
+        if (p.stock <= 5) {
+          onSaveProduct({
+            ...p,
+            stock: Math.max(15, p.stock + 15),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      });
+    }
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchCat = categoryFilter === 'All' || p.category === categoryFilter;
     const matchSearch =
@@ -225,14 +250,28 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
           </select>
         </div>
 
-        {/* Add Product Button */}
-        <button
-          onClick={openAddModal}
-          className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-98"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Garment (Local / Drive Upload)</span>
-        </button>
+        {/* Actions Group */}
+        <div className="flex items-center gap-2.5">
+          {products.some(p => p.stock <= 5) && (
+            <button
+              onClick={handleRestockAllLowStock}
+              className="px-4 py-2.5 bg-neutral-850 hover:bg-neutral-800 border border-amber-500/40 text-amber-300 text-xs font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 active:scale-98"
+              title="Restock low and sold out garments"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+              <span>Restock Low Items (+15)</span>
+            </button>
+          )}
+
+          {/* Add Product Button */}
+          <button
+            onClick={openAddModal}
+            className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-98"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Garment</span>
+          </button>
+        </div>
       </div>
 
       {/* Products Inventory Table */}
@@ -289,19 +328,45 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                       )}
                     </td>
 
-                    {/* Stock */}
+                    {/* Stock with inline quick-adjust */}
                     <td className="py-3 px-4">
-                      {p.stock === 0 ? (
-                        <span className="px-2 py-0.5 bg-rose-950 text-rose-400 border border-rose-800/60 rounded text-[10px] font-bold uppercase">
-                          0 Units (Sold Out)
-                        </span>
-                      ) : p.stock <= 5 ? (
-                        <span className="px-2 py-0.5 bg-amber-950 text-amber-300 border border-amber-800/60 rounded text-[10px] font-bold uppercase">
-                          {p.stock} Units (Low)
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400 font-mono font-bold">{p.stock} in stock</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {p.stock === 0 ? (
+                          <span className="px-2 py-0.5 bg-rose-950 text-rose-400 border border-rose-800/60 rounded text-[10px] font-bold uppercase whitespace-nowrap">
+                            0 (Sold Out)
+                          </span>
+                        ) : p.stock <= 5 ? (
+                          <span className="px-2 py-0.5 bg-amber-950 text-amber-300 border border-amber-800/60 rounded text-[10px] font-bold uppercase whitespace-nowrap">
+                            {p.stock} (Low)
+                          </span>
+                        ) : (
+                          <span className="text-emerald-400 font-mono font-bold text-xs whitespace-nowrap">{p.stock} units</span>
+                        )}
+
+                        <div className="inline-flex items-center rounded border border-neutral-800 bg-neutral-900 overflow-hidden text-[10px]">
+                          <button
+                            onClick={() => handleQuickStockChange(p, -1)}
+                            className="px-1.5 py-0.5 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                            title="Decrease stock by 1"
+                          >
+                            -
+                          </button>
+                          <button
+                            onClick={() => handleQuickStockChange(p, 1)}
+                            className="px-1.5 py-0.5 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors border-l border-neutral-800"
+                            title="Increase stock by 1"
+                          >
+                            +
+                          </button>
+                          <button
+                            onClick={() => handleQuickStockChange(p, 10)}
+                            className="px-1.5 py-0.5 text-amber-400 hover:text-amber-300 hover:bg-neutral-800 transition-colors border-l border-neutral-800 font-bold"
+                            title="Add +10 stock"
+                          >
+                            +10
+                          </button>
+                        </div>
+                      </div>
                     </td>
 
                     {/* Sizes */}

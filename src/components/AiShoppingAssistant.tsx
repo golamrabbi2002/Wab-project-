@@ -347,26 +347,32 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                                         <ExternalLink className="w-3 h-3" />
                                         <span>বিস্তারিত</span>
                                       </button>
-                                      <button
-                                        onClick={() => handleAddToCartWithFeedback(p)}
-                                        className={`py-1 px-2.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-all ${
-                                          isAdded
-                                            ? 'bg-emerald-600 text-white'
-                                            : 'bg-neutral-950 hover:bg-neutral-800 text-white'
-                                        }`}
-                                      >
-                                        {isAdded ? (
-                                          <>
-                                            <CheckCircle2 className="w-3 h-3" />
-                                            <span>কার্টে যুক্ত!</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ShoppingBag className="w-3 h-3" />
-                                            <span>কার্টে যোগ</span>
-                                          </>
-                                        )}
-                                      </button>
+                                      {p.stock > 0 ? (
+                                        <button
+                                          onClick={() => handleAddToCartWithFeedback(p)}
+                                          className={`py-1 px-2.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-all ${
+                                            isAdded
+                                              ? 'bg-emerald-600 text-white'
+                                              : 'bg-neutral-950 hover:bg-neutral-800 text-white'
+                                          }`}
+                                        >
+                                          {isAdded ? (
+                                            <>
+                                              <CheckCircle2 className="w-3 h-3" />
+                                              <span>কার্টে যুক্ত!</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <ShoppingBag className="w-3 h-3" />
+                                              <span>কার্টে যোগ</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      ) : (
+                                        <span className="py-1 px-2.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold">
+                                          স্টক আউট
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
