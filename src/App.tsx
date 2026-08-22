@@ -18,7 +18,7 @@ import { Footer } from './components/Footer';
 import { PolicyModal } from './components/PolicyModal';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { SizeGuideModal } from './components/SizeGuideModal';
-import { WhatsAppConcierge } from './components/WhatsAppConcierge';
+import { AiShoppingAssistant } from './components/AiShoppingAssistant';
 import { generateStoreJsonLd } from './services/seoKeywords';
 import { SecurityService } from './services/securityService';
 import {
@@ -758,9 +758,12 @@ export const App: React.FC = () => {
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
       />
 
-      {/* WhatsApp Atelier Concierge Floating Suite */}
-      <WhatsAppConcierge
+      {/* Bismillah AI Shopping Assistant Concierge */}
+      <AiShoppingAssistant
+        products={products}
         config={config}
+        onQuickViewProduct={(p) => setQuickViewProduct(p)}
+        onAddToCart={(p, size) => handleAddToCart(p, size || p.sizes?.[0] || 'Standard', 1)}
         onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
       />
