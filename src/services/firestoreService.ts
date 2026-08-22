@@ -210,11 +210,38 @@ export class FirestoreSyncService {
     });
   }
 
+  // Sanitize product object to prevent Firestore serialization errors (removes undefined, validates types)
+  private static sanitizeProductPayload(product: Product): Record<string, any> {
+    return {
+      id: String(product.id || `prod-${Date.now()}`),
+      title: String(product.title || 'Untitled Garment'),
+      subtitle: String(product.subtitle || ''),
+      category: String(product.category || 'Tops'),
+      price: Number(product.price) >= 0 ? Number(product.price) : 0,
+      originalPrice: product.originalPrice !== undefined ? Number(product.originalPrice) : Number(product.price || 0),
+      image: String(product.image || ''),
+      additionalImages: Array.isArray(product.additionalImages) ? product.additionalImages.filter(Boolean) : [],
+      sizes: Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes : ['One Size'],
+      stock: Number(product.stock) >= 0 ? Number(product.stock) : 0,
+      sku: String(product.sku || `AUR-${Date.now().toString().slice(-4)}`),
+      rating: Number(product.rating) || 5.0,
+      reviewsCount: Number(product.reviewsCount) || 1,
+      description: String(product.description || ''),
+      material: String(product.material || ''),
+      careInstructions: String(product.careInstructions || ''),
+      badges: Array.isArray(product.badges) ? product.badges : [],
+      featured: Boolean(product.featured),
+      createdAt: String(product.createdAt || new Date().toISOString()),
+      updatedAt: String(product.updatedAt || new Date().toISOString())
+    };
+  }
+
   // Save or update a single product
   static async saveProduct(product: Product): Promise<void> {
     try {
-      const productRef = doc(db, PRODUCTS_COLLECTION, product.id);
-      await setDoc(productRef, product, { merge: true });
+      const sanitized = this.sanitizeProductPayload(product);
+      const productRef = doc(db, PRODUCTS_COLLECTION, sanitized.id);
+      await setDoc(productRef, sanitized, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `${PRODUCTS_COLLECTION}/${product.id}`);
       throw error;
@@ -225,8 +252,9 @@ export class FirestoreSyncService {
   static async saveAllProducts(products: Product[]): Promise<void> {
     try {
       for (const product of products) {
-        const productRef = doc(db, PRODUCTS_COLLECTION, product.id);
-        await setDoc(productRef, product, { merge: true });
+        const sanitized = this.sanitizeProductPayload(product);
+        const productRef = doc(db, PRODUCTS_COLLECTION, sanitized.id);
+        await setDoc(productRef, sanitized, { merge: true });
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, PRODUCTS_COLLECTION);

@@ -27,6 +27,192 @@ async function startServer() {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
+  // AI Product Details & Content Generator Endpoint (Admin Copilot)
+  app.post('/api/ai/generate-product', async (req, res) => {
+    try {
+      const {
+        title = '',
+        price = 0,
+        category = '',
+        images = [],
+        notes = '',
+        storeConfig = {}
+      } = req.body;
+
+      const effectiveApiKey = (storeConfig.geminiApiKey && typeof storeConfig.geminiApiKey === 'string' && storeConfig.geminiApiKey.trim())
+        ? storeConfig.geminiApiKey.trim()
+        : process.env.GEMINI_API_KEY;
+
+      const basePrice = Math.max(0, Number(price) || 1850);
+      const calculatedOrigPrice = Math.round(basePrice * 1.25);
+
+      if (!effectiveApiKey) {
+        // Fallback response structure if API key is not configured
+        const guessedCategory = category || (title.toLowerCase().includes('শাড়ি') || title.toLowerCase().includes('saree') ? 'Saree' : title.toLowerCase().includes('three') ? 'Three-Piece' : 'Panjabi');
+        const defaultSizes = guessedCategory === 'Saree' ? ['Free Size'] : guessedCategory === 'Panjabi' ? ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'] : ['S', 'M', 'L', 'XL'];
+        
+        return res.json({
+          title: title.trim() || `এক্সক্লুসিভ ${guessedCategory} কালেকশন`,
+          subtitle: `প্রিমিয়াম কোয়ালিটি ফ্যাব্রিক ও সূক্ষ্ম হাতের কাজ`,
+          category: guessedCategory,
+          price: basePrice,
+          originalPrice: calculatedOrigPrice,
+          sku: `${guessedCategory.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          sizes: defaultSizes,
+          stock: 25,
+          description: `${title ? title : guessedCategory} - আভিজাত্য এবং আরামের এক অপূর্ব সংমিশ্রণ। এটি তৈরি করা হয়েছে অত্যন্ত আরামদায়ক ও টেকসই ফেব্রিক দিয়ে, যা যেকোনো অনুষ্ঠান, জুম্মাহ কিংবা উৎসবে আপনাকে এনে দেবে রাজকীয় ব্যক্তিত্ব। কালার গ্যারান্টি সহ ১০০% নিখুঁত ফিনিশিং।`,
+          material: `১০০% প্রিমিয়াম কম্বড প্রি-ওয়াশড কটন / লাক্সারি ফেব্রিক`,
+          careInstructions: `হ্যান্ড ওয়াশ অথবা ড্রাই ক্লিন। রোদে বেশিক্ষণ রাখবেন না। মাঝারি তাপে আয়রন করুন।`,
+          badges: ['New', 'Bestseller'],
+          featured: true,
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+
+      const promptParts: any[] = [];
+
+      // Add image parts if provided
+      if (Array.isArray(images) && images.length > 0) {
+        images.slice(0, 3).forEach((imgStr: string) => {
+          if (typeof imgStr === 'string' && imgStr.startsWith('data:image/')) {
+            const matches = imgStr.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+            if (matches && matches[1] && matches[2]) {
+              promptParts.push({
+                inlineData: {
+                  mimeType: matches[1],
+                  data: matches[2]
+                }
+              });
+            }
+          }
+        });
+      }
+
+      const systemInstruction = `
+You are the world-class Luxury Fashion Copywriter and E-commerce Merchandising Specialist for "${storeConfig.brandName || 'বিসমিল্লাহ কালেকশন'}".
+Your task is to take the merchant's title/heading, price, uploaded garment photos, and optional notes, and generate a complete, high-converting, professional product catalog payload.
+
+INPUT DETAILS FROM ADMIN:
+- Provided Heading/Title: "${title}"
+- Given Price: ${price} BDT
+- Desired Category hint: "${category}"
+- Extra Notes: "${notes}"
+
+REQUIREMENTS:
+1. Polish the title into an authentic, premium, high-converting product title (Bengali with crisp phrasing, e.g. "রয়্যাল নেভি ব্লু হ্যান্ড-এমব্রয়ডারি ডিজাইনার পাঞ্জাবি").
+2. Create a concise, elegant subtitle (e.g. "১০০% পিওর কটন | প্রিমিয়াম কারুকাজ ও সফট ফিনিশ").
+3. Determine the best category strictly from: ['Panjabi', 'Saree', 'Three-Piece', 'Kurtis', 'Tops', 'Bottoms', 'Outerwear', 'Dresses', 'Accessories', 'Footwear'].
+4. Set price to the given price (or suggest ${basePrice} if 0).
+5. Calculate a realistic original/comparison price (e.g. 15-30% higher to demonstrate authentic promotional value).
+6. Generate a distinctive SKU code (e.g. "PAN-8492" or "SAR-3920").
+7. Select standard, realistic sizes for this category:
+   - For Panjabi: ["M (38)", "L (40)", "XL (42)", "XXL (44)"]
+   - For Saree: ["Free Size"]
+   - For Three-Piece / Kurtis: ["M (38)", "L (40)", "XL (42)"]
+   - For Western / Tops / Bottoms: ["S", "M", "L", "XL"]
+8. Write a captivating, rich, 2-3 paragraph product description in polished Bengali:
+   - Paragraph 1: Elegance, craftsmanship, style statement for Eid, Jummah, wedding or events.
+   - Paragraph 2: Fabric feel, breathable comfort, color-fast guarantee, and non-shrink assurance.
+   - Paragraph 3: Delivery confidence (১০০% ক্যাশ অন ডেলিভারি, পার্সেল দেখে নেওয়ার সুযোগ).
+9. Specific Textile/Material details (e.g. "১০০% প্রিমিয়াম প্রি-ওয়াশড ফাইন কম্বড কটন").
+10. Precise Care Instructions (e.g. "হ্যান্ড ওয়াশ বা ড্রাই ক্লিন। কড়া রোদে শুকাবেন না। মডারেট আয়রন।").
+11. Badges: Array with ['New'] or ['Bestseller'] or ['Sale'].
+12. Initial Stock: default 20 to 30 units.
+
+OUTPUT STRICTLY VALID JSON (No markdown codeblocks):
+{
+  "title": "string",
+  "subtitle": "string",
+  "category": "string",
+  "price": number,
+  "originalPrice": number,
+  "sku": "string",
+  "sizes": ["string"],
+  "stock": number,
+  "description": "string",
+  "material": "string",
+  "careInstructions": "string",
+  "badges": ["New"],
+  "featured": true
+}`;
+
+      promptParts.push({
+        text: `Please generate the complete e-commerce garment catalog entry for: "${title || 'Traditional Designer Garment'}" with price ${basePrice} BDT.`
+      });
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: promptParts
+          }
+        ],
+        config: {
+          systemInstruction,
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const textResponse = response.text || '';
+      try {
+        const parsed = JSON.parse(textResponse);
+        return res.json({
+          title: parsed.title || title,
+          subtitle: parsed.subtitle || '',
+          category: parsed.category || category || 'Panjabi',
+          price: Number(parsed.price) || basePrice,
+          originalPrice: Number(parsed.originalPrice) || calculatedOrigPrice,
+          sku: parsed.sku || `SKU-${Date.now().toString().slice(-4)}`,
+          sizes: Array.isArray(parsed.sizes) && parsed.sizes.length > 0 ? parsed.sizes : ['M', 'L', 'XL'],
+          stock: Number(parsed.stock) || 25,
+          description: parsed.description || '',
+          material: parsed.material || '',
+          careInstructions: parsed.careInstructions || '',
+          badges: Array.isArray(parsed.badges) ? parsed.badges : ['New'],
+          featured: typeof parsed.featured === 'boolean' ? parsed.featured : true
+        });
+      } catch (parseErr) {
+        console.warn('Could not parse Gemini JSON, returning formatted fallback', parseErr);
+        return res.json({
+          title: title || 'এক্সক্লুসিভ ডিজাইনার পোশাক',
+          subtitle: '১০০% প্রিমিয়াম কোয়ালিটি ফ্যাব্রিক',
+          category: category || 'Panjabi',
+          price: basePrice,
+          originalPrice: calculatedOrigPrice,
+          sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+          sizes: ['M', 'L', 'XL'],
+          stock: 25,
+          description: textResponse || 'অভিজাত ডিজাইন ও সেরা মানের ফেব্রিক।',
+          material: '১০০% প্রিমিয়াম কটন',
+          careInstructions: 'হ্যান্ড ওয়াশ বা ড্রাই ক্লিন।',
+          badges: ['New'],
+          featured: true
+        });
+      }
+    } catch (err: any) {
+      console.error('AI Product Generation Error:', err);
+      // Resilient fallback so admin never gets blocked
+      const basePrice = Math.max(0, Number(req.body?.price) || 1850);
+      return res.json({
+        title: req.body?.title || 'প্রিমিয়াম ডিজাইনার কালেকশন',
+        subtitle: '১০০% পিওর প্রিমিয়াম ফ্যাব্রিক',
+        category: req.body?.category || 'Panjabi',
+        price: basePrice,
+        originalPrice: Math.round(basePrice * 1.25),
+        sku: `PAN-${Math.floor(1000 + Math.random() * 9000)}`,
+        sizes: ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'],
+        stock: 25,
+        description: 'অভিজাত ডিজাইন, প্রিমিয়াম ফিনিশিং এবং আরামদায়ক পরিধানের অনন্য নিশ্চয়তা।',
+        material: '১০০% প্রি-ওয়াশড ফাইন কম্বড কটন',
+        careInstructions: 'হ্যান্ড ওয়াশ অথবা ড্রাই ক্লিন।',
+        badges: ['New'],
+        featured: true
+      });
+    }
+  });
+
   // AI Conversational Shopping Assistant Endpoint
   app.post('/api/ai/chat', async (req, res) => {
     try {

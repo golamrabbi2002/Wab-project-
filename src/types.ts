@@ -2,7 +2,7 @@ export interface Product {
   id: string;
   title: string;
   subtitle: string;
-  category: 'Tops' | 'Bottoms' | 'Outerwear' | 'Dresses' | 'Accessories' | 'Footwear';
+  category: 'Tops' | 'Bottoms' | 'Outerwear' | 'Dresses' | 'Accessories' | 'Footwear' | 'Panjabi' | 'Saree' | 'Three-Piece' | 'Kurtis' | 'Winter' | string;
   price: number;
   originalPrice?: number;
   image: string; // Base64 or curated SVG/Data-URL

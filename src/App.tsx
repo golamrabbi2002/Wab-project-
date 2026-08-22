@@ -250,6 +250,9 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('aura_storage_update', handleStorageChange);
+    window.addEventListener('aura_products_updated', handleStorageChange);
+    window.addEventListener('aura_config_updated', handleStorageChange);
+    window.addEventListener('aura_orders_updated', handleStorageChange);
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('popstate', handleUrlChange);
     window.addEventListener('hashchange', handleUrlChange);
@@ -260,6 +263,9 @@ export const App: React.FC = () => {
       unsubProducts();
       unsubOrders();
       window.removeEventListener('aura_storage_update', handleStorageChange);
+      window.removeEventListener('aura_products_updated', handleStorageChange);
+      window.removeEventListener('aura_config_updated', handleStorageChange);
+      window.removeEventListener('aura_orders_updated', handleStorageChange);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('hashchange', handleUrlChange);

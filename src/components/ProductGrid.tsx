@@ -34,7 +34,22 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating' | 'newest'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [selectedSizeFilter, setSelectedSizeFilter] = useState<string>('All');
-  const [maxPrice, setMaxPrice] = useState<number>(500);
+  // Dynamically calculate highest price and dynamic categories from all available products
+  const highestPrice = useMemo(() => {
+    if (!products || products.length === 0) return 1000;
+    return Math.max(...products.map((p) => p.price || 0), 1000);
+  }, [products]);
+
+  const [maxPrice, setMaxPrice] = useState<number>(() => {
+    return products.length > 0 ? Math.max(...products.map(p => p.price || 0), 1000) : 5000;
+  });
+
+  // Keep maxPrice expanded when higher-priced garments exist
+  React.useEffect(() => {
+    if (highestPrice > maxPrice) {
+      setMaxPrice(highestPrice);
+    }
+  }, [highestPrice]);
 
   const handleCategorySelect = (cat: string) => {
     if (onSelectCategory) {
@@ -44,13 +59,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
   };
 
-  const categories = ['All', 'Tops', 'Outerwear', 'Bottoms', 'Dresses', 'Accessories'];
-  const sizes = ['All', 'XS', 'S', 'M', 'L', 'XL'];
-
-  // Highest product price for slider boundary
-  const highestPrice = useMemo(() => {
-    return products.reduce((max, p) => Math.max(max, p.price), 500);
+  // Dynamically build category list from actual products
+  const categories = useMemo(() => {
+    const defaultCats = ['All', 'Panjabi', 'Saree', 'Three-Piece', 'Tops', 'Outerwear', 'Bottoms', 'Dresses', 'Accessories'];
+    const productCats = products.map((p) => p.category).filter(Boolean);
+    const combined = ['All', ...new Set([...defaultCats.slice(1), ...productCats])];
+    return combined;
   }, [products]);
+
+  const sizes = ['All', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
 
   // Filtered and sorted products
   const filteredProducts = useMemo(() => {

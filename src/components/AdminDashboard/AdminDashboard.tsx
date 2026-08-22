@@ -8,6 +8,8 @@ import { AdminStoreSettings } from './AdminStoreSettings';
 import { AdminCoupons } from './AdminCoupons';
 import { AdminExportBackup } from './AdminExportBackup';
 import { AdminThreatMap } from './AdminThreatMap';
+import { AdminAiProductCreator } from './AdminAiProductCreator';
+import { AdminSystemDoctor } from './AdminSystemDoctor';
 import {
   LayoutDashboard,
   Package,
@@ -24,7 +26,8 @@ import {
   Link as LinkIcon,
   Check,
   Radio,
-  ShieldAlert
+  ShieldAlert,
+  Wrench
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -63,7 +66,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRefreshData,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'products' | 'orders' | 'customers' | 'settings' | 'coupons' | 'export' | 'threat_map'
+    'analytics' | 'ai_creator' | 'products' | 'orders' | 'customers' | 'doctor' | 'settings' | 'coupons' | 'export' | 'threat_map'
   >('analytics');
 
   const [copiedLink, setCopiedLink] = useState(false);
@@ -161,6 +164,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('ai_creator')}
+            className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === 'ai_creator'
+                ? 'border-amber-400 text-amber-400 bg-amber-400/10'
+                : 'border-transparent text-amber-300/80 hover:text-amber-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>AI Garment Creator</span>
+            <span className="px-1.5 py-0.2 bg-amber-400 text-neutral-950 rounded-full text-[9px] font-bold font-mono">
+              AI CHAT
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('products')}
             className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'products'
@@ -199,6 +217,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Users className="w-4 h-4" />
             <span>Customers ({customers.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('doctor')}
+            className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === 'doctor'
+                ? 'border-emerald-400 text-emerald-400 bg-emerald-950/20'
+                : 'border-transparent text-emerald-400/80 hover:text-emerald-300'
+            }`}
+          >
+            <Wrench className="w-4 h-4 text-emerald-400" />
+            <span>System Doctor & Repair</span>
           </button>
 
           <button
@@ -304,12 +334,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <AdminAnalytics products={products} orders={orders} config={config} />
         )}
 
+        {activeTab === 'ai_creator' && (
+          <AdminAiProductCreator
+            config={config}
+            onSaveProduct={onSaveProduct}
+            onOpenManualModal={() => setActiveTab('products')}
+          />
+        )}
+
         {activeTab === 'products' && (
           <AdminProducts
             products={products}
             config={config}
             onSaveProduct={onSaveProduct}
             onDeleteProduct={onDeleteProduct}
+            onOpenAiCreator={() => setActiveTab('ai_creator')}
           />
         )}
 
@@ -328,6 +367,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             products={products}
             config={config}
             onSaveCustomer={onSaveCustomer}
+          />
+        )}
+
+        {activeTab === 'doctor' && (
+          <AdminSystemDoctor
+            products={products}
+            config={config}
+            onRefreshData={onRefreshData}
+            onSaveProduct={onSaveProduct}
           />
         )}
 

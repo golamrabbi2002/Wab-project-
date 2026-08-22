@@ -14,22 +14,71 @@ const KEYS = {
   CART: 'aura_cart_items'
 };
 
+// Resilient in-memory backup cache to prevent data loss in strict environments
+const memoryCache: Record<string, any> = {
+  [KEYS.CONFIG]: initialStoreConfig,
+  [KEYS.PRODUCTS]: [...initialProducts],
+  [KEYS.COUPONS]: [...initialCoupons],
+  [KEYS.ORDERS]: [...initialOrders],
+  [KEYS.CART]: []
+};
+
+// Safe LocalStorage setter with QuotaExceeded auto-cleanup
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e: any) {
+    console.warn(`LocalStorage quota warning for key "${key}":`, e?.message);
+    if (e?.name === 'QuotaExceededError' || e?.code === 22 || e?.code === 1014) {
+      try {
+        // Clear telemetry/log caches to reclaim space
+        localStorage.removeItem('aura_threat_logs');
+        localStorage.removeItem('aura_security_logs');
+        localStorage.removeItem('aura_debug_logs');
+        // Retry
+        localStorage.setItem(key, value);
+      } catch (retryError) {
+        console.error('LocalStorage write failed after space cleanup, continuing in memory:', retryError);
+      }
+    }
+  }
+}
+
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    console.warn(`LocalStorage read warning for key "${key}":`, e);
+    return null;
+  }
+}
+
+function broadcastStorageEvent(eventName: string, detail?: any) {
+  try {
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
+    window.dispatchEvent(new CustomEvent('aura_storage_update', { detail: { event: eventName, detail } }));
+  } catch (e) {
+    console.warn('Event dispatch notice:', e);
+  }
+}
+
 export const StorageService = {
   // CONFIG
   getConfig(): StoreConfig {
     try {
-      const stored = localStorage.getItem(KEYS.CONFIG);
+      const stored = safeGetItem(KEYS.CONFIG);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (!parsed.googleClientId && initialStoreConfig.googleClientId) {
           parsed.googleClientId = initialStoreConfig.googleClientId;
-          this.saveConfig(parsed);
         }
+        memoryCache[KEYS.CONFIG] = parsed;
         return parsed;
       }
     } catch (e) {
-      console.warn('Failed to load store config', e);
+      console.warn('Failed to parse stored store config', e);
     }
+    if (memoryCache[KEYS.CONFIG]) return memoryCache[KEYS.CONFIG];
     this.saveConfig(initialStoreConfig);
     return initialStoreConfig;
   },
@@ -40,8 +89,9 @@ export const StorageService = {
         ...config,
         updatedAt: config.updatedAt || new Date().toISOString()
       };
-      localStorage.setItem(KEYS.CONFIG, JSON.stringify(configWithTimestamp));
-      window.dispatchEvent(new CustomEvent('aura_config_updated', { detail: configWithTimestamp }));
+      memoryCache[KEYS.CONFIG] = configWithTimestamp;
+      safeSetItem(KEYS.CONFIG, JSON.stringify(configWithTimestamp));
+      broadcastStorageEvent('aura_config_updated', configWithTimestamp);
       // Background Sync to Firebase Firestore
       FirestoreSyncService.saveConfig(configWithTimestamp).catch(err => {
         console.warn('Background Firestore config sync notice:', err);
@@ -54,10 +104,19 @@ export const StorageService = {
   // PRODUCTS
   getProducts(): Product[] {
     try {
-      const stored = localStorage.getItem(KEYS.PRODUCTS);
-      if (stored) return JSON.parse(stored);
+      const stored = safeGetItem(KEYS.PRODUCTS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          memoryCache[KEYS.PRODUCTS] = parsed;
+          return parsed;
+        }
+      }
     } catch (e) {
-      console.warn('Failed to load products', e);
+      console.warn('Failed to parse stored products', e);
+    }
+    if (memoryCache[KEYS.PRODUCTS] && memoryCache[KEYS.PRODUCTS].length > 0) {
+      return memoryCache[KEYS.PRODUCTS];
     }
     this.saveProducts(initialProducts);
     return initialProducts;
@@ -68,10 +127,15 @@ export const StorageService = {
       const now = new Date().toISOString();
       const updatedProducts = products.map(p => ({
         ...p,
+        category: p.category || 'Tops',
+        price: Number(p.price) >= 0 ? Number(p.price) : 0,
+        stock: Number(p.stock) >= 0 ? Number(p.stock) : 0,
+        sizes: Array.isArray(p.sizes) && p.sizes.length > 0 ? p.sizes : ['One Size'],
         updatedAt: p.updatedAt || now
       }));
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(updatedProducts));
-      window.dispatchEvent(new CustomEvent('aura_products_updated', { detail: updatedProducts }));
+      memoryCache[KEYS.PRODUCTS] = updatedProducts;
+      safeSetItem(KEYS.PRODUCTS, JSON.stringify(updatedProducts));
+      broadcastStorageEvent('aura_products_updated', updatedProducts);
       // Background Sync to Firebase Firestore
       FirestoreSyncService.saveAllProducts(updatedProducts).catch(err => {
         console.warn('Background Firestore products sync notice:', err);
@@ -83,9 +147,14 @@ export const StorageService = {
 
   saveProduct(product: Product): void {
     const products = this.getProducts();
+    const now = new Date().toISOString();
     const productWithTimestamp: Product = {
       ...product,
-      updatedAt: new Date().toISOString()
+      category: product.category || 'Tops',
+      price: Number(product.price) >= 0 ? Number(product.price) : 0,
+      stock: Number(product.stock) >= 0 ? Number(product.stock) : 0,
+      sizes: Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes : ['One Size'],
+      updatedAt: now
     };
     const index = products.findIndex(p => p.id === product.id);
     if (index >= 0) {
@@ -113,6 +182,7 @@ export const StorageService = {
       const p = products.find(prod => prod.id === item.productId);
       if (p) {
         p.stock = Math.max(0, p.stock - item.quantity);
+        p.updatedAt = new Date().toISOString();
       }
     });
     this.saveProducts(products);
@@ -121,19 +191,27 @@ export const StorageService = {
   // ORDERS
   getOrders(): Order[] {
     try {
-      const stored = localStorage.getItem(KEYS.ORDERS);
-      if (stored) return JSON.parse(stored);
+      const stored = safeGetItem(KEYS.ORDERS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          memoryCache[KEYS.ORDERS] = parsed;
+          return parsed;
+        }
+      }
     } catch (e) {
       console.warn('Failed to load orders', e);
     }
+    if (memoryCache[KEYS.ORDERS]) return memoryCache[KEYS.ORDERS];
     this.saveOrders(initialOrders);
     return initialOrders;
   },
 
   saveOrders(orders: Order[]): void {
     try {
-      localStorage.setItem(KEYS.ORDERS, JSON.stringify(orders));
-      window.dispatchEvent(new CustomEvent('aura_orders_updated', { detail: orders }));
+      memoryCache[KEYS.ORDERS] = orders;
+      safeSetItem(KEYS.ORDERS, JSON.stringify(orders));
+      broadcastStorageEvent('aura_orders_updated', orders);
     } catch (e) {
       console.error('Failed to save orders', e);
     }
@@ -165,7 +243,7 @@ export const StorageService = {
         order.trackingNumber = trackingNumber;
       }
       this.saveOrders(orders);
-      FirestoreSyncService.updateOrderStatus(orderId, status).catch(err => {
+      FirestoreSyncService.updateOrderStatus(orderId, status, trackingNumber).catch(err => {
         console.warn('Background Firestore order status sync notice:', err);
       });
     }
@@ -174,8 +252,11 @@ export const StorageService = {
   // COUPONS
   getCoupons(): Coupon[] {
     try {
-      const stored = localStorage.getItem(KEYS.COUPONS);
-      if (stored) return JSON.parse(stored);
+      const stored = safeGetItem(KEYS.COUPONS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch (e) {
       console.warn('Failed to load coupons', e);
     }
@@ -185,8 +266,9 @@ export const StorageService = {
 
   saveCoupons(coupons: Coupon[]): void {
     try {
-      localStorage.setItem(KEYS.COUPONS, JSON.stringify(coupons));
-      window.dispatchEvent(new CustomEvent('aura_coupons_updated', { detail: coupons }));
+      memoryCache[KEYS.COUPONS] = coupons;
+      safeSetItem(KEYS.COUPONS, JSON.stringify(coupons));
+      broadcastStorageEvent('aura_coupons_updated', coupons);
     } catch (e) {
       console.error('Failed to save coupons', e);
     }
@@ -211,7 +293,7 @@ export const StorageService = {
   // CUSTOMER / AUTH
   getCurrentCustomer(): Customer | null {
     try {
-      const stored = localStorage.getItem(KEYS.CURRENT_USER);
+      const stored = safeGetItem(KEYS.CURRENT_USER);
       if (stored) return JSON.parse(stored);
     } catch (e) {
       console.warn('Failed to load current customer', e);
@@ -222,17 +304,17 @@ export const StorageService = {
   saveCurrentCustomer(customer: Customer | null): void {
     try {
       if (customer) {
-        localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(customer));
+        safeSetItem(KEYS.CURRENT_USER, JSON.stringify(customer));
         // Also update in all customers list
         const all = this.getAllCustomers();
         const idx = all.findIndex(c => c.id === customer.id);
         if (idx >= 0) all[idx] = customer;
         else all.push(customer);
-        localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(all));
+        safeSetItem(KEYS.CUSTOMERS, JSON.stringify(all));
       } else {
         localStorage.removeItem(KEYS.CURRENT_USER);
       }
-      window.dispatchEvent(new CustomEvent('aura_customer_updated', { detail: customer }));
+      broadcastStorageEvent('aura_customer_updated', customer);
     } catch (e) {
       console.error('Failed to save customer', e);
     }
@@ -240,7 +322,7 @@ export const StorageService = {
 
   getAllCustomers(): Customer[] {
     try {
-      const stored = localStorage.getItem(KEYS.CUSTOMERS);
+      const stored = safeGetItem(KEYS.CUSTOMERS);
       if (stored) return JSON.parse(stored);
     } catch (e) {
       console.warn('Failed to load all customers', e);
@@ -253,7 +335,7 @@ export const StorageService = {
     const customer = this.getCurrentCustomer();
     if (customer && customer.wishlist) return customer.wishlist;
     try {
-      const stored = localStorage.getItem(KEYS.WISHLIST);
+      const stored = safeGetItem(KEYS.WISHLIST);
       if (stored) return JSON.parse(stored);
     } catch (e) {
       console.warn('Failed to load wishlist', e);
@@ -267,31 +349,33 @@ export const StorageService = {
       ? current.filter(id => id !== productId)
       : [...current, productId];
 
-    localStorage.setItem(KEYS.WISHLIST, JSON.stringify(updated));
+    safeSetItem(KEYS.WISHLIST, JSON.stringify(updated));
     const customer = this.getCurrentCustomer();
     if (customer) {
       customer.wishlist = updated;
       this.saveCurrentCustomer(customer);
     }
-    window.dispatchEvent(new CustomEvent('aura_wishlist_updated', { detail: updated }));
+    broadcastStorageEvent('aura_wishlist_updated', updated);
     return updated;
   },
 
   // CART PERSISTENCE
   getCart(): CartItem[] {
     try {
-      const stored = localStorage.getItem(KEYS.CART);
+      const stored = safeGetItem(KEYS.CART);
       if (stored) return JSON.parse(stored);
     } catch (e) {
       console.warn('Failed to load cart', e);
     }
+    if (memoryCache[KEYS.CART]) return memoryCache[KEYS.CART];
     return [];
   },
 
   saveCart(cart: CartItem[]): void {
     try {
-      localStorage.setItem(KEYS.CART, JSON.stringify(cart));
-      window.dispatchEvent(new CustomEvent('aura_cart_updated', { detail: cart }));
+      memoryCache[KEYS.CART] = cart;
+      safeSetItem(KEYS.CART, JSON.stringify(cart));
+      broadcastStorageEvent('aura_cart_updated', cart);
     } catch (e) {
       console.error('Failed to save cart', e);
     }
@@ -299,16 +383,24 @@ export const StorageService = {
 
   // ADMIN AUTH STATE
   isAdminAuthenticated(): boolean {
-    return sessionStorage.getItem(KEYS.ADMIN_AUTH) === 'true';
+    try {
+      return sessionStorage.getItem(KEYS.ADMIN_AUTH) === 'true';
+    } catch {
+      return false;
+    }
   },
 
   setAdminAuthenticated(auth: boolean): void {
-    if (auth) {
-      sessionStorage.setItem(KEYS.ADMIN_AUTH, 'true');
-    } else {
-      sessionStorage.removeItem(KEYS.ADMIN_AUTH);
+    try {
+      if (auth) {
+        sessionStorage.setItem(KEYS.ADMIN_AUTH, 'true');
+      } else {
+        sessionStorage.removeItem(KEYS.ADMIN_AUTH);
+      }
+    } catch (e) {
+      console.warn('SessionStorage notice:', e);
     }
-    window.dispatchEvent(new CustomEvent('aura_admin_auth_changed', { detail: auth }));
+    broadcastStorageEvent('aura_admin_auth_changed', auth);
   },
 
   // DATABASE BACKUP & RESTORE
@@ -319,7 +411,7 @@ export const StorageService = {
       orders: this.getOrders(),
       coupons: this.getCoupons(),
       customers: this.getAllCustomers(),
-      version: '2.0.0 (Firestore Connected)',
+      version: '2.5.0 (Resilient Synchronized)',
       exportedAt: new Date().toISOString()
     };
     return JSON.stringify(data, null, 2);
@@ -333,10 +425,10 @@ export const StorageService = {
     try {
       const data = JSON.parse(jsonString);
       if (data.config) this.saveConfig(data.config);
-      if (data.products) this.saveProducts(data.products);
-      if (data.orders) this.saveOrders(data.orders);
-      if (data.coupons) this.saveCoupons(data.coupons);
-      if (data.customers) localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(data.customers));
+      if (data.products && Array.isArray(data.products)) this.saveProducts(data.products);
+      if (data.orders && Array.isArray(data.orders)) this.saveOrders(data.orders);
+      if (data.coupons && Array.isArray(data.coupons)) this.saveCoupons(data.coupons);
+      if (data.customers && Array.isArray(data.customers)) safeSetItem(KEYS.CUSTOMERS, JSON.stringify(data.customers));
       return true;
     } catch (e) {
       console.error('Failed to parse backup', e);
@@ -349,12 +441,16 @@ export const StorageService = {
   },
 
   resetToDefaultDemo(): void {
-    localStorage.removeItem(KEYS.CONFIG);
-    localStorage.removeItem(KEYS.PRODUCTS);
-    localStorage.removeItem(KEYS.COUPONS);
-    localStorage.removeItem(KEYS.ORDERS);
-    localStorage.removeItem(KEYS.CART);
-    localStorage.removeItem(KEYS.WISHLIST);
+    try {
+      localStorage.removeItem(KEYS.CONFIG);
+      localStorage.removeItem(KEYS.PRODUCTS);
+      localStorage.removeItem(KEYS.COUPONS);
+      localStorage.removeItem(KEYS.ORDERS);
+      localStorage.removeItem(KEYS.CART);
+      localStorage.removeItem(KEYS.WISHLIST);
+    } catch (e) {
+      console.warn(e);
+    }
     this.saveConfig(initialStoreConfig);
     this.saveProducts(initialProducts);
     this.saveCoupons(initialCoupons);
@@ -427,7 +523,7 @@ export const StorageService = {
     const idx = all.findIndex((c) => c.id === customer.id);
     if (idx >= 0) all[idx] = customer;
     else all.push(customer);
-    localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(all));
+    safeSetItem(KEYS.CUSTOMERS, JSON.stringify(all));
   },
 
   setCurrentCustomer(customer: Customer | null): void {
