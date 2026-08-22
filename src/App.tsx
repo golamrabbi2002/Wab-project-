@@ -216,6 +216,17 @@ export const App: React.FC = () => {
       }
     });
 
+    const unsubOrders = FirestoreSyncService.subscribeOrders((cloudOrders) => {
+      if (cloudOrders && cloudOrders.length > 0) {
+        setOrders(cloudOrders);
+        try {
+          localStorage.setItem('aura_orders', JSON.stringify(cloudOrders));
+        } catch (e) {
+          console.warn('LocalStorage orders warning:', e);
+        }
+      }
+    });
+
     const handleStorageChange = () => {
       loadState();
     };
@@ -247,6 +258,7 @@ export const App: React.FC = () => {
     return () => {
       unsubConfig();
       unsubProducts();
+      unsubOrders();
       window.removeEventListener('aura_storage_update', handleStorageChange);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('popstate', handleUrlChange);

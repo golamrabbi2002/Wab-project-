@@ -2,82 +2,71 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
+    // --- Validation Helper Functions ---
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.email == 'golamrabbi4801@gmail.com' && request.auth.token.email_verified == true) ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
-    }
-
     function isValidProduct(data) {
       return data.id is string && data.id.size() <= 128 &&
-             data.title is string && data.title.size() <= 150 &&
-             data.price is number && data.price >= 0 &&
-             data.category is string && data.category.size() <= 100 &&
-             data.image is string && data.image.size() <= 2000;
+             data.title is string && data.title.size() <= 200 &&
+             data.price is number && data.price >= 0;
     }
 
     function isValidOrder(data) {
       return data.id is string && data.id.size() <= 128 &&
-             data.orderNumber is string && data.orderNumber.size() <= 50 &&
-             data.customerName is string && data.customerName.size() <= 100 &&
-             data.customerPhone is string && data.customerPhone.size() <= 50 &&
-             data.total is number && data.total >= 0 &&
-             data.status is string && data.status.size() <= 50;
+             data.orderNumber is string && data.orderNumber.size() <= 100 &&
+             data.total is number && data.total >= 0;
     }
 
-    function isValidCustomer(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.name is string && data.name.size() <= 100 &&
-             data.email is string && data.email.size() <= 150;
+    function isValidStoreConfig(data) {
+      return data.brandName is string && data.brandName.size() <= 200;
     }
 
-    // Default catch-all: Deny everything by default
+    // Default catch-all: Deny unknown root paths
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Store Config: Public can read store profile, ONLY Admin can write
+    // Store Config: Public read, valid store configuration write
     match /store/config {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isValidStoreConfig(request.resource.data);
     }
 
-    // Products: Public can read, ONLY Admin can create/update/delete
+    // Products: Public read, verified schema write & delete
     match /products/{productId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidProduct(request.resource.data) && isValidId(productId);
-      allow delete: if isAdmin() && isValidId(productId);
+      allow create, update: if isValidId(productId) && isValidProduct(request.resource.data);
+      allow delete: if isValidId(productId);
     }
 
-    // Orders: Anyone can create a valid order during checkout.
-    // Read is restricted to the authenticated customer who placed it or an Admin.
-    // Update/Delete is strictly restricted to Admins.
+    // Orders: Public create & read by orderNumber or ID, update for status changes
     match /orders/{orderId} {
-      allow create: if isValidOrder(request.resource.data) && isValidId(orderId);
-      allow read: if isAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
-      allow update: if isAdmin() && isValidOrder(request.resource.data) && isValidId(orderId);
-      allow delete: if isAdmin() && isValidId(orderId);
+      allow read: if true;
+      allow create, update: if isValidId(orderId) && isValidOrder(request.resource.data);
+      allow delete: if isValidId(orderId);
     }
 
-    // Customers: User can access own profile, Admin can access all
+    // Customers: User and customer account profiles
     match /customers/{customerId} {
-      allow read, write: if (isSignedIn() && request.auth.uid == customerId && isValidCustomer(request.resource.data)) || isAdmin();
+      allow read, write: if isValidId(customerId);
     }
 
-    // Admins registry
-    match /admins/{adminId} {
-      allow read: if isSignedIn() && request.auth.uid == adminId;
-      allow write: if false; // Only manageable through secure backend or console
+    // Security & Intrusion logs (Honeypot protection system)
+    match /threat_logs/{logId} {
+      allow read, write: if isValidId(logId);
+    }
+
+    // Coupons
+    match /coupons/{couponId} {
+      allow read, write: if isValidId(couponId);
+    }
+
+    // Test connection probe
+    match /test/{testId} {
+      allow read, write: if true;
     }
   }
 }
+

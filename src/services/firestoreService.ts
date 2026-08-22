@@ -25,12 +25,12 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 // Initialize Firebase Auth
 export const auth = getAuth(app);
 
-// Initialize Firestore with custom database ID if specified in config and long polling fallback
+// Initialize Firestore with custom database ID if specified in config and force long polling to guarantee connectivity across all environments (Netlify, iframes, proxies)
 function createFirestoreInstance() {
   const dbId = firebaseConfig.firestoreDatabaseId || undefined;
   try {
     return initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     }, dbId);
   } catch {
     return dbId ? getFirestore(app, dbId) : getFirestore(app);
@@ -245,6 +245,24 @@ export class FirestoreSyncService {
     }
   }
 
+  // Real-time listener for Orders
+  static subscribeOrders(callback: (orders: Order[]) => void): () => void {
+    const ordersRef = collection(db, ORDERS_COLLECTION);
+    return onSnapshot(ordersRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const orders: Order[] = [];
+        snapshot.forEach((d) => {
+          orders.push(d.data() as Order);
+        });
+        // Sort descending by createdAt
+        orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        callback(orders);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, ORDERS_COLLECTION);
+    });
+  }
+
   // Save new Order
   static async saveOrder(order: Order): Promise<void> {
     try {
@@ -256,10 +274,14 @@ export class FirestoreSyncService {
   }
 
   // Update order status
-  static async updateOrderStatus(orderId: string, status: string): Promise<void> {
+  static async updateOrderStatus(orderId: string, status: string, trackingNumber?: string): Promise<void> {
     try {
       const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-      await updateDoc(orderRef, { status });
+      const updateData: Record<string, any> = { status };
+      if (trackingNumber !== undefined) {
+        updateData.trackingNumber = trackingNumber;
+      }
+      await updateDoc(orderRef, updateData);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COLLECTION}/${orderId}`);
     }
