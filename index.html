@@ -38,6 +38,30 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- Early error silencer for benign sandbox websocket connection notices -->
+    <script>
+      (function() {
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e && (e.reason || e);
+          var str = String(reason && (reason.message || reason) || '');
+          if (str.indexOf('WebSocket') !== -1 || str.indexOf('websocket') !== -1) {
+            e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('error', function(e) {
+          var msg = String((e && (e.message || (e.error && e.error.message))) || '');
+          if (msg.indexOf('WebSocket') !== -1 || msg.indexOf('websocket') !== -1 || msg.indexOf('[vite]') !== -1) {
+            e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+      })();
+    </script>
+
     <!-- Google Identity Services (GIS) SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
