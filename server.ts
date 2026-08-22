@@ -36,14 +36,20 @@ async function startServer() {
         return res.status(400).json({ error: 'Message is required' });
       }
 
-      const ai = getAi();
-      if (!ai) {
-        // Safe fallback if API key is not yet set in environment
+      // Allow dynamic API key from store config entered by admin or fallback to process.env
+      const effectiveApiKey = (storeConfig.geminiApiKey && typeof storeConfig.geminiApiKey === 'string' && storeConfig.geminiApiKey.trim())
+        ? storeConfig.geminiApiKey.trim()
+        : process.env.GEMINI_API_KEY;
+
+      if (!effectiveApiKey) {
+        // Safe fallback if API key is not yet set
         return res.json({
-          reply: `ধন্যবাদ আপনার বার্তার জন্য! আমি "বিসমিল্লাহ কালেকশন"-এর স্মার্ট এআই শপিং অ্যাসিস্ট্যান্ট। আমাদের পাঞ্জাবি, শাড়ি, ও থ্রি-পিস কালেকশন থেকে আপনার পছন্দের পোশাকটি বাছাই করতে পারি।`,
+          reply: `[সিস্টেম কনফার্মেশন]: আমি "বিসমিল্লাহ কালেকশন"-এর এআই ইনটেলিজেন্স সিস্টেম। আমাদের ডাটাবেজে উপলব্ধ পাঞ্জাবি, শাড়ি ও পোশাক সম্পর্কিত যেকোনো সুনির্দিষ্ট প্রশ্নের যৌক্তিক ও পরিশীলিত সমাধান দিতে আমি প্রস্তুত।`,
           matchedProductIds: products.slice(0, 3).map((p: any) => p.id)
         });
       }
+
+      const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
 
       // Compact catalog summary for Gemini grounding
       const catalogSummary = Array.isArray(products)
@@ -52,45 +58,46 @@ async function startServer() {
             title: p.title,
             category: p.category,
             price: p.price,
-            inStock: p.inStock !== false && (p.inventoryCount === undefined || p.inventoryCount > 0),
+            stock: p.stock ?? 0,
+            inStock: (p.stock ?? 0) > 0,
             sizes: p.sizes || [],
             colors: p.colors || [],
+            material: p.material || '',
+            badges: p.badges || [],
             description: p.description || ''
           }))
         : [];
 
+      const botName = storeConfig.aiBotName || 'Bismillah AI System';
+
       const systemPrompt = `
-You are "Bismillah AI Concierge" (বিসমিল্লাহ এআই শপিং অ্যাসিস্ট্যান্ট), the intelligent, courteous, and highly knowledgeable conversational shopping assistant for "Bismillah Collection" (বিসমিল্লাহ কালেকশন) — Bangladesh's premier online fashion boutique.
+You are "${botName}", a precise, logical, and structured robotic AI concierge for "${storeConfig.brandName || 'Bismillah Collection'}".
 
-Store Policies & Information:
-- Brand Name: ${storeConfig.brandName || 'Bismillah Collection (বিসমিল্লাহ কালেকশন)'}
-- Delivery in Dhaka: ৳${storeConfig.deliveryDhakaCity || 70} (1-2 business days)
-- Delivery outside Dhaka: ৳${storeConfig.deliveryOutsideDhaka || 130} (2-3 business days)
-- Free Delivery: Orders over ৳${storeConfig.freeShippingThreshold || 3000}
-- Payment Methods: Cash on Delivery (ক্যাশ অন ডেলিভারি), bKash (বিকাশ), Nagad (নগদ), Rocket (রকেট)
-- Return/Exchange Policy: Check in front of delivery person or 7-day exchange window with original tags.
-- Customer Care Phone: ${storeConfig.contactPhone || '+880 1712-345678'}
+CRITICAL OPERATIONAL RULES & CONSTRAINTS (MANDATORY):
+1. **Robotic & Logical Tone**: Talk systematically like an intelligent robotic agent. Do not give shallow direct answers; instead, provide a logical, well-reasoned, and structured analysis.
+2. **Strict Website Grounding**: While you may use external reasoning frameworks and domain logic to analyze context, YOU MUST EXCLUSIVELY PROVIDE FACTS, PRODUCTS, PRICING, AND POLICIES FOUND DIRECTLY WITHIN THIS WEBSITE AND DATABASE. Never hallucinate third-party items or speculative terms.
+3. **Consolidated & Refined Information**: Consolidate disparate attributes (pricing, fabric, stock status, delivery timelines, size compatibility) and deliver the information in a clean, refined, bulleted or step-by-step format in polite Bengali (বাংলা).
+4. **Product Availability & Out-of-Stock Handling**:
+   - For requested items that exist in our database: cite exact title, price in ৳ (BDT), material, sizes, and stock availability. Include their exact IDs in "matchedProductIds".
+   - For items NOT in our catalog (e.g. Shoes, Watches, Electronics): logically explain that this category is outside this store's apparel domain, then synthesize and present alternative available garments from our Punjabi, Saree, or Three-Piece inventory.
+5. **Store Directives & Policies**:
+   - Brand: ${storeConfig.brandName || 'Bismillah Collection'}
+   - Dhaka Delivery: ৳${storeConfig.deliveryDhakaCity || 70} (1-2 business days)
+   - Outside Dhaka: ৳${storeConfig.deliveryOutsideDhaka || 130} (2-3 business days)
+   - Complimentary Delivery Threshold: Over ৳${storeConfig.freeShippingThreshold || 3000}
+   - Payment Options: Cash on Delivery (ক্যাশ অন ডেলিভারি), bKash (${storeConfig.bkashMerchantNumber || '01712-345678'}), Nagad, Rocket.
+   - Return/Exchange Policy: Inspection in front of rider allowed. 7-day exchange window with intact barcode.
+   - Helpline: ${storeConfig.contactPhone || '+880 1712-345678'}
 
-Current Live Available Products Catalog:
+CURRENT LIVE WEBSITE CATALOG (${catalogSummary.length} Active SKUs):
 ${JSON.stringify(catalogSummary, null, 2)}
 
-Strict Guidelines for Responses:
-1. Always respond in warm, natural, and polite Bengali (বাংলা).
-2. Ground all answers STRICTLY in the provided product catalog and store policies.
-3. If the user asks for a product or category that EXISTS in the catalog:
-   - Recommend the specific item(s) by name, mention price in ৳ (BDT), available sizes, and why it's great.
-   - Include their exact product IDs in the "matchedProductIds" JSON array.
-4. If the user asks for a product that is UNAVAILABLE or NOT in the catalog (e.g. Shoes, Watches, or unlisted items):
-   - Politely inform them that this specific item is currently not in the Bismillah Collection catalog.
-   - Suggest related available items from our Punjabi, Saree, Three-Piece, or Shirt collections.
-   - Leave "matchedProductIds" as an empty array or suggest available related product IDs.
-5. If the user asks about order tracking, delivery charges, bKash payments, or sizing, explain clearly according to the store policies.
-6. Output your response as a valid JSON object with exactly two keys:
-   {
-     "reply": "Your helpful response in polite Bengali...",
-     "matchedProductIds": ["prod_1", "prod_2"]
-   }
-DO NOT output markdown code fences around the JSON. Return only the raw JSON.`;
+OUTPUT FORMAT REQUIREMENTS:
+Output strictly a valid JSON object without markdown formatting or backticks:
+{
+  "reply": "Logical and consolidated response in structured Bengali...",
+  "matchedProductIds": ["prod_1", "prod_2"]
+}`;
 
       const contents: any[] = [];
       
@@ -109,7 +116,7 @@ DO NOT output markdown code fences around the JSON. Return only the raw JSON.`;
       contents.push({ role: 'user', parts: [{ text: message }] });
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.7-flash',
+        model: 'gemini-2.5-flash',
         contents,
         config: {
           systemInstruction: systemPrompt,
@@ -126,7 +133,7 @@ DO NOT output markdown code fences around the JSON. Return only the raw JSON.`;
         });
       } catch {
         return res.json({
-          reply: responseText || 'কীভাবে আপনাকে সাহায্য করতে পারি?',
+          reply: responseText || 'সিস্টেম স্ট্যাটাস: ডাটা প্রক্রিয়াকরণ সম্পন্ন।',
           matchedProductIds: []
         });
       }

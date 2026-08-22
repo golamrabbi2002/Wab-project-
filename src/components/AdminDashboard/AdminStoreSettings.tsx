@@ -57,6 +57,12 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
   // Google OAuth Developer Client ID
   const [googleClientId, setGoogleClientId] = useState(config.googleClientId || '');
 
+  // Gemini AI Free API Key & Configuration
+  const [geminiApiKey, setGeminiApiKey] = useState(config.geminiApiKey || '');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [aiBotName, setAiBotName] = useState(config.aiBotName || 'Bismillah AI');
+  const [aiTone, setAiTone] = useState<'logical_robot' | 'polite_assistant' | 'formal'>(config.aiTone || 'logical_robot');
+
   // Bangladesh & Global Delivery and Payment numbers
   const [deliveryDhakaCity, setDeliveryDhakaCity] = useState(config.deliveryDhakaCity ?? 70);
   const [deliveryOutsideDhaka, setDeliveryOutsideDhaka] = useState(config.deliveryOutsideDhaka ?? 130);
@@ -109,6 +115,9 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
     setPrivacyPolicy(config.privacyPolicy);
     setTermsOfService(config.termsOfService);
     setAdminPin(config.adminPin || 'admin123');
+    setGeminiApiKey(config.geminiApiKey || '');
+    setAiBotName(config.aiBotName || 'Bismillah AI');
+    setAiTone(config.aiTone || 'logical_robot');
   }, [config]);
 
   // Quick Currency Preset handler
@@ -178,6 +187,9 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
       privacyPolicy: SecurityService.sanitizeText(privacyPolicy, 2000),
       termsOfService: SecurityService.sanitizeText(termsOfService, 2000),
       adminPin: adminPin.trim() || 'admin123',
+      geminiApiKey: geminiApiKey.trim(),
+      aiBotName: SecurityService.sanitizeText(aiBotName || 'Bismillah AI', 50),
+      aiTone: aiTone || 'logical_robot',
     };
 
     onSaveConfig(updated);
@@ -255,7 +267,110 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
         </div>
       </div>
 
-      {/* SECTION 1: GOOGLE DEVELOPER OAUTH INTEGRATION */}
+      {/* SECTION 1: GOOGLE GEMINI FREE AI API & ROBOT CONCIERGE SETTINGS */}
+      <div className="bg-neutral-950 border border-purple-500/40 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/30">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white uppercase tracking-wider">
+                  গুগল জেমিনি এআই এপিআই কি & রোবোটিক রুলস কনফিগ
+                </h3>
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-purple-500/30">
+                  Google Gemini Free API
+                </span>
+              </div>
+              <p className="text-neutral-400 mt-0.5">
+                গিটহাবে পুশ করার পর সরাসরি এই অ্যাডমিন প্যানেল থেকে আপনার গুগল জেমিনি ফ্রি এপিআই কি (API Key) কানেক্ট করুন।
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block font-semibold uppercase tracking-wider text-neutral-300 mb-1.5 flex items-center justify-between">
+              <span>Google Gemini API Key (ফ্রি এপিআই কি)</span>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="text-amber-400 hover:text-amber-300 flex items-center gap-1 text-[11px] font-normal lowercase tracking-normal"
+              >
+                <span>Get Free Gemini Key (aistudio.google.com)</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </label>
+            <div className="relative">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 pr-10 text-white focus:outline-none focus:border-purple-400 text-xs font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+              >
+                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-neutral-400 mt-1.5 leading-relaxed">
+              💡 এটি ফায়ারবেস ক্লাউড ডাটাবেজে এনক্রিপ্ট হয়ে সেভ থাকে। এখানে একবার এপিআই কি দিলে নেটলিফাই বা যেকোনো হোস্টিং থেকে আপনার এআই অ্যাসিস্ট্যান্ট সক্রিয়ভাবে গুগল জেমিনির সাথে কাজ করবে।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="block font-semibold uppercase tracking-wider text-neutral-300 mb-1.5">
+                AI Assistant Name (বট নাম)
+              </label>
+              <input
+                type="text"
+                value={aiBotName}
+                onChange={(e) => setAiBotName(e.target.value)}
+                placeholder="Bismillah AI"
+                className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-400 text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold uppercase tracking-wider text-neutral-300 mb-1.5">
+                AI Tone & Persona (আচরণ ও স্বভাব)
+              </label>
+              <select
+                value={aiTone}
+                onChange={(e) => setAiTone(e.target.value as any)}
+                className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-400 text-xs"
+              >
+                <option value="logical_robot">🤖 Logical Robot (সংক্ষিপ্ত, যৌক্তিক ও স্টোর নির্দিষ্ট উত্তর)</option>
+                <option value="polite_assistant">🛍️ Polite Shopping Assistant (নম্র ও সাহায্যকারী)</option>
+                <option value="formal">👔 Formal Concierge (মার্জিত ও প্রাতিষ্ঠানিক)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* AI Strict Core Directives Box */}
+          <div className="bg-neutral-900/80 p-4 rounded-xl border border-purple-500/20 space-y-2 text-[11px] text-neutral-300">
+            <div className="font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-purple-400" />
+              <span>AI Core Logical Protocol & Boundary (সক্রিয় অভ্যন্তরীণ নিয়মাবলী):</span>
+            </div>
+            <ul className="list-disc list-inside space-y-1 text-neutral-400">
+              <li><strong className="text-neutral-200">রোবোটিক ও যৌক্তিক উত্তর:</strong> এআই অপ্রয়োজনীয় কথা পরিহার করে যৌক্তিক ও পয়েন্ট-আকারে তথ্য প্রদান করবে।</li>
+              <li><strong className="text-neutral-200">শুধুমাত্র এই ওয়েবসাইটের তথ্য:</strong> বাইরের তথ্য রেফারেন্স হিসেবে ব্যবহার করলেও, উত্তর সবসময় এই ওয়েবসাইটের লাইভ ডাটাবেজ ও প্রোডাক্ট ক্যাটালগের তথ্যের মধ্যে সীমাবদ্ধ রাখবে।</li>
+              <li><strong className="text-neutral-200">পরিশীলিত ও সংক্ষিপ্ত একত্রীকরণ:</strong> বিভিন্ন তথ্যের উৎস একত্র করে অত্যন্ত পরিশীলিত (consolidated & refined) ভাবে উপস্থাপন করবে।</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 2: GOOGLE DEVELOPER OAUTH INTEGRATION */}
       <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
         <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
           <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">

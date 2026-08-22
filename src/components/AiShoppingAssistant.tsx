@@ -43,14 +43,16 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
 
+  const botDisplayName = config.aiBotName || 'Bismillah AI System';
+
   const initialGreeting: ChatMessage = {
     id: 'msg_welcome',
     sender: 'ai',
-    text: `আসসালামু আলাইকুম! আমি "বিসমিল্লাহ কালেকশন"-এর স্মার্ট এআই শপিং অ্যাসিস্ট্যান্ট 🤖✨\n\nআমাদের সেরা পাঞ্জাবি, এক্সক্লুসিভ শাড়ি, ডিজাইনার থ্রি-পিস, ডেলিভারি চার্জ বা যেকোনো বিষয়ে আমাকে সরাসরি প্রশ্ন করতে পারেন।`,
+    text: `[সিস্টেম অনলাইন]: আমি "${botDisplayName}" — ${config.brandName || 'বিসমিল্লাহ কালেকশন'}-এর অফিশিয়াল রোবোটিক ইনটেলিজেন্স অ্যাসিস্ট্যান্ট 🤖⚡\n\n• আমি শুধুমাত্র এই ওয়েবসাইটের লাইভ ডাটাবেজ থেকে তথ্য সরবরাহ করি।\n• পোশাকের সাইজ, স্টক স্ট্যাটাস, ডেলিভারি চার্জ বা অর্ডার পলিসি সম্পর্কে যেকোনো প্রশ্ন লিখুন।`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     actionPills: [
-      { label: '✨ পাঞ্জাবি কালেকশন দেখান', action: 'show_panjabi' },
-      { label: '🥻 এক্সক্লুসিভ শাড়ি', action: 'show_saree' },
+      { label: '✨ পাঞ্জাবি কালেকশন', action: 'show_panjabi' },
+      { label: '🥻 আকর্ষণীয় শাড়ি', action: 'show_saree' },
       { label: '👗 থ্রি-পিস কালেকশন', action: 'show_three_piece' },
       { label: '🚚 ডেলিভারি চার্জ কত?', action: 'ask_delivery' },
     ],
@@ -212,12 +214,12 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-sm text-white">বিসমিল্লাহ এআই কনসিয়ার্জ</h3>
-                    <span className="text-[9px] bg-amber-400/20 text-amber-300 font-semibold px-1.5 py-0.5 rounded-full border border-amber-400/30">
-                      Gemini
+                    <h3 className="font-bold text-sm text-white">{botDisplayName}</h3>
+                    <span className="text-[9px] bg-purple-500/20 text-purple-300 font-semibold px-1.5 py-0.5 rounded-full border border-purple-400/30">
+                      Gemini Robot
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-300">২৪/৭ স্মার্ট ক্যাটালগ ও শপিং গাইড</p>
+                  <p className="text-[11px] text-neutral-300">যৌক্তিক ও পরিশীলিত শপিং ইনটেলিজেন্স</p>
                 </div>
               </div>
 

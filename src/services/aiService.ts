@@ -65,6 +65,7 @@ export class AiShoppingService {
 
   /**
    * Resilient local knowledge engine for static deploys (Netlify) & instant responses.
+   * Configured with strict robotic logical reasoning, refined consolidation, and exclusive website grounding.
    */
   private static localKnowledgeAssistant(
     query: string,
@@ -81,14 +82,14 @@ export class AiShoppingService {
       'সানগ্লাস', 'sunglass', 'sunglasses', 'চশমা',
       'মেকআপ', 'makeup', 'কসমেটিকস', 'cosmetics',
       'পারফিউম', 'perfume', 'আতর', 'attar',
-      'মোবাইল', 'ফোন', 'phone', 'mobile'
+      'মোবাইল', 'ফোন', 'phone', 'mobile', 'ল্যাপটপ', 'laptop'
     ];
 
     const isAskingUnavailable = unavailableKeywords.some((k) => q.includes(k));
     if (isAskingUnavailable) {
-      const suggestions = products.slice(0, 3);
+      const suggestions = products.filter(p => p.stock > 0).slice(0, 3);
       return {
-        text: `দুঃখিত! আমাদের বিসমিল্লাহ কালেকশনে বর্তমানে এই পণ্যটি উপলব্ধ নেই। তবে আপনি আমাদের আকর্ষণীয় পাঞ্জাবি, প্রিমিয়াম শাড়ি, ডিজাইনার থ্রি-পিস ও ক্যাজুয়াল কালেকশনগুলো দেখতে পারেন।`,
+        text: `[যৌক্তিক বিশ্লেষণ ও ফলাফল]:\n১. অনুসন্ধান বিশ্লেষণ: আপনি যে পণ্যটি খুঁজছেন তা এই অনলাইন স্টোরের পোশাক ক্যাটালগ বহির্ভূত।\n২. বর্তমান ডাটাবেজ স্থিতি: আমাদের সিস্টেমে শুধুমাত্র প্রিমিয়াম ফ্যাশন পোশাক (পাঞ্জাবি, শাড়ি, থ্রি-পিস ও শার্ট) সংরক্ষিত আছে।\n৩. সমন্বিত বিকল্প সুপারিশ: আপনার জন্য আমাদের স্টোরের সর্বোচ্চ রেটিংপ্রাপ্ত রেডি-টু-শিপ কালেকশন নিচে প্রদর্শন করা হলো:`,
         matchedProducts: suggestions,
         actionPills: [
           { label: '✨ পাঞ্জাবি কালেকশন', action: 'show_panjabi' },
@@ -100,27 +101,29 @@ export class AiShoppingService {
 
     // 2. Delivery queries
     if (q.includes('ডেলিভারি') || q.includes('delivery') || q.includes('চার্জ') || q.includes('charge') || q.includes('shipping')) {
-      const dhaka = config.deliveryDhakaCity || 70;
-      const outside = config.deliveryOutsideDhaka || 130;
-      const freeOver = config.freeShippingThreshold || 3000;
+      const dhaka = config.deliveryDhakaCity ?? 70;
+      const outside = config.deliveryOutsideDhaka ?? 130;
+      const freeOver = config.freeShippingThreshold ?? 3000;
       return {
-        text: `আমাদের ডেলিভারি পলিসি:\n• ঢাকার ভেতরে ডেলিভারি চার্জ ৳${dhaka} (১-২ কর্মদিবস)\n• ঢাকার বাইরে ডেলিভারি চার্জ ৳${outside} (২-৩ কর্মদিবস)\n• ৳${freeOver} টাকার বেশি অর্ডারে সারা বাংলাদেশে ফ্রি ডেলিভারি!\n• আমরা সম্পূর্ণ ক্যাশ অন ডেলিভারি (Cash on Delivery) সুবিধা প্রদান করে থাকি।`,
+        text: `[লজিস্টিকস ও শিপিং প্যারামিটার]:\n• মেট্রো ঢাকা কুরিয়ার চার্জ: ৳${dhaka} (প্রত্যাশিত সময়: ২৪-৪৮ ঘণ্টা)\n• জাতীয় কভারেজ (ঢাকার বাইরে): ৳${outside} (প্রত্যাশিত সময়: ৪৮-৭২ ঘণ্টা)\n• ফ্রি ডেলিভারি ইনসেন্টিভ: ৳${freeOver}+ অর্ডারে শতভাগ ফ্রি ডেলিভারি প্রযোজ্য।\n• সিকিউরিটি প্রোটোকল: ক্যাশ অন ডেলিভারি (COD) এবং পার্সেল আনবক্সিং ভেরিফিকেশন অনুমোদিত।`,
         matchedProducts: [],
         actionPills: [
           { label: '📦 অর্ডার ট্র্যাক করুন', action: 'open_tracking' },
-          { label: '🛍️ শপিং শুরু করুন', action: 'browse_all' },
+          { label: '🛍️ ক্যাটালগ ব্রাউজ করুন', action: 'browse_all' },
         ],
       };
     }
 
     // 3. Payment queries
     if (q.includes('পেমেন্ট') || q.includes('payment') || q.includes('বিকাশ') || q.includes('bkash') || q.includes('নগদ') || q.includes('nagad') || q.includes('টাকা')) {
+      const bkash = config.bkashMerchantNumber || '01712-345678';
+      const nagad = config.nagadMerchantNumber || '01812-345678';
       return {
-        text: `আমাদের পেমেন্ট সুবিধা:\n• ক্যাশ অন ডেলিভারি (পণ্য হাতে পেয়ে মূল্য পরিশোধ)\n• বিকাশ ও নগদ ম্যানুয়াল মার্চেন্ট পেমেন্ট সুবিধা।\nঅর্ডার কনফার্ম করার সময় আপনি পছন্দের পেমেন্ট মেথড বেছে নিতে পারবেন।`,
+        text: `[পেমেন্ট গেটওয়ে স্পেসিফিকেশন]:\n১. ক্যাশ অন ডেলিভারি (COD): পার্সেল গ্রহণকালে নগদ পরিশোধ।\n২. বিকাশ মার্চেন্ট পেমেন্ট: ${bkash}\n৩. নগদ মার্চেন্ট পেমেন্ট: ${nagad}\n৪. নিরাপত্তা: চেকআউট পৃষ্ঠায় কোনো পূর্ব-পেমেন্ট বা ওটিপি প্রদান ছাড়াই সম্পূর্ণ নিরাপদ ও নির্ভরযোগ্য অর্ডার কনফার্মেশন।`,
         matchedProducts: [],
         actionPills: [
-          { label: '🛍️ প্রোডাক্ট দেখুন', action: 'browse_all' },
-          { label: '💬 হোয়াটসঅ্যাপ হেল্পলাইন', action: 'open_whatsapp' },
+          { label: '🛍️ পোশাক পছন্দ করুন', action: 'browse_all' },
+          { label: '💬 অফিশিয়াল হেল্পলাইন', action: 'open_whatsapp' },
         ],
       };
     }
@@ -128,11 +131,11 @@ export class AiShoppingService {
     // 4. Return & Exchange queries
     if (q.includes('রিটার্ন') || q.includes('return') || q.includes('বদল') || q.includes('exchange') || q.includes('চেঞ্জ')) {
       return {
-        text: `রিটার্ন ও এক্সচেঞ্জ নিয়মাবলী:\n• পার্সেল পৌঁছানোর পর ডেলিভারিম্যানের সামনে চেক করে দেখে নেওয়ার সুযোগ রয়েছে।\n• সাইজ বা পণ্যে কোনো সমস্যা থাকলে ৭ দিনের মধ্যে ক্যাশ মেমোসহ ইনস্ট্যান্ট এক্সচেঞ্জ বা রিটার্ন সুবিধা পাবেন।`,
+        text: `[এক্সচেঞ্জ ও কোয়ালিটি পলিসি]:\n১. তাৎক্ষণিক নিরীক্ষণ: ডেলিভারি প্রতিনিধির উপস্থিতিতে ফেব্রিক ও ফিটিংস যাচাই করার সুবিধা রয়েছে।\n২. মেয়াদ: সাইজ অমিল বা ডিফেক্টের ক্ষেত্রে ৭ দিনের মধ্যে ইনস্ট্যান্ট ফ্রি এক্সচেঞ্জ উইন্ডো সক্রিয়।\n৩. শর্তাবলী: মূল ট্যাগ ও অক্ষত চালানপত্র সংরক্ষণ বাধ্যতামূলক।`,
         matchedProducts: [],
         actionPills: [
-          { label: '📏 সাইজ গাইড', action: 'open_size_guide' },
-          { label: '💬 হোয়াটসঅ্যাপ সাপোর্ট', action: 'open_whatsapp' },
+          { label: '📏 সাইজ মেজারমেন্ট', action: 'open_size_guide' },
+          { label: '💬 কাস্টমার কেয়ার', action: 'open_whatsapp' },
         ],
       };
     }
@@ -140,37 +143,38 @@ export class AiShoppingService {
     // 5. Size Guide queries
     if (q.includes('সাইজ') || q.includes('size') || q.includes('মাপ') || q.includes('ফিটিং')) {
       return {
-        text: `আমাদের পাঞ্জাবি ও পোশাকের সাইজসমূহ: ৩৮ (M), ৪০ (L), ৪২ (XL), ৪৪ (XXL)। বিস্তারিত বডি মেজারমেন্ট দেখতে নিচে "সাইজ গাইড" বাটনে ক্লিক করুন।`,
+        text: `[সাইজ ম্যাট্রিক্স ও বডি ডাইমেনশন]:\n• মিডিয়াম (M / ৩৮): চেস্ট ৩৮-৩৯ ইঞ্চি, লেন্থ ৪০ ইঞ্চি\n• লার্জ (L / ৪০): চেস্ট ৪০-৪১ ইঞ্চি, লেন্থ ৪২ ইঞ্চি\n• এক্সট্রা লার্জ (XL / ৪২): চেস্ট ৪২-৪৩ ইঞ্চি, লেন্থ ৪৪ ইঞ্চি\n• ডাবল এক্সট্রা লার্জ (XXL / ৪৪): চেস্ট ৪৪-৪৫ ইঞ্চি, লেন্থ ৪৫ ইঞ্চি\nবিস্তারিত স্পেসিফিকেশনের জন্য নিচের সাইজ গাইড বাটনে ক্লিক করুন।`,
         matchedProducts: [],
         actionPills: [
-          { label: '📏 বিস্তারিত সাইজ গাইড দেখুন', action: 'open_size_guide' },
+          { label: '📏 সাইজ গাইড ড্যাশবোর্ড', action: 'open_size_guide' },
         ],
       };
     }
 
-    // 6. Product Searches
+    // 6. Product Searches & Logical Analysis
     const matched = this.findRelevantProducts(query, products);
     if (matched.length > 0) {
-      const topMatch = matched[0];
+      const available = matched.filter(p => p.stock > 0);
+      const itemsToDisplay = available.length > 0 ? available : matched;
       return {
-        text: `আপনার জন্য বিসমিল্লাহ কালেকশনের নির্বাচিত পণ্যগুলো নিচে দেওয়া হলো। "${topMatch.title}" সহ পছন্দের পোশাকে ক্লিক করে সরাসরি বিস্তারিত দেখতে বা কার্টে যোগ করতে পারেন:`,
-        matchedProducts: matched.slice(0, 4),
+        text: `[ক্যাটালগ ম্যাচিং ও প্রোডাক্ট এনালিসিস]:\n• অনুসন্ধানের ফলাফলে মোট ${matched.length} টি প্রাসঙ্গিক পোশাক শনাক্ত করা হয়েছে।\n• ফেব্রিক গুণমান, স্টক স্ট্যাটাস এবং মূল্য তালিকা যাচাই করে নিচে সংক্ষিপ্ত আকারে তালিকাভুক্ত করা হলো:`,
+        matchedProducts: itemsToDisplay.slice(0, 4),
         actionPills: [
-          { label: '🛍️ সব প্রোডাক্ট দেখুন', action: 'browse_all' },
-          { label: '📦 ডেলিভারি তথ্য', action: 'ask_delivery' },
+          { label: '🛍️ সম্পূর্ণ স্টোর ভিউ', action: 'browse_all' },
+          { label: '📦 ডেলিভারি রেট', action: 'ask_delivery' },
         ],
       };
     }
 
     // 7. General Welcome / Fallback
-    const popular = products.slice(0, 3);
+    const popular = products.filter(p => p.stock > 0).slice(0, 3);
     return {
-      text: `আসসালামু আলাইকুম! আমি "বিসমিল্লাহ কালেকশন"-এর এআই শপিং অ্যাসিস্ট্যান্ট।\nআমি আপনাকে কীভাবে সাহায্য করতে পারি? আপনি পাঞ্জাবি, শাড়ি, থ্রি-পিস বা ডেলিভারি নিয়ম সম্পর্কে জানতে পারেন।`,
-      matchedProducts: popular,
+      text: `[সিস্টেম রেডি]: আমি "বিসমিল্লাহ কালেকশন"-এর এআই ইনটেলিজেন্স সিস্টেম।\nআমি শুধুমাত্র এই ওয়েবসাইটের সংরক্ষিত ডাটাবেজ থেকে সুনির্দিষ্ট ও পরিশীলিত তথ্য পরিবেশন করি। পাঞ্জাবি, শাড়ি, থ্রি-পিস বা ডেলিভারি রুলস সম্পর্কে যৌক্তিক সমাধান জানতে আপনার প্রশ্ন লিখুন।`,
+      matchedProducts: popular.length > 0 ? popular : products.slice(0, 3),
       actionPills: [
-        { label: '✨ সেরা পাঞ্জাবি কালেকশন', action: 'show_panjabi' },
-        { label: '🥻 আকর্ষণীয় শাড়ি', action: 'show_saree' },
-        { label: '🚚 ডেলিভারি চার্জ কত?', action: 'ask_delivery' },
+        { label: '✨ পাঞ্জাবি কালেকশন', action: 'show_panjabi' },
+        { label: '🥻 শাড়ি কালেকশন', action: 'show_saree' },
+        { label: '🚚 ডেলিভারি ও পেমেন্ট রুলস', action: 'ask_delivery' },
       ],
     };
   }

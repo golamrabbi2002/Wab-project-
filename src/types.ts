@@ -109,6 +109,10 @@ export interface StoreConfig {
   adminPin: string;
   // Google OAuth Developer Client ID
   googleClientId?: string;
+  // Gemini AI Free API Key & Configuration
+  geminiApiKey?: string;
+  aiBotName?: string;
+  aiTone?: 'logical_robot' | 'polite_assistant' | 'formal';
   // Google Drive & Google Sheets Live Integration
   googleSheetUrl?: string;
   googleDriveFolderUrl?: string;
