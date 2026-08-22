@@ -359,12 +359,12 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
           <div className="bg-neutral-900/80 p-4 rounded-xl border border-purple-500/20 space-y-2 text-[11px] text-neutral-300">
             <div className="font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-purple-400" />
-              <span>AI Core Logical Protocol & Boundary (সক্রিয় অভ্যন্তরীণ নিয়মাবলী):</span>
+              <span>AI World-Class Sales Engine & Human Empathy Rules:</span>
             </div>
             <ul className="list-disc list-inside space-y-1 text-neutral-400">
-              <li><strong className="text-neutral-200">রোবোটিক ও যৌক্তিক উত্তর:</strong> এআই অপ্রয়োজনীয় কথা পরিহার করে যৌক্তিক ও পয়েন্ট-আকারে তথ্য প্রদান করবে।</li>
-              <li><strong className="text-neutral-200">শুধুমাত্র এই ওয়েবসাইটের তথ্য:</strong> বাইরের তথ্য রেফারেন্স হিসেবে ব্যবহার করলেও, উত্তর সবসময় এই ওয়েবসাইটের লাইভ ডাটাবেজ ও প্রোডাক্ট ক্যাটালগের তথ্যের মধ্যে সীমাবদ্ধ রাখবে।</li>
-              <li><strong className="text-neutral-200">পরিশীলিত ও সংক্ষিপ্ত একত্রীকরণ:</strong> বিভিন্ন তথ্যের উৎস একত্র করে অত্যন্ত পরিশীলিত (consolidated & refined) ভাবে উপস্থাপন করবে।</li>
+              <li><strong className="text-neutral-200">মানুষের মতো স্বাভাবিক কথোপকথন:</strong> এআই গ্রাহকদের সাথে একজন দক্ষ ও অমায়িক সেলস কনসালট্যান্টের মতো আন্তরিক বাংলায় কথা বলবে।</li>
+              <li><strong className="text-neutral-200">বিশ্বের শীর্ষ ২০ সেলস এক্সপার্টের জ্ঞান:</strong> Brian Tracy, Zig Ziglar, Chris Voss, Neil Rackham, Robert Cialdini ও Dale Carnegie-এর মতো সেলস গুরুদের সাইকোলজি ও স্ট্র্যাটেজি প্রয়োগ করে গ্রাহকের আস্থা ও সন্তুষ্টি অর্জন করবে।</li>
+              <li><strong className="text-neutral-200">১০০% স্টোর ডাটাবেজ নির্ভরতা:</strong> বিশ্বমানের সেলস টেকনিক ব্যবহার করলেও প্রোডাক্ট, দাম, স্টক ও ডেলিভারি পলিসি সবসময় এই ওয়েবসাইটের অভ্যন্তরীণ ডাটাবেজ অনুযায়ী নির্ভুল থাকবে।</li>
             </ul>
           </div>
         </div>

@@ -43,18 +43,18 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
 
-  const botDisplayName = config.aiBotName || 'Bismillah AI System';
+  const botDisplayName = config.aiBotName || 'বিসমিল্লাহ ফ্যাশন কনসালট্যান্ট';
 
   const initialGreeting: ChatMessage = {
     id: 'msg_welcome',
     sender: 'ai',
-    text: `[সিস্টেম অনলাইন]: আমি "${botDisplayName}" — ${config.brandName || 'বিসমিল্লাহ কালেকশন'}-এর অফিশিয়াল রোবোটিক ইনটেলিজেন্স অ্যাসিস্ট্যান্ট 🤖⚡\n\n• আমি শুধুমাত্র এই ওয়েবসাইটের লাইভ ডাটাবেজ থেকে তথ্য সরবরাহ করি।\n• পোশাকের সাইজ, স্টক স্ট্যাটাস, ডেলিভারি চার্জ বা অর্ডার পলিসি সম্পর্কে যেকোনো প্রশ্ন লিখুন।`,
+    text: `আসসালামু আলাইকুম! বিসমিল্লাহ কালেকশনে আপনাকে স্বাগতম। 🌸✨\n\nআমি আপনার পার্সোনাল ফ্যাশন কনসালট্যান্ট। বিয়ে, ঈদ বা যেকোনো স্পেশাল দিনের জন্য সেরা পাঞ্জাবি, এক্সক্লুসিভ শাড়ি ও ডিজাইনার পোশাকের ম্যাচিং এবং সঠিক সাইজ বাছাই করতে আমি সবসময় আপনার পাশে আছি।\n\nআজকে আপনার জন্য কী ধরনের পোশাক খুঁজে দেব বলুন?`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     actionPills: [
-      { label: '✨ পাঞ্জাবি কালেকশন', action: 'show_panjabi' },
-      { label: '🥻 আকর্ষণীয় শাড়ি', action: 'show_saree' },
-      { label: '👗 থ্রি-পিস কালেকশন', action: 'show_three_piece' },
-      { label: '🚚 ডেলিভারি চার্জ কত?', action: 'ask_delivery' },
+      { label: '✨ ট্রেন্ডিং পাঞ্জাবি কালেকশন', action: 'show_panjabi' },
+      { label: '🥻 এক্সক্লুসিভ শাড়ি', action: 'show_saree' },
+      { label: '👗 ডিজাইনার থ্রি-পিস', action: 'show_three_piece' },
+      { label: '🚚 ডেলিভারি ও ক্যাশ অন ডেলিভারি', action: 'ask_delivery' },
     ],
   };
 
@@ -215,11 +215,8 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <h3 className="font-bold text-sm text-white">{botDisplayName}</h3>
-                    <span className="text-[9px] bg-purple-500/20 text-purple-300 font-semibold px-1.5 py-0.5 rounded-full border border-purple-400/30">
-                      Gemini Robot
-                    </span>
                   </div>
-                  <p className="text-[11px] text-neutral-300">যৌক্তিক ও পরিশীলিত শপিং ইনটেলিজেন্স</p>
+                  <p className="text-[11px] text-neutral-300">২৪/৭ পার্সোনাল ফ্যাশন ও সেলস কনসালট্যান্ট</p>
                 </div>
               </div>
 
@@ -454,7 +451,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                   <div className="flex items-center justify-between text-[10px] text-neutral-400 px-1 pt-0.5">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>গুগল জেমিনাই দ্বারা পরিচালিত</span>
+                      <span>স্মার্ট এআই দ্বারা পরিচালিত</span>
                     </span>
                     <button
                       onClick={() => handleActionPillClick('open_whatsapp', 'WhatsApp')}
