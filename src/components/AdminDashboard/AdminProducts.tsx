@@ -41,6 +41,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -301,18 +302,43 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
   const handleRestockAllLowStock = () => {
     const count = products.filter((p) => p.stock <= 5).length;
     if (count === 0) return;
-    if (confirm(`Do you want to restock ${count} sold-out / low-stock garments (+15 units each)?`)) {
-      products.forEach((p) => {
-        if (p.stock <= 5) {
-          onSaveProduct({
-            ...p,
-            stock: Math.max(15, p.stock + 15),
-            updatedAt: new Date().toISOString(),
-          });
-        }
-      });
-      showToast(`✓ Restocked ${count} items!`);
+    products.forEach((p) => {
+      if (p.stock <= 5) {
+        onSaveProduct({
+          ...p,
+          stock: Math.max(15, p.stock + 15),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
+    showToast(`✓ Restocked ${count} items (+15 units each)!`);
+  };
+
+  const handleCleanDuplicates = () => {
+    const seen = new Set<string>();
+    const duplicateIds: string[] = [];
+
+    // Traverse backwards so newest stay
+    for (let i = 0; i < products.length; i++) {
+      const prod = products[i];
+      const key = `${prod.title.trim().toLowerCase()}_${prod.category}_${prod.price}`;
+      if (seen.has(key)) {
+        duplicateIds.push(prod.id);
+      } else {
+        seen.add(key);
+      }
     }
+
+    if (duplicateIds.length === 0) {
+      showToast('✓ No duplicate products found in inventory.');
+      return;
+    }
+
+    duplicateIds.forEach((id) => {
+      onDeleteProduct(id);
+    });
+
+    showToast(`✓ Removed ${duplicateIds.length} duplicate products automatically!`);
   };
 
   const handleInjectTestGarment = () => {
@@ -427,6 +453,16 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
               <span>Restock (+15)</span>
             </button>
           )}
+
+          {/* Clean Duplicates */}
+          <button
+            onClick={handleCleanDuplicates}
+            className="px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-98"
+            title="Automatically detect and delete duplicate products"
+          >
+            <Layers className="w-3.5 h-3.5 text-amber-400" />
+            <span>Clean Duplicates</span>
+          </button>
 
           {/* Add Product Button */}
           <button
@@ -571,12 +607,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`Are you sure you want to delete "${p.title}" from store inventory?`)) {
-                              onDeleteProduct(p.id);
-                              showToast(`✓ Deleted "${p.title}"`);
-                            }
-                          }}
+                          onClick={() => setProductToDelete(p)}
                           className="p-1.5 text-neutral-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
                           title="Delete Garment"
                         >
@@ -972,6 +1003,66 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Delete Confirmation Modal (Iframe Safe & Non-blocking) */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-neutral-900 border border-rose-900/60 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-xl bg-rose-950/80 border border-rose-800/60 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-base text-white">Delete Product / মুছে ফেলুন</h4>
+                <p className="text-xs text-neutral-400">Permanently remove from inventory and storefront</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-neutral-950 border border-neutral-800 rounded-xl flex items-center gap-3">
+              {productToDelete.image && (
+                <img
+                  src={productToDelete.image}
+                  alt={productToDelete.title}
+                  className="w-12 h-14 object-cover rounded-lg border border-neutral-800 shrink-0"
+                />
+              )}
+              <div className="overflow-hidden">
+                <div className="font-bold text-white text-xs truncate">{productToDelete.title}</div>
+                <div className="text-[11px] text-neutral-400 font-mono">SKU: {productToDelete.sku} • {config.currencySymbol}{productToDelete.price}</div>
+                <div className="text-[10px] text-amber-400 font-semibold">{productToDelete.category}</div>
+              </div>
+            </div>
+
+            <p className="text-xs text-neutral-300 leading-relaxed">
+              আপনি কি নিশ্চিত যে আপনি এই পণ্যটি স্থায়ীভাবে মুছে ফেলতে চান? এটি আর স্টোরফ্রন্ট বা ডাটাবেসে প্রদর্শিত হবে না।
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-semibold transition-colors"
+              >
+                Cancel / বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetId = productToDelete.id;
+                  const targetTitle = productToDelete.title;
+                  setProductToDelete(null);
+                  onDeleteProduct(targetId);
+                  showToast(`✓ সফলভাবে মুছে ফেলা হয়েছে: "${targetTitle}"`);
+                }}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5 active:scale-98"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Permanently</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

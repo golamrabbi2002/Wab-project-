@@ -11,7 +11,8 @@ const KEYS = {
   CUSTOMERS: 'aura_all_customers',
   WISHLIST: 'aura_wishlist',
   ADMIN_AUTH: 'aura_admin_authenticated',
-  CART: 'aura_cart_items'
+  CART: 'aura_cart_items',
+  DELETED_PRODUCT_IDS: 'aura_deleted_product_ids'
 };
 
 // Resilient in-memory backup cache to prevent data loss in strict environments
@@ -101,38 +102,82 @@ export const StorageService = {
     }
   },
 
+  // DELETED PRODUCT TRACKING (TOMBSTONES)
+  getDeletedProductIds(): string[] {
+    try {
+      const stored = safeGetItem(KEYS.DELETED_PRODUCT_IDS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse deleted product ids', e);
+    }
+    return [];
+  },
+
+  recordDeletedProductId(productId: string): void {
+    try {
+      const current = this.getDeletedProductIds();
+      if (!current.includes(productId)) {
+        const updated = [...current, productId];
+        safeSetItem(KEYS.DELETED_PRODUCT_IDS, JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Failed to record deleted product id', e);
+    }
+  },
+
+  removeDeletedProductId(productId: string): void {
+    try {
+      const current = this.getDeletedProductIds();
+      const updated = current.filter(id => id !== productId);
+      safeSetItem(KEYS.DELETED_PRODUCT_IDS, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to remove deleted product id', e);
+    }
+  },
+
   // PRODUCTS
   getProducts(): Product[] {
+    const deletedIds = new Set(this.getDeletedProductIds());
     try {
       const stored = safeGetItem(KEYS.PRODUCTS);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          memoryCache[KEYS.PRODUCTS] = parsed;
-          return parsed;
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(p => p && p.id && !deletedIds.has(p.id));
+          memoryCache[KEYS.PRODUCTS] = filtered;
+          return filtered;
         }
       }
     } catch (e) {
       console.warn('Failed to parse stored products', e);
     }
-    if (memoryCache[KEYS.PRODUCTS] && memoryCache[KEYS.PRODUCTS].length > 0) {
-      return memoryCache[KEYS.PRODUCTS];
+    if (memoryCache[KEYS.PRODUCTS] && Array.isArray(memoryCache[KEYS.PRODUCTS])) {
+      const filtered = memoryCache[KEYS.PRODUCTS].filter((p: Product) => p && p.id && !deletedIds.has(p.id));
+      return filtered;
     }
-    this.saveProducts(initialProducts);
-    return initialProducts;
+    // Filter initial products against deleted IDs
+    const filteredInitials = initialProducts.filter(p => !deletedIds.has(p.id));
+    this.saveProducts(filteredInitials);
+    return filteredInitials;
   },
 
   saveProducts(products: Product[]): void {
     try {
+      const deletedIds = new Set(this.getDeletedProductIds());
       const now = new Date().toISOString();
-      const updatedProducts = products.map(p => ({
-        ...p,
-        category: p.category || 'Tops',
-        price: Number(p.price) >= 0 ? Number(p.price) : 0,
-        stock: Number(p.stock) >= 0 ? Number(p.stock) : 0,
-        sizes: Array.isArray(p.sizes) && p.sizes.length > 0 ? p.sizes : ['One Size'],
-        updatedAt: p.updatedAt || now
-      }));
+      const updatedProducts = products
+        .filter(p => p && p.id && !deletedIds.has(p.id))
+        .map(p => ({
+          ...p,
+          category: p.category || 'Tops',
+          price: Number(p.price) >= 0 ? Number(p.price) : 0,
+          stock: Number(p.stock) >= 0 ? Number(p.stock) : 0,
+          sizes: Array.isArray(p.sizes) && p.sizes.length > 0 ? p.sizes : ['One Size'],
+          updatedAt: p.updatedAt || now
+        }));
       memoryCache[KEYS.PRODUCTS] = updatedProducts;
       safeSetItem(KEYS.PRODUCTS, JSON.stringify(updatedProducts));
       broadcastStorageEvent('aura_products_updated', updatedProducts);
@@ -146,6 +191,8 @@ export const StorageService = {
   },
 
   saveProduct(product: Product): void {
+    // If re-saving, unmark from deleted tombstone list
+    this.removeDeletedProductId(product.id);
     const products = this.getProducts();
     const now = new Date().toISOString();
     const productWithTimestamp: Product = {
@@ -169,8 +216,15 @@ export const StorageService = {
   },
 
   deleteProduct(productId: string): void {
-    const products = this.getProducts().filter(p => p.id !== productId);
-    this.saveProducts(products);
+    // 1. Record in tombstone list to prevent resurrection
+    this.recordDeletedProductId(productId);
+    // 2. Filter out immediately from local memory & storage
+    const currentProducts = this.getProducts();
+    const remainingProducts = currentProducts.filter(p => p.id !== productId);
+    memoryCache[KEYS.PRODUCTS] = remainingProducts;
+    safeSetItem(KEYS.PRODUCTS, JSON.stringify(remainingProducts));
+    broadcastStorageEvent('aura_products_updated', remainingProducts);
+    // 3. Delete from Firestore permanently
     FirestoreSyncService.deleteProduct(productId).catch(err => {
       console.warn('Background Firestore delete product notice:', err);
     });

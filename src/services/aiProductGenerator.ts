@@ -123,55 +123,109 @@ export class AiProductGeneratorService {
    * Deterministic Bengali Fashion Knowledge Generator
    */
   private static fallbackLocalGenerator(title: string, price: number, categoryHint?: string): AiGeneratedProductDraft {
-    const lower = (title + ' ' + (categoryHint || '')).toLowerCase();
+    const text = (title || '').toLowerCase();
+    const hint = (categoryHint || '').toLowerCase();
 
     let category = 'Panjabi';
     let sizes = ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'];
     let prefix = 'PAN';
-    let material = '১০০% প্রি-ওয়াশড ফাইন কম্বড কটন | সূক্ষ্ম এমব্রয়ডারি';
-    let subtitle = 'অভিজাত প্রিমিয়াম কারুকাজ ও আরামদায়ক নরম ফেব্রিক';
-    let care = 'হ্যান্ড ওয়াশ অথবা ড্রাই ক্লিন। মডারেট আয়রন করুন।';
-    let description = `${title} — আপনার আভিজাত্য ও ব্যক্তিত্বকে অনন্য মাত্রায় পৌঁছে দিতে নিখুঁত হাতের কাজের এই গর্জিয়াস পোশাক। আরামদায়ক ও ব্রিদেবল প্রিমিয়াম কটন ফেব্রিক দিয়ে তৈরি, যা আপনাকে দিনভর রাখবে সতেজ ও স্বাচ্ছন্দ্যময়। জুম্মাহর নামাজ, ঈদ কিংবা যেকোনো পারিবারিক উৎসবে পরার জন্য শতভাগ উপযুক্ত।`;
+    let material = '১০০% প্রি-ওয়াশড ফাইন কম্বড কটন | সূক্ষ্ম কম্পিউটার ও হ্যান্ড এমব্রয়ডারি';
+    let subtitle = 'অভিজাত প্রিমিয়াম কারুকাজ, সফট কলার ও আরামদায়ক ফিটিং';
+    let care = 'হ্যান্ড ওয়াশ অথবা ড্রাই ক্লিন। রোদে বেশিক্ষণ রাখবেন না। মাঝারি তাপে আয়রন করুন।';
+    let description = `${title || 'এক্সক্লুসিভ ডিজাইনার পাঞ্জাবি'} — জুম্মাহর নামাজ, ঈদ কিংবা যেকোনো পারিবারিক উৎসবে আপনার ব্যক্তিত্বকে ফুটিয়ে তুলতে নিখুঁত কারুকাজের এই রাজকীয় পাঞ্জাবি। ১০০% কটন ফেব্রিক আপনাকে দেবে দিনভর আরাম ও স্বস্তি। ১০০% কালার গ্যারান্টি।`;
 
-    if (lower.includes('শাড়ি') || lower.includes('saree') || lower.includes('shari') || lower.includes('silk') || lower.includes('jamdani')) {
-      category = 'Saree';
+    // 1. Manual hint takes priority if explicit
+    if (hint && hint !== 'auto') {
+      if (hint === 'saree' || hint === 'shari' || hint.includes('শাড়ি') || hint.includes('শাড়ি')) {
+        category = 'Saree';
+      } else if (hint === 'panjabi' || hint === 'punjabi' || hint.includes('পাঞ্জাবি') || hint.includes('পাঞ্জাবী')) {
+        category = 'Panjabi';
+      } else if (hint.includes('three') || hint.includes('thri') || hint.includes('থ্রি') || hint.includes('kameez')) {
+        category = 'Three-Piece';
+      } else if (hint.includes('kurti') || hint.includes('কুর্তি')) {
+        category = 'Kurtis';
+      } else if (hint.includes('top') || hint.includes('shirt') || hint.includes('শার্ট')) {
+        category = 'Tops';
+      } else if (hint.includes('bottom') || hint.includes('pant') || hint.includes('প্যান্ট')) {
+        category = 'Bottoms';
+      }
+    } else {
+      // 2. High-precision Bengali & English Keywords
+      const panjabiMatches = ['পাঞ্জাবি', 'পাঞ্জাবী', 'panjabi', 'punjabi', 'kabli', 'কাবলি', 'পায়জামা পাঞ্জাবি', 'কুর্তা', 'kurta', 'jubba', 'জুব্বা'];
+      const sareeMatches = ['শাড়ি', 'শাড়ি', 'saree', 'sari', 'shari', 'sharee', 'জামদানি', 'jamdani', 'বেনারসি', 'banarasi', 'কাতান', 'katan', 'তসর', 'tussar', 'টাঙ্গাইল শাড়ি'];
+      const threePieceMatches = ['থ্রি-পিস', 'থ্রিপিস', 'থ্রি পিস', 'three piece', 'three-piece', '3 piece', '3-piece', 'কামিজ', 'kameez', 'salwar', 'সালোয়ার', 'সালোয়ার', 'সেলোয়ার', 'লেহেঙ্গা', 'lehenga', 'গাউন', 'gown', 'আনোয়ারকলি', 'anarkali'];
+      const kurtiMatches = ['কুর্তি', 'kurti', 'kurtis', 'টিউনিক', 'tunic'];
+      const topsMatches = ['শার্ট', 'shirt', 't-shirt', 'টি-শার্ট', 'polo', 'পোলো', 'টপ', 'top', 'blouse', 'ব্লাউজ', 'blazer', 'ব্লেজার'];
+      const bottomsMatches = ['প্যান্ট', 'pant', 'trouser', 'ট্রাউজার', 'জিন্স', 'jeans', 'পালাজ্জো', 'palazzo'];
+
+      const hasPanjabi = panjabiMatches.some(k => text.includes(k));
+      const hasSaree = sareeMatches.some(k => text.includes(k));
+      const hasThreePiece = threePieceMatches.some(k => text.includes(k));
+      const hasKurti = kurtiMatches.some(k => text.includes(k));
+      const hasTops = topsMatches.some(k => text.includes(k));
+      const hasBottoms = bottomsMatches.some(k => text.includes(k));
+
+      if (hasPanjabi && !hasSaree) {
+        category = 'Panjabi';
+      } else if (hasSaree && !hasPanjabi) {
+        category = 'Saree';
+      } else if (hasThreePiece) {
+        category = 'Three-Piece';
+      } else if (hasKurti) {
+        category = 'Kurtis';
+      } else if (hasTops) {
+        category = 'Tops';
+      } else if (hasBottoms) {
+        category = 'Bottoms';
+      } else if (hasPanjabi) {
+        category = 'Panjabi';
+      } else if (hasSaree) {
+        category = 'Saree';
+      }
+    }
+
+    if (category === 'Saree') {
       sizes = ['Free Size (১২ হাত + ব্লাউজ পিস)'];
       prefix = 'SAR';
-      material = 'খাঁটি সিল্ক / প্রিমিয়াম জামদানি সুতা ও জরি কারুকাজ';
-      subtitle = 'ঐতিহ্যবাহী বুনন ও নজরকাড়া রাজকীয় আঁচল';
-      care = 'ড্রাই ওয়াশ আবশ্যক। ঠাণ্ডা ছায়াযুক্ত স্থানে শুকান।';
-      description = `${title} — উৎসবের প্রতিটি মুহূর্তে আপনার রূপ ও সৌন্দর্যকে আরও মনমাতানো করে তুলতে তৈরি এই রাজকীয় শাড়ি। প্রিমিয়াম সিল্ক ও সূক্ষ্ম কারুকাজে বোনা এই পোশাকটি পরলে আপনি পাবেন সবার হৃদয়ছোঁয়া প্রশংসা। সাথে রয়েছে ম্যাচিং ব্লাউজ পিস।`;
-    } else if (lower.includes('থ্রি') || lower.includes('three') || lower.includes('কামিজ') || lower.includes('salwar') || lower.includes('lawn')) {
-      category = 'Three-Piece';
+      material = 'প্রিমিয়াম সফট সিল্ক / ঐতিহ্যবাহী জামদানি উইভিং ও গর্জিয়াস জরি আঁচল';
+      subtitle = 'ঐতিহ্যবাহী নিখুঁত বুনন ও রাজকীয় আঁচল ডিজাইন';
+      care = 'ড্রাই ক্লিন ওয়াশ আবশ্যক। সরাসরি রোদে না শুকিয়ে ছায়ায় শুকান।';
+      description = `${title || 'এক্সক্লুসিভ ডিজাইনার শাড়ি'} — প্রতিটি উৎসবে আপনার রূপ ও আভিজাত্যকে আরও মনমাতানো করে তুলতে তৈরি এই ঐতিহ্যবাহী শাড়ি। প্রিমিয়াম সিল্ক ও সূক্ষ্ম সুতার বুননে বোনা, সাথে পাচ্ছেন ম্যাচিং ব্লাউজ পিস।`;
+    } else if (category === 'Three-Piece') {
       sizes = ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'];
       prefix = 'THR';
-      material = '১০০% পিওর কটন / লাক্সারি সুইস লন ও শিফন ওড়না';
-      subtitle = 'ডিজাইনার ডিজিটাল প্রিন্ট ও আকর্ষণীয় এমব্রয়ডারি নেক';
-      care = 'হালকা ডিটারজেন্টে নরম ওয়াশ। কড়া রোদে রাখবেন না।';
-      description = `${title} — আধুনিক ফ্যাশন ও রুচিশীলতার অনন্য নিদর্শন। সেরা মানের ফেব্রিক ও দীর্ঘস্থায়ী রঙের নিশ্চয়তা সহ আকর্ষণীয় ডিজাইনের কামিজ, আরামদায়ক সেলোয়ার ও গর্জিয়াস ওড়নার পারফেক্ট কম্বিনেশন।`;
-    } else if (lower.includes('কুর্তি') || lower.includes('kurti') || lower.includes('tunic')) {
-      category = 'Kurtis';
+      material = 'লাক্সারি সুইস লন / ডিজিটাল প্রিন্ট কটন কামিজ, কমফোর্ট সেলোয়ার ও গর্জিয়াস ওড়না';
+      subtitle = 'ডিজাইনার ডিজিটাল প্রিন্ট ও গর্জিয়াস এমব্রয়ডারি কারুকাজ';
+      care = 'হালকা ডিটারজেন্টে নরম ওয়াশ। কড়া রোদে বেশিক্ষণ রাখবেন না।';
+      description = `${title || 'লাক্সারি থ্রি-পিস কালেকশন'} — আধুনিক ফ্যাশন ও রুচিশীলতার অনন্য নিদর্শন। সেরা মানের ফেব্রিক ও দীর্ঘস্থায়ী রঙের নিশ্চয়তা সহ আকর্ষণীয় ডিজাইনের কামিজ, আরামদায়ক সেলোয়ার ও ওড়নার পারফেক্ট কম্বিনেশন।`;
+    } else if (category === 'Kurtis') {
       sizes = ['S (36)', 'M (38)', 'L (40)', 'XL (42)'];
       prefix = 'KRT';
-      material = 'সফট জর্জেট / ফাইন রেয়ন কটন';
-      subtitle = 'স্টাইলিশ রেগুলার ও ক্যাজুয়াল আউটফিট';
-      care = 'নরমাল ওয়াশ ও হালকা আয়রন।';
-      description = `${title} — ক্যাজুয়াল আড্ডা, অফিস কিংবা ভার্সিটির জন্য আরামদায়ক ও নজরকাড়া কুর্তি। অত্যন্ত সফট এবং ব্রিদেবল ফেব্রিকে তৈরি।`;
-    } else if (lower.includes('শার্ট') || lower.includes('shirt') || lower.includes('polo') || lower.includes('top')) {
-      category = 'Tops';
+      material = '১০০% প্রিমিয়াম রেয়ন কটন / সফট জর্জেট';
+      subtitle = 'স্মার্ট ও আকর্ষণীয় আধুনিক ক্যাজুয়াল আউটফিট';
+      care = 'মেশিন বা হ্যান্ড ওয়াশ উপযোগী। হালকা তাপে আয়রন করুন।';
+      description = `${title || 'স্টাইলিশ ডিজাইনার কুর্তি'} — ক্যাজুয়াল আড্ডা, অফিস কিংবা ভার্সিটির জন্য আরামদায়ক ও নজরকাড়া কুর্তি। অত্যন্ত সফট এবং ব্রিদেবল ফেব্রিকে তৈরি।`;
+    } else if (category === 'Tops') {
       sizes = ['S', 'M', 'L', 'XL', 'XXL'];
       prefix = 'TOP';
-      material = '১০০% পিওর অক্সফোর্ড কটন';
-      subtitle = 'স্মার্ট ক্যাজুয়াল ও ফরমাল ফিটিং';
+      material = '১০০% পিওর ফাইন অক্সফোর্ড কটন';
+      subtitle = 'স্মার্ট ক্যাজুয়াল ও অফিসিয়াল রেগুলার ফিট';
+      care = 'মেশিন ওয়াশ উপযোগী। স্বাভাবিক রোদে শুকান।';
+      description = `${title || 'প্রিমিয়াম ক্যাজুয়াল শার্ট'} — স্মার্ট ও আত্মবিশ্বাসী লুক দিতে নিখুঁত সেলাই ও প্রিমিয়াম ফেব্রিকে প্রস্তুত।`;
+    } else if (category === 'Bottoms') {
+      sizes = ['30', '32', '34', '36', '38'];
+      prefix = 'BOT';
+      material = 'প্রিমিয়াম স্ট্রেচ টুইল / সফট কটন';
+      subtitle = 'আরামদায়ক রেগুলার ও স্লিম ফিট বটমওয়্যার';
       care = 'মেশিন ওয়াশ উপযোগী।';
-      description = `${title} — স্মার্ট ও আত্মবিশ্বাসী লুক দিতে নিখুঁত সেলাই ও টেকসই সুতায় প্রস্তুত।`;
+      description = `${title || 'ক্লাসিক ডিজাইনার বটমস'} — আরামদায়ক ফিটিং এবং টেকসই ফেব্রিক যা দীর্ঘসময় পরিধানে স্বস্তি দেয়।`;
     }
 
     const calculatedOrigPrice = Math.round(price * 1.25);
     const sku = `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     return {
-      title,
+      title: title || `এক্সক্লুসিভ ${category} কালেকশন`,
       subtitle,
       category,
       price,

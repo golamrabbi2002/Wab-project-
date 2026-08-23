@@ -198,13 +198,14 @@ export class FirestoreSyncService {
   static subscribeProducts(callback: (products: Product[]) => void): () => void {
     const productsRef = collection(db, PRODUCTS_COLLECTION);
     return onSnapshot(productsRef, (snapshot) => {
-      if (!snapshot.empty) {
-        const products: Product[] = [];
-        snapshot.forEach((d) => {
-          products.push(d.data() as Product);
-        });
-        callback(products);
-      }
+      const products: Product[] = [];
+      snapshot.forEach((d) => {
+        const p = d.data() as Product;
+        if (p && p.id) {
+          products.push(p);
+        }
+      });
+      callback(products);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, PRODUCTS_COLLECTION);
     });

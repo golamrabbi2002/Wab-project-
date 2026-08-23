@@ -185,33 +185,43 @@ export const App: React.FC = () => {
     });
 
     const unsubProducts = FirestoreSyncService.subscribeProducts((cloudProducts) => {
-      if (cloudProducts && cloudProducts.length > 0) {
+      const deletedIds = new Set(storageService.getDeletedProductIds());
+      const validCloudProducts = (cloudProducts || []).filter(p => p && p.id && !deletedIds.has(p.id));
+
+      if (validCloudProducts.length > 0) {
         const localProducts = storageService.getProducts();
-        // Intelligent two-way merge by ID and timestamp to ensure custom garments never disappear
+        // Intelligent two-way merge by ID and timestamp, respecting deleted tombstones
         const mergedMap = new Map<string, Product>();
-        cloudProducts.forEach((p) => mergedMap.set(p.id, p));
+        validCloudProducts.forEach((p) => mergedMap.set(p.id, p));
 
         localProducts.forEach((lp) => {
-          const cp = mergedMap.get(lp.id);
-          if (!cp) {
-            mergedMap.set(lp.id, lp);
-            FirestoreSyncService.saveProduct(lp).catch(console.warn);
-          } else {
-            const lpTime = lp.updatedAt ? new Date(lp.updatedAt).getTime() : 0;
-            const cpTime = cp.updatedAt ? new Date(cp.updatedAt).getTime() : 0;
-            if (lpTime > cpTime) {
+          if (!deletedIds.has(lp.id)) {
+            const cp = mergedMap.get(lp.id);
+            if (!cp) {
               mergedMap.set(lp.id, lp);
               FirestoreSyncService.saveProduct(lp).catch(console.warn);
+            } else {
+              const lpTime = lp.updatedAt ? new Date(lp.updatedAt).getTime() : 0;
+              const cpTime = cp.updatedAt ? new Date(cp.updatedAt).getTime() : 0;
+              if (lpTime > cpTime) {
+                mergedMap.set(lp.id, lp);
+                FirestoreSyncService.saveProduct(lp).catch(console.warn);
+              }
             }
           }
         });
 
-        const finalProducts = Array.from(mergedMap.values());
+        const finalProducts = Array.from(mergedMap.values()).filter(p => !deletedIds.has(p.id));
         setProducts(finalProducts);
         try {
           localStorage.setItem('aura_products', JSON.stringify(finalProducts));
         } catch (e) {
           console.warn('LocalStorage sync warning:', e);
+        }
+      } else if (cloudProducts && cloudProducts.length === 0) {
+        const localProducts = storageService.getProducts();
+        if (localProducts.length === 0) {
+          setProducts([]);
         }
       }
     });
@@ -431,8 +441,8 @@ export const App: React.FC = () => {
 
   const handleDeleteProduct = (id: string) => {
     storageService.deleteProduct(id);
-    setProducts(storageService.getProducts());
-    showToast('Garment deleted from inventory.');
+    setProducts((prev) => prev.filter(p => p.id !== id));
+    showToast('✓ পোশাকটি সফলভাবে মুছে ফেলা হয়েছে (Garment permanently deleted).');
   };
 
   const handleUpdateOrderStatus = (orderId: string, status: Order['status'], trackingNumber?: string) => {
