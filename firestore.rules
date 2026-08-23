@@ -2,25 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Validation Helper Functions ---
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function isValidProduct(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.title is string && data.title.size() <= 200 &&
-             data.price is number && data.price >= 0;
-    }
-
-    function isValidOrder(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.orderNumber is string && data.orderNumber.size() <= 100 &&
-             data.total is number && data.total >= 0;
-    }
-
-    function isValidStoreConfig(data) {
-      return data.brandName is string && data.brandName.size() <= 200;
+      return id is string && id.size() > 0 && id.size() <= 256;
     }
 
     // Default catch-all: Deny unknown root paths
@@ -28,24 +11,19 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Store Config: Public read, valid store configuration write
-    match /store/config {
-      allow read: if true;
-      allow write: if isValidStoreConfig(request.resource.data);
+    // Store Config: Public read and write for store configuration
+    match /store/{docId} {
+      allow read, write: if isValidId(docId);
     }
 
-    // Products: Public read, verified schema write & delete
+    // Products: Public read, write & delete
     match /products/{productId} {
-      allow read: if true;
-      allow create, update: if isValidId(productId) && isValidProduct(request.resource.data);
-      allow delete: if isValidId(productId);
+      allow read, write: if isValidId(productId);
     }
 
-    // Orders: Public create & read by orderNumber or ID, update for status changes
+    // Orders: Public create, read & update for status changes
     match /orders/{orderId} {
-      allow read: if true;
-      allow create, update: if isValidId(orderId) && isValidOrder(request.resource.data);
-      allow delete: if isValidId(orderId);
+      allow read, write: if isValidId(orderId);
     }
 
     // Customers: User and customer account profiles

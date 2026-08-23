@@ -80,15 +80,24 @@ export const StorageService = {
       console.warn('Failed to parse stored store config', e);
     }
     if (memoryCache[KEYS.CONFIG]) return memoryCache[KEYS.CONFIG];
-    this.saveConfig(initialStoreConfig);
     return initialStoreConfig;
+  },
+
+  setConfigFromCloud(config: StoreConfig): void {
+    try {
+      memoryCache[KEYS.CONFIG] = config;
+      safeSetItem(KEYS.CONFIG, JSON.stringify(config));
+      broadcastStorageEvent('aura_config_updated', config);
+    } catch (e) {
+      console.warn('Failed to set config from cloud', e);
+    }
   },
 
   saveConfig(config: StoreConfig): void {
     try {
       const configWithTimestamp: StoreConfig = {
         ...config,
-        updatedAt: config.updatedAt || new Date().toISOString()
+        updatedAt: new Date().toISOString()
       };
       memoryCache[KEYS.CONFIG] = configWithTimestamp;
       safeSetItem(KEYS.CONFIG, JSON.stringify(configWithTimestamp));
@@ -145,7 +154,7 @@ export const StorageService = {
       const stored = safeGetItem(KEYS.PRODUCTS);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const filtered = parsed.filter(p => p && p.id && !deletedIds.has(p.id));
           memoryCache[KEYS.PRODUCTS] = filtered;
           return filtered;
@@ -158,10 +167,21 @@ export const StorageService = {
       const filtered = memoryCache[KEYS.PRODUCTS].filter((p: Product) => p && p.id && !deletedIds.has(p.id));
       return filtered;
     }
-    // Filter initial products against deleted IDs
+    // Filter initial products against deleted IDs (as initial memory fallback)
     const filteredInitials = initialProducts.filter(p => !deletedIds.has(p.id));
-    this.saveProducts(filteredInitials);
     return filteredInitials;
+  },
+
+  setProductsFromCloud(cloudProducts: Product[]): void {
+    try {
+      const deletedIds = new Set(this.getDeletedProductIds());
+      const filtered = (cloudProducts || []).filter(p => p && p.id && !deletedIds.has(p.id));
+      memoryCache[KEYS.PRODUCTS] = filtered;
+      safeSetItem(KEYS.PRODUCTS, JSON.stringify(filtered));
+      broadcastStorageEvent('aura_products_updated', filtered);
+    } catch (e) {
+      console.warn('Failed to set products from cloud', e);
+    }
   },
 
   saveProducts(products: Product[]): void {
@@ -190,7 +210,7 @@ export const StorageService = {
     }
   },
 
-  saveProduct(product: Product): void {
+  saveProduct(product: Product): Promise<void> {
     // If re-saving, unmark from deleted tombstone list
     this.removeDeletedProductId(product.id);
     const products = this.getProducts();
@@ -209,10 +229,16 @@ export const StorageService = {
     } else {
       products.unshift(productWithTimestamp);
     }
-    this.saveProducts(products);
-    FirestoreSyncService.saveProduct(productWithTimestamp).catch(err => {
-      console.warn('Background Firestore single product sync notice:', err);
-    });
+    
+    // Save to local cache first
+    const deletedIds = new Set(this.getDeletedProductIds());
+    const filtered = products.filter(p => p && p.id && !deletedIds.has(p.id));
+    memoryCache[KEYS.PRODUCTS] = filtered;
+    safeSetItem(KEYS.PRODUCTS, JSON.stringify(filtered));
+    broadcastStorageEvent('aura_products_updated', filtered);
+
+    // Save directly to Firebase Firestore
+    return FirestoreSyncService.saveProduct(productWithTimestamp);
   },
 
   deleteProduct(productId: string): void {

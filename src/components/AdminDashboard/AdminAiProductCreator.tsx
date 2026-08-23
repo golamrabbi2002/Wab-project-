@@ -77,20 +77,19 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
     setIsCompressing(true);
     try {
       const newImages: string[] = [];
-      for (let i = 0; i < files.length; i++) {
+      for (let i = 0; i < Math.min(files.length, 6); i++) {
         const file = files[i];
         if (!file.type.startsWith('image/')) continue;
         try {
-          const opt = await ImageOptimizer.optimizeFile(file, 1200, 0.82);
+          const opt = await ImageOptimizer.optimizeFile(file, 1000, 0.8);
           newImages.push(opt.base64);
-        } catch (err) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            if (typeof e.target?.result === 'string') {
-              setUploadedImages((prev) => [...prev, e.target!.result as string]);
-            }
-          };
-          reader.readAsDataURL(file);
+        } catch {
+          try {
+            const opt = await ImageOptimizer.optimizeFile(file, 600, 0.7);
+            newImages.push(opt.base64);
+          } catch (err) {
+            console.warn('Image optimization error in AI product creator', err);
+          }
         }
       }
       if (newImages.length > 0) {

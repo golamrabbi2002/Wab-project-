@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StoreConfig } from '../../types';
 import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
 import { SecurityService } from '../../services/securityService';
+import { ImageOptimizer } from '../../utils/imageOptimizer';
 import {
   Save,
   Upload,
@@ -126,30 +127,30 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
     setCurrencyCode(code);
   };
 
-  // Direct Local Logo Upload via FileReader (with auto Google Drive URL format support)
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Direct Local Logo Upload via ImageOptimizer
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (typeof event.target?.result === 'string') {
-        setLogoImage(event.target.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const opt = await ImageOptimizer.optimizeFile(file, 600, 0.85);
+      setLogoImage(opt.base64);
+    } catch {
+      const opt = await ImageOptimizer.optimizeFile(file, 400, 0.7);
+      setLogoImage(opt.base64);
+    }
   };
 
-  // Direct Local Hero Background Upload via FileReader
-  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Direct Local Hero Background Upload via ImageOptimizer
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (typeof event.target?.result === 'string') {
-        setHeroImage(event.target.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const opt = await ImageOptimizer.optimizeFile(file, 1200, 0.8);
+      setHeroImage(opt.base64);
+    } catch {
+      const opt = await ImageOptimizer.optimizeFile(file, 800, 0.7);
+      setHeroImage(opt.base64);
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {

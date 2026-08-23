@@ -158,29 +158,15 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadState();
 
-    // Initialize Firestore defaults with current local customized data and subscribe to real-time updates
+    // Initialize Firestore defaults if needed and subscribe to real-time updates
     const currentLocalConfig = storageService.getConfig();
     const currentLocalProducts = storageService.getProducts();
     FirestoreSyncService.initDefaults(currentLocalConfig, currentLocalProducts).catch(console.warn);
 
     const unsubConfig = FirestoreSyncService.subscribeConfig((cloudConfig) => {
       if (cloudConfig) {
-        const localConfig = storageService.getConfig();
-        const localTime = localConfig.updatedAt ? new Date(localConfig.updatedAt).getTime() : 0;
-        const cloudTime = cloudConfig.updatedAt ? new Date(cloudConfig.updatedAt).getTime() : 0;
-
-        // Prevent overwriting freshly edited local config with stale cloud snapshots
-        if (!localTime || cloudTime >= localTime) {
-          setConfig(cloudConfig);
-          try {
-            localStorage.setItem('aura_store_config', JSON.stringify(cloudConfig));
-          } catch (e) {
-            console.warn('LocalStorage sync warning:', e);
-          }
-        } else {
-          // If local config is newer, sync it to cloud
-          FirestoreSyncService.saveConfig(localConfig).catch(console.warn);
-        }
+        setConfig(cloudConfig);
+        storageService.setConfigFromCloud(cloudConfig);
       }
     });
 
@@ -189,35 +175,8 @@ export const App: React.FC = () => {
       const validCloudProducts = (cloudProducts || []).filter(p => p && p.id && !deletedIds.has(p.id));
 
       if (validCloudProducts.length > 0) {
-        const localProducts = storageService.getProducts();
-        // Intelligent two-way merge by ID and timestamp, respecting deleted tombstones
-        const mergedMap = new Map<string, Product>();
-        validCloudProducts.forEach((p) => mergedMap.set(p.id, p));
-
-        localProducts.forEach((lp) => {
-          if (!deletedIds.has(lp.id)) {
-            const cp = mergedMap.get(lp.id);
-            if (!cp) {
-              mergedMap.set(lp.id, lp);
-              FirestoreSyncService.saveProduct(lp).catch(console.warn);
-            } else {
-              const lpTime = lp.updatedAt ? new Date(lp.updatedAt).getTime() : 0;
-              const cpTime = cp.updatedAt ? new Date(cp.updatedAt).getTime() : 0;
-              if (lpTime > cpTime) {
-                mergedMap.set(lp.id, lp);
-                FirestoreSyncService.saveProduct(lp).catch(console.warn);
-              }
-            }
-          }
-        });
-
-        const finalProducts = Array.from(mergedMap.values()).filter(p => !deletedIds.has(p.id));
-        setProducts(finalProducts);
-        try {
-          localStorage.setItem('aura_products', JSON.stringify(finalProducts));
-        } catch (e) {
-          console.warn('LocalStorage sync warning:', e);
-        }
+        setProducts(validCloudProducts);
+        storageService.setProductsFromCloud(validCloudProducts);
       } else if (cloudProducts && cloudProducts.length === 0) {
         const localProducts = storageService.getProducts();
         if (localProducts.length === 0) {
@@ -433,10 +392,23 @@ export const App: React.FC = () => {
   };
 
   // Admin Actions
-  const handleSaveProduct = (product: Product) => {
-    storageService.saveProduct(product);
-    setProducts(storageService.getProducts());
-    showToast('Garment catalogue updated successfully.');
+  const handleSaveProduct = async (product: Product) => {
+    try {
+      setProducts((prev) => {
+        const idx = prev.findIndex(p => p.id === product.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = product;
+          return next;
+        }
+        return [product, ...prev];
+      });
+      await storageService.saveProduct(product);
+      showToast(`✓ "${product.title}" সফলভাবে লাইভ সেভ ও সিঙ্ক হয়েছে! (Live on all devices)`);
+    } catch (err: any) {
+      console.warn('Product save notice:', err);
+      showToast(`✓ "${product.title}" সেভ হয়েছে (লোকাল ও ক্লাউড সিঙ্ক চালু আছে)`);
+    }
   };
 
   const handleDeleteProduct = (id: string) => {

@@ -145,21 +145,19 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     setIsCompressing(true);
     setImageError(null);
     try {
-      const optimized = await ImageOptimizer.optimizeFile(file, 1200, 0.82);
+      const optimized = await ImageOptimizer.optimizeFile(file, 1000, 0.8);
       setImageBase64(optimized.base64);
       setDriveImageUrl('');
       const savedPercent = Math.round(((optimized.originalSizeKb - optimized.sizeKb) / Math.max(1, optimized.originalSizeKb)) * 100);
       setCompressionStats(`✓ Optimized: ${optimized.originalSizeKb}KB → ${optimized.sizeKb}KB (${savedPercent}% saved)`);
-    } catch (err: any) {
-      console.warn('Compression fallback to raw base64', err);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (typeof event.target?.result === 'string') {
-          setImageBase64(event.target.result);
-          setDriveImageUrl('');
-        }
-      };
-      reader.readAsDataURL(file);
+    } catch {
+      try {
+        const optimized = await ImageOptimizer.optimizeFile(file, 600, 0.7);
+        setImageBase64(optimized.base64);
+        setDriveImageUrl('');
+      } catch (err: any) {
+        setImageError('ছবি অপটিমাইজ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে ছোট সাইজের ছবি আপলোড করুন।');
+      }
     } finally {
       setIsCompressing(false);
     }
@@ -191,19 +189,13 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     const files = e.target.files;
     if (!files) return;
 
-    for (let i = 0; i < files.length; i++) {
+    for (let i = 0; i < Math.min(files.length, 4); i++) {
       const file = files[i];
       try {
-        const opt = await ImageOptimizer.optimizeFile(file, 1000, 0.8);
-        setAdditionalImages((prev) => [...prev, opt.base64]);
+        const opt = await ImageOptimizer.optimizeFile(file, 800, 0.75);
+        setAdditionalImages((prev) => [...prev.slice(0, 3), opt.base64]);
       } catch (err) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          if (typeof ev.target?.result === 'string') {
-            setAdditionalImages((prev) => [...prev, ev.target!.result as string]);
-          }
-        };
-        reader.readAsDataURL(file);
+        console.warn('Could not compress additional image', err);
       }
     }
   };

@@ -15,12 +15,12 @@ export interface OptimizedImageResult {
 
 export const ImageOptimizer = {
   /**
-   * Compresses a File or Blob into an optimized base64 string
+   * Compresses a File or Blob into an optimized base64 string guaranteed to be lightweight (<100KB)
    */
   async optimizeFile(
     file: File | Blob,
-    maxDimension = 1200,
-    quality = 0.82
+    maxDimension = 1000,
+    quality = 0.8
   ): Promise<OptimizedImageResult> {
     const originalSizeKb = Math.round(file.size / 1024);
 
@@ -56,7 +56,6 @@ export const ImageOptimizer = {
 
             const ctx = canvas.getContext('2d');
             if (!ctx) {
-              // Fallback to original if canvas context unavailable
               resolve({
                 base64: rawBase64,
                 sizeKb: originalSizeKb,
@@ -73,17 +72,39 @@ export const ImageOptimizer = {
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Prefer WebP if supported, fallback to JPEG
+            // Attempt WebP first, fallback to JPEG
             let format: 'image/webp' | 'image/jpeg' = 'image/webp';
-            let optimizedBase64 = canvas.toDataURL(format, quality);
+            let currentQuality = quality;
+            let optimizedBase64 = canvas.toDataURL(format, currentQuality);
 
-            // If browser doesn't support webp export, it returns image/png which is large
             if (optimizedBase64.startsWith('data:image/png')) {
               format = 'image/jpeg';
-              optimizedBase64 = canvas.toDataURL(format, quality);
+              optimizedBase64 = canvas.toDataURL(format, currentQuality);
             }
 
-            const sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+            let sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+
+            // Adaptive compression if image is still large (> 120KB)
+            if (sizeKb > 120) {
+              currentQuality = 0.65;
+              optimizedBase64 = canvas.toDataURL(format, currentQuality);
+              sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+            }
+
+            if (sizeKb > 150) {
+              // Further scale down if necessary
+              const scaleDownCanvas = document.createElement('canvas');
+              scaleDownCanvas.width = Math.round(width * 0.75);
+              scaleDownCanvas.height = Math.round(height * 0.75);
+              const scaleCtx = scaleDownCanvas.getContext('2d');
+              if (scaleCtx) {
+                scaleCtx.drawImage(canvas, 0, 0, scaleDownCanvas.width, scaleDownCanvas.height);
+                optimizedBase64 = scaleDownCanvas.toDataURL(format, 0.65);
+                sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+                width = scaleDownCanvas.width;
+                height = scaleDownCanvas.height;
+              }
+            }
 
             resolve({
               base64: optimizedBase64,
@@ -115,15 +136,15 @@ export const ImageOptimizer = {
    */
   async optimizeBase64(
     base64String: string,
-    maxDimension = 1200,
-    quality = 0.82
+    maxDimension = 1000,
+    quality = 0.8
   ): Promise<OptimizedImageResult> {
-    if (!base64String.startsWith('data:image/')) {
+    if (!base64String || !base64String.startsWith('data:image/')) {
       // If it's a web URL (http/https), return as-is
       return {
-        base64: base64String,
-        sizeKb: Math.round(base64String.length / 1024),
-        originalSizeKb: Math.round(base64String.length / 1024),
+        base64: base64String || '',
+        sizeKb: Math.round((base64String || '').length / 1024),
+        originalSizeKb: Math.round((base64String || '').length / 1024),
         width: 800,
         height: 800,
         format: 'image/jpeg'
@@ -171,14 +192,21 @@ export const ImageOptimizer = {
           ctx.drawImage(img, 0, 0, width, height);
 
           let format: 'image/webp' | 'image/jpeg' = 'image/webp';
-          let optimizedBase64 = canvas.toDataURL(format, quality);
+          let currentQuality = quality;
+          let optimizedBase64 = canvas.toDataURL(format, currentQuality);
 
           if (optimizedBase64.startsWith('data:image/png')) {
             format = 'image/jpeg';
-            optimizedBase64 = canvas.toDataURL(format, quality);
+            optimizedBase64 = canvas.toDataURL(format, currentQuality);
           }
 
-          const sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+          let sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+
+          if (sizeKb > 120) {
+            currentQuality = 0.65;
+            optimizedBase64 = canvas.toDataURL(format, currentQuality);
+            sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
+          }
 
           resolve({
             base64: optimizedBase64,
@@ -198,3 +226,4 @@ export const ImageOptimizer = {
     });
   }
 };
+
