@@ -27,7 +27,8 @@ import {
   Check,
   Radio,
   ShieldAlert,
-  Wrench
+  Wrench,
+  Code2
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -407,6 +408,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <AdminThreatMap />
         )}
       </main>
+
+      {/* Admin Panel Footer Signature */}
+      <footer className="mt-auto border-t border-neutral-800/80 bg-neutral-950 py-4 px-6 text-xs text-neutral-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>System Engine: Online • Production Master Mode</span>
+        </div>
+        <div className="flex items-center gap-2 text-neutral-400">
+          <Code2 className="w-3.5 h-3.5 text-amber-400" />
+          <span>Engineered & Developed by</span>
+          <span className="text-amber-400 font-bold tracking-wide font-serif">Golam Rabbi</span>
+        </div>
+      </footer>
     </div>
   );
 };

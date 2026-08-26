@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
   initializeFirestore,
   getFirestore, 
@@ -24,6 +24,25 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
+
+// Automatically establish an authorized session if not yet signed in
+export function ensureFirebaseAuth(): Promise<void> {
+  return new Promise((resolve) => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        resolve();
+      } else {
+        signInAnonymously(auth)
+          .then(() => resolve())
+          .catch((err) => {
+            console.warn('Firebase Anonymous Auth fallback notice:', err);
+            resolve();
+          });
+      }
+    });
+  });
+}
+ensureFirebaseAuth().catch(console.warn);
 
 // Initialize Firestore with custom database ID if specified in config and force long polling to guarantee connectivity across all environments (Netlify, iframes, proxies)
 function createFirestoreInstance() {
@@ -111,6 +130,7 @@ export class FirestoreSyncService {
   static async initDefaults(currentLocalConfig?: StoreConfig, currentLocalProducts?: Product[]): Promise<void> {
     if (this.isInitialized) return;
     try {
+      await ensureFirebaseAuth();
       // Check if store config exists
       const configRef = doc(db, STORE_COLLECTION, STORE_CONFIG_DOC);
       const configSnap = await getDoc(configRef);

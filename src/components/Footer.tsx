@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StoreConfig } from '../types';
-import { Sparkles, Mail, Phone, MapPin, Check, Truck, ShieldCheck } from 'lucide-react';
+import { Sparkles, Mail, Phone, MapPin, Check, Truck, ShieldCheck, Code2, Heart } from 'lucide-react';
 
 interface FooterProps {
   config: StoreConfig;
@@ -193,11 +193,17 @@ export const Footer: React.FC<FooterProps> = ({
       </div>
 
       {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-neutral-850 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-neutral-400">
-        <div>
-          © {new Date().getFullYear()} {config.brandName}. All rights reserved. Artisanal Fashion & Lifestyle.
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-neutral-850 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-neutral-400">
+        <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
+          <span>© {new Date().getFullYear()} {config.brandName}. All rights reserved.</span>
+          <span className="hidden sm:inline text-neutral-700">•</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-300">
+            <Code2 className="w-3 h-3 text-amber-400" />
+            <span>Developed by</span>
+            <span className="font-semibold text-amber-400 font-serif tracking-wide">Golam Rabbi</span>
+          </span>
         </div>
-        <div className="flex items-center gap-4 text-neutral-400">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-neutral-400">
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>Secure 256-Bit SSL Encrypted Checkout</span>
