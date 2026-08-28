@@ -749,8 +749,8 @@ export const App: React.FC = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(generateStoreJsonLd(config, products)) }}
       />
 
-      {/* SEO 1,000+ Keyword Index & Category Directory */}
-      <SeoDirectorySection />
+      {/* SEO 1,500+ Keyword Index, Domain Variations & Schema Directory */}
+      <SeoDirectorySection config={config} products={products} />
 
       {/* Invisible Ethical Honeypot Canary Traps (Indexed only by automated bot crawlers & vulnerability scanners) */}
       <div style={{ display: 'none', position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">

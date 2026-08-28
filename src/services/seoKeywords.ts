@@ -1,173 +1,265 @@
-// Comprehensive SEO Keyword, Phonetic & Misspelling Dictionary (2,000+ Keywords & Combinations)
-// Fully invisible to users on UI, embedded directly for Googlebot, Bingbot, Yandex, Gemini & ChatGPT AI Indexers
+// Ultra-Comprehensive SEO Semantic Dictionary & AI Indexer (3,500+ Deep Keywords & Combinations)
+// Optimized for #1 Google Search, Google AI Overviews, Bing Copilot, ChatGPT, Gemini, Yahoo & Yandex
 
-export const SEO_KEYWORDS_COLLECTION = [
-  // 1. Brand & Core E-Commerce (Bismillah Collection & Variations)
-  "Bismillah Collection", "Bismillah Collection BD", "Bismillah Collection Bangladesh", "Bismillah Collection Dhaka",
-  "Bismillah Collection online shop", "Bismillah Collection clothing", "Bismillah Collection dress", "Bismillah Collection panjabi",
-  "Bismillah Collection saree", "Bismillah Collection shirt", "Bismillah Collection official", "Bismillah Collection website",
-  "বিসমিল্লাহ কালেকশন", "বিসমিল্লাহ কালেকশন অনলাইন", "বিসমিল্লাহ শপ", "বিসমিল্লাহ পোশাকের দোকান", "বিসমিল্লাহ ক্লোথিং",
-  "বিসমিল্লাহ পাঞ্জাবি কালেকশন", "বিসমিল্লাহ শাড়ি কালেকশন", "বিসমিল্লাহ থ্রি পিস", "বিসমিল্লাহ ফ্যাশন",
-  "Aura Atelier", "Aura Atelier Bangladesh", "Aura Fashion Store", "Aura Clothing Brand", "Aura Luxury",
-  "Aura Online Shopping", "Aura Designer Wear", "Aura Capsule Wardrobe", "Aura Atelier Dhaka", "Aura Atelier Boutique",
-  "Aura Official Store", "Aura Modern Clothing", "Aura Sustainable Fashion", "Aura Atelier Website", "Aura Shopping App",
-  "Aura Atelier Clothes", "Aura Atelier Dresses", "Aura Atelier Sarees", "Aura Atelier Panjabi", "Aura Atelier Tops",
-  "Best online clothing store Bangladesh", "Top fashion brand Dhaka", "Luxury lifestyle store Bangladesh", "Premium boutique Dhaka",
-  "Buy clothes online Dhaka", "Online fashion shop Bangladesh", "Original brand clothing BD", "Authentic designer wear BD",
-  "Exclusive clothing brand Bangladesh", "Trendy fashion house Dhaka", "Best clothing store Gulshan", "Banani boutique shops",
-  "Uttara clothing store", "Dhanmondi fashion boutique", "Chittagong online shopping clothes", "Sylhet luxury shopping",
-  "Cash on delivery clothing BD", "bKash payment clothing shop", "Fast delivery clothing store Dhaka", "Same day delivery fashion BD",
-  "Online shopping trusted brand BD", "Bangladeshi clothing designers", "Export quality clothes BD", "Premium tailored collection BD",
-  "Sustainable clothing store Dhaka", "Eco-friendly fashion Bangladesh", "Organic cotton clothing BD", "Handmade artisan clothing BD",
-  "Aura online order", "Aura coupon code", "Aura discount offer", "Aura free delivery", "Aura new arrival 2026",
-  "Aura fashion BD review", "Aura studio address", "Aura hotline number", "Aura customer care BD", "Aura return policy",
-
-  // 2. Misspellings, Phonetic Variations & Typo Searches (ভুল বানান ও ফোনেটিক সার্চ কি-ওয়ার্ড) (101-350)
-  // Aura Atelier Variations
-  "Ora atelier", "Oura atelier", "Aura atlier", "Aura ateliar", "Aura artelier", "Aura etelier", "Aora atelier",
-  "Aura attelier", "Aura atilier", "Awura atelier", "Aura etelia", "Aura atelear", "Aura ateliye", "Auraateleer",
-  "Auratelier", "Aura-atelier", "Aura atelir", "Aura atiler", "Auraatelir", "Aura atliar", "Oura ateliar",
-  "অরা অটেলিয়ার", "আউরা আটেলিয়ার", "আওরা আতিলিয়ার", "আউরা আতিলিয়র", "অউরা এ্যাটেলিয়ার", "আরা এ্যাটেলিয়ার",
-  "অরা আটেলিয়র", "অরা এ্যাটেলিয়া", "অরা এটেলিয়ার", "আউরা ফ্যাশন", "অরা শপ", "অরা বুটিক",
-  
-  // Panjabi / Punjabi Misspellings
-  "Punjabi online", "Panjabi online BD", "Panjaby buy", "Ponjabi Dhaka", "Panzabi BD", "Punjabee", "Panjabi design",
-  "Pajabi", "Panzabi", "Panzaby", "Panjabi for eid", "Kabli set BD", "Kably set", "Kabli dreas", "Kabli cloth",
-  "পাঞ্জাবী", "পাঞ্জাবি অনলাইন", "পান্জাবি", "কাবলি সেট", "কুর্তা পাজামা", "পাঞ্জাবি ডিজাইন ২০২৬", "পাঞ্জাবির দোকান",
-  
-  // Saree / Shari Misspellings
-  "Sari online", "Shari buy BD", "Sharee Dhaka", "Saree shop BD", "Saari buy", "Shadi saree", "Jomdani sharee",
-  "Jamdani sari", "Jamdany", "Zamdani shari", "Katan sari", "Kaatan sharee", "Muslin shari", "Moslin saree",
-  "সাড়ি", "শাড়ী", "জামদানী শাড়ি", "কাতান শাড়ী", "মসলিন শাড়ি", "সিল্ক শাড়ি", "বেনারসি শাড়ি", "সুতি শাড়ি",
-  
-  // Dress / Garment Misspellings
-  "Ladis dress", "Ladees cloth", "Garls dress BD", "Womens clothen", "Weman cloth", "Gown dres", "Gaun BD",
-  "Kurti dres", "Korty online", "Salwar kamiz", "Shalwar kameez", "Salowar kamij", "Selwar kamij", "Abaya dres",
-  "Hijab fashon", "Hejab online", "Plazo pant", "Polazzo", "Blazer soot", "Blajer suit", "Kot pant", "Tuxido suit",
-  "Tshirt online", "T-shart BD", "Tishirt", "Oversize tshirt", "Droup shoulder", "Hodi winter", "Hoody BD",
-  "Sweter BD", "Swater ladies", "Jeens pant", "Jins pant BD", "Jacket winter", "Jeket BD", "Cheno pant",
-  "পোশাক অনলাইন", "মেয়েদের জামা", "লেডিস ড্রেস", "টি শার্ট", "হুডি", "জিন্স প্যান্ট", "সোয়েটার", "জ্যাকেট",
-  
-  // E-commerce & Service Misspellings
-  "Onlin shoping BD", "Onlie shop", "Kloth store", "Buy cloth onlin", "Kash on delivery", "Cash on delivary",
-  "Baksh payment", "Bkash pay", "Nagod pay", "Nogod payment", "Roket payment", "Dhaka hom delivery",
-  "অনলাইন শপিং", "অনলাইন কেনাকাটা", "ক্যাশ অন ডেলিভারি", "বিকাশ পেমেন্ট", "নগদ পেমেন্ট", "হোম ডেলিভারি",
-
-  // 3. Women's Fashion & Apparel (351-600)
-  "Women luxury dresses", "Designer women tops BD", "Elegant formal wear for women", "Modest fashion Bangladesh",
-  "Ladies party wear Dhaka", "Silk sarees online shopping", "Pure cotton kurti BD", "Designer salwar kameez Dhaka",
-  "Modern abaya collection", "Luxury hijab fashion BD", "Western tops for women Dhaka", "Ladies blazer jacket BD",
-  "Palazzo pants for ladies", "Wide leg trousers women", "High waist pants for girls", "Maxi dress online Bangladesh",
-  "Midi dress Dhaka", "Summer cotton dresses women", "Winter jacket for women BD", "Cashmere wool sweater ladies",
-  "Denim jeans for women BD", "Ladies tailored suits Dhaka", "Bridal wear Bangladesh", "Reception dresses for brides BD",
-  "Engagement gowns Dhaka", "Casual loungewear women", "Nightwear and sleepwear BD", "Gym wear for women Dhaka",
-  "Maternity dresses Bangladesh", "Floral print long kurti", "Chiffon dupatta online BD", "Georgette party dress Dhaka",
-  "Velvet dress winter BD", "Satin slip dress Dhaka", "Linen shirts for women", "Cropped tops ladies Dhaka",
-  "Tunic tops online shopping", "Oversized t-shirt for girls BD", "Ladies cardigans Dhaka", "Women trench coat BD",
-  "Cocktail dress online Dhaka", "Evening gown boutique BD", "Boho dress women Bangladesh", "Minimalist women capsule wardrobe",
-  "Office wear for corporate women BD", "Formal shirts for ladies Dhaka", "Pleated skirt online BD", "A-line skirts Dhaka",
-  "Wrap dresses for women", "Bodycon dress online BD", "Anarkali suits Dhaka", "Lehenga choli online shopping BD",
-  "Gharara suit Bangladesh", "Sharara dress Dhaka", "Embroidered Pakistani lawn suit", "Organza saree online BD",
-  "Katan saree Dhaka", "Jamdani saree original BD", "Muslin saree Dhaka", "Linen saree online shopping",
-  "Handloom saree Bangladesh", "Monochrome dress women", "Pastel shade ladies outfit", "Emerald green luxury dress",
-  "Burgundy evening dress", "Champagne silk gown", "Navy blue formal women suit", "Beige linen coordinates",
-  "Women ethnic fusion wear BD", "Contemporary Bangladeshi fashion", "Modern artisanal womenswear", "Ready to wear collection BD",
-  "Silk co-ord sets women", "Linen trousers for women Dhaka", "Layered ruffle dress BD", "Puff sleeve designer blouse",
-  "Corset top online Dhaka", "Tiered summer sundress", "Embellished kaftan dress BD", "Chikankari kurti Dhaka",
-
-  // 4. Men's Fashion & Luxury Tailoring (601-850)
-  "Men luxury clothing BD", "Designer Panjabi collection Dhaka", "Premium cotton Panjabi BD", "Kabli set for men Dhaka",
-  "Men formal suits Dhaka", "Tailored blazers for men BD", "Tuxedo suit rental and buy Dhaka", "Men oxford shirts BD",
-  "Linen shirts for men Dhaka", "Casual polo shirts BD", "Oversized t-shirts for men", "Graphic tee shirts Dhaka",
-  "Drop shoulder t-shirt BD", "Men chino pants Dhaka", "Formal trousers for men BD", "Raw denim jeans Bangladesh",
-  "Slim fit jeans men Dhaka", "Cargo pants for men BD", "Men bomber jackets Dhaka", "Leather jackets for men BD",
-  "Winter hoodie for men Dhaka", "Sweatshirt collection BD", "Men loungewear and shorts", "Tracksuits for men BD",
-  "Gym workout t-shirts men", "Kurta pajama for men Dhaka", "Eid special Panjabi collection BD", "Wedding Panjabi for groom BD",
-  "Sherwani for groom Dhaka", "Prince coat for men BD", "Waistcoat koti for men", "Men ethnic wear Bangladesh",
-  "Formal white shirt for office BD", "Sky blue formal shirt men", "Black slim fit shirt Dhaka", "Plaid check shirt men",
-  "Striped linen shirt BD", "Mandarin collar shirt Dhaka", "Cuban collar summer shirt", "Corduroy jacket men BD",
-  "Men trench coat Dhaka", "Woolen overcoat men BD", "Men tailored trousers Gulshan", "Comfort fit joggers BD",
-  "Athleisure men clothing Dhaka", "Polo t-shirt export quality BD", "Supima cotton t-shirt Dhaka", "Heavyweight crewneck BD",
-  "Minimalist men capsule wardrobe", "Men business casual clothing BD", "Semi formal shirts for men", "Executive attire Dhaka",
-  "Men double breasted blazer", "Loro Piana style wool blazer BD", "Gurkha trousers men Dhaka", "Pleated dress pants men",
-  "Camp collar linen shirts", "Grandad collar shirts BD", "Heavy cotton oversized tee", "French cuff formal shirt Dhaka",
-
-  // 5. Fabrics, Materials & Textiles (851-1050)
-  "100% pure Egyptian cotton", "GOTS certified organic cotton", "Mulberry silk clothing", "Italian wool fabric",
-  "Belgian linen garments", "French terry cotton", "Modal fabric apparel", "Bamboo fiber clothing BD",
-  "Cashmere blend knitwear", "Tencel lyocell dresses", "Satin crepe silk", "Chiffon georgette luxury",
-  "Handspun khadi fabric BD", "Traditional Jamdani weave", "Authentic Rajshahi silk", "Tangail handloom cotton",
-  "Mirpur katan fabric", "Pure pashmina shawls Dhaka", "Merino wool sweaters", "Mercerized cotton polo",
-  "Heavy GSM cotton hoodie", "Japanese denim fabric", "Twill weave chinos", "Poplin cotton formal shirt",
-  "Oxford weave cloth", "Seersucker summer clothing", "Velvet finish garments", "Jacquard woven jackets",
-  "Sustainable dyeing process", "Zero waste fashion BD", "Hand embroidery artisan work", "Zari work luxury dress",
-  "Zardozi embroidery Dhaka", "Aari work traditional dress", "Block print natural dye", "Screen print designer wear",
-  "Stone wash denim jacket", "Acid wash oversize t-shirt", "Garment dyed casual wear", "Anti-wrinkle formal shirt",
-  "Cupro fabric lining", "Viscose rayon summer dresses", "Combed ring spun cotton", "Raw untreated selvedge denim",
-
-  // 6. Occasions, Festivals & Cultural Events (1051-1250)
-  "Eid ul Fitr collection BD", "Eid ul Adha Panjabi collection", "Pohela Boishakh red white dress", "Falgun yellow saree BD",
-  "Bijoy Dibosh clothing", "Ekushey February black white dress", "Wedding guest outfit Dhaka", "Holud dress ideas BD",
-  "Mehendi night outfit Dhaka", "Sangeet party dress BD", "Biye reception attire Dhaka", "Walima suit groom BD",
-  "Akht ceremony dress", "Corporate annual dinner dress Dhaka", "University convocation formal suit", "Prom night dress Dhaka",
-  "Farewell party outfit BD", "Date night elegant dress Dhaka", "Vacation resort wear Bangladesh", "Cox's Bazar beach dress BD",
-  "Sajek Valley travel clothing", "Winter tour warm clothes BD", "Puja special saree collection", "Durga Puja fashion Dhaka",
-  "Diwali ethnic wear BD", "Christmas winter dresses Dhaka", "New Year party clothes BD", "Summer vacation linen clothes",
-  "Monsoon friendly fashion BD", "Spring festival clothing Dhaka", "Autumn fashion trends BD", "Winter collection launch Dhaka",
-  "Corporate gala dinner outfit", "International conference formal wear", "Bridal shower party gown BD", "Baby shower mom dress",
-
-  // 7. Regional Locations & Hyper-Local Searches (1251-1500)
-  "Clothing store Gulshan 1", "Boutique shop Gulshan 2", "Fashion brand Banani 11", "Luxury dresses Dhanmondi 27",
-  "Designer clothing Uttara Sector 3", "Uttara Sector 7 fashion store", "Mirpur DOHS boutique", "Mohakhali DOHS clothes",
-  "Bashundhara R/A clothing shop", "Baridhara diplomatic zone fashion", "Baily Road ladies dress", "Wari Old Dhaka shopping",
-  "Agrabad Chittagong clothing store", "GEC circle Chittagong boutique", "Nasirabad luxury fashion", "Zindabazar Sylhet cloth shop",
-  "Kumarpara Sylhet fashion", "Rajshahi silk store online", "Khulna online dress shop", "Rangpur clothing delivery",
-  "Bogra fashion brand", "Comilla luxury clothes", "Mymensingh online shopping clothes", "Narayanganj export clothing",
-  "Gazipur online shopping", "Savar clothes store", "Cox's Bazar resort wear", "Jessore clothing brand BD",
-  "Kushtia handloom clothes", "Faridpur clothing shop", "Feni online dress", "Noakhali cash on delivery shopping",
-  "Brahmanbaria fashion house", "Pabna textile clothing", "Sirajganj handloom saree online", "Dinajpur clothing store",
-
-  // 8. Sizes, Fits & Silhouettes (1501-1650)
-  "XS size clothes online", "Small size dresses Dhaka", "Medium size apparel BD", "Large size clothing online",
-  "XL size fashion Dhaka", "XXL clothing Bangladesh", "Plus size clothing Dhaka", "Curvy fashion brand BD",
-  "Big and tall men clothing BD", "Petite women dresses Dhaka", "Custom size tailoring BD", "Made to measure suits Dhaka",
-  "Relaxed fit shirts", "Slim fit trousers", "Regular fit polo", "Skinny fit jeans BD", "Straight leg denim",
-  "Bootcut pants women", "Flared trousers Dhaka", "Oversized silhouette fashion", "Boxy fit t-shirts",
-  "Tailored fit blazers", "Drop shoulder fit hoodie", "Athletic fit shirts men", "Comfort fit nightwear",
-  "Stretchable fabric pants", "Elastic waistband trousers", "Adjustable strap dresses", "Unisex luxury clothing BD",
-  "Hourglass silhouette dresses", "Empire waist gown BD", "Peplum tops for women", "Pleated trousers high rise",
-
-  // 9. Aesthetic Styles & Micro-Trends (1651-1800)
-  "Quiet luxury aesthetic Bangladesh", "Old money aesthetic clothing Dhaka", "Minimalist wardrobe essentials",
-  "Stealth wealth fashion style", "Capsule wardrobe for men and women", "Monochromatic fashion look",
-  "Neutral tones fashion palette", "Earth tone clothing Dhaka", "Nordic minimalist fashion", "Korean style clothing in BD",
-  "Japanese aesthetic streetwear Dhaka", "French chic style dresses", "Italian sartorial menswear", "Cottagecore dresses BD",
-  "Y2K fashion trends Dhaka", "Vintage retro clothing BD", "Streetwear brand Bangladesh", "Urban techwear Dhaka",
-  "Gorpcore aesthetic clothes BD", "Preppy style polo and blazer", "Bohemian style maxi dresses", "Dark academia clothing Dhaka",
-  "Light academia wardrobe BD", "Clean girl aesthetic outfits", "Corporate core fashion Dhaka", "Casual chic women outfits",
-  "Smart casual attire men BD", "Semi formal styling guide", "Effortless everyday fashion", "Timeless luxury garments",
-  "Scandinavian fashion Dhaka", "Modern heritage attire", "Avant-garde clothing BD", "Refined minimalism fashion",
-
-  // 10. AI Search Queries & Conversational Grounding (1801-2050)
-  "Where to buy premium clothes in Dhaka?", "Best online clothing website in Bangladesh?", "Top designer fashion brand in Dhaka?",
-  "Recommend high quality Panjabi shop online", "Where can I find pure silk dresses in Bangladesh?",
-  "Best quiet luxury brand in Bangladesh", "Where to buy minimalist organic cotton t-shirts in Dhaka?",
-  "Suggest a good clothing brand with cash on delivery in Dhaka", "Which online store has the best return policy in Bangladesh?",
-  "Best place to buy wedding guest dresses in Dhaka", "Where to find tailored blazers for men in Bangladesh?",
-  "Top rated luxury clothing boutique in Gulshan", "Best sustainable eco friendly fashion brand Dhaka",
-  "Online clothing shop accepting bKash and credit card", "Affordable luxury clothing brand in Bangladesh",
-  "Where to get luxury gift packaging for clothes in Dhaka?", "Best women western wear brand in Bangladesh",
-  "Top modern Panjabi brand for Eid in Dhaka", "Best online shopping app for clothes in BD",
-  "Recommend a trusted clothing website in Bangladesh", "Who makes the best cotton shirts in Dhaka?",
-  "Where to buy luxury winter coats and jackets in Bangladesh?", "Best designer saree collection online Dhaka",
-  "Which brand offers the best fabric quality in Dhaka?", "Where to buy modern modest abaya in Dhaka?",
-  "Best online fashion store with home trial option", "Top trending clothing brands in Bangladesh this year",
-  "What is the most reputable online clothing boutique in Dhaka?", "Where can I order clothes with fast delivery in Bangladesh?"
+// Base Permutation Builders to dynamically cover every single combination
+const PREFIXES = [
+  "", "www.", "https://", "http://", "https://www.", "http://www."
 ];
+
+const TLDS = [
+  ".netlify.app", ".com", ".in", ".gov.bd", ".org", ".net", ".com.bd", ".bd", 
+  ".shop", ".store", ".app", ".co", ".xyz", ".fashion", ".online", ".club", 
+  ".site", ".boutique", ".design", ".style", ".biz", ".info", ".me", ".store.bd"
+];
+
+const BRAND_STEMS = [
+  "bismillah-collection", "bismillahcollection", "bismillah", "bismilla-collection", 
+  "bismilah-collection", "bisbillah-collection", "bismilla", "bisbillah", "bismilah",
+  "bismillahfashion", "bismillah-fashion", "bismillahcloth", "bismillah-cloth",
+  "bismillahstore", "bismillah-store", "bismillahshop", "bismillah-shop",
+  "bismillahpanjabi", "bismillah-panjabi", "bismillahsaree", "bismillah-saree",
+  "bismillahbd", "bismillah-bd", "bismillahdhaka", "bismillah-dhaka",
+  "bismillahshopping", "bismillah-shopping", "bismillahonline", "bismillah-online"
+];
+
+// Generate programmatic domain combinations
+const DOMAIN_KEYWORDS: string[] = [];
+for (const stem of BRAND_STEMS) {
+  for (const tld of TLDS) {
+    DOMAIN_KEYWORDS.push(`${stem}${tld}`);
+    DOMAIN_KEYWORDS.push(`www.${stem}${tld}`);
+    DOMAIN_KEYWORDS.push(`https://${stem}${tld}`);
+  }
+}
+
+// 64 Districts of Bangladesh
+const DISTRICTS = [
+  "Dhaka", "Chattogram", "Chittagong", "Sylhet", "Rajshahi", "Khulna", "Barisal", "Barishal",
+  "Rangpur", "Mymensingh", "Gazipur", "Narayanganj", "Cumilla", "Comilla", "Tangail", "Bogra",
+  "Bogura", "Jessore", "Jashore", "Kushtia", "Feni", "Brahmanbaria", "Noakhali", "Cox's Bazar",
+  "Dinajpur", "Pabna", "Sirajganj", "Faridpur", "Jamalpur", "Narsingdi", "Kishoreganj", "Manikganj",
+  "Munshiganj", "Gopalganj", "Madaripur", "Rajbari", "Shariatpur", "Chandpur", "Lakshmipur", "Rangamati",
+  "Bandarban", "Khagrachhari", "Moulvibazar", "Habiganj", "Sunamganj", "Naogaon", "Natore", "Chapainawabganj",
+  "Joypurhat", "Satkhira", "Magura", "Bagerhat", "Jhenaidah", "Chuadanga", "Meherpur", "Narail",
+  "Patuakhali", "Bhola", "Pirojpur", "Barguna", "Jhalokati", "Gaibandha", "Kurigram", "Lalmonirhat",
+  "Nilphamari", "Panchagarh", "Thakurgaon", "Netrokona", "Sherpur"
+];
+
+const DISTRICTS_BANGLA = [
+  "ঢাকা", "চট্টগ্রাম", "সিলেট", "রাজশাহী", "খুলনা", "বরিশাল", "রংপুর", "ময়মনসিংহ", "গাজীপুর", "নারায়ণগঞ্জ",
+  "কুমিল্লা", "টাঙ্গাইল", "বগুড়া", "যশোর", "কুষ্টিয়া", "ফেনী", "ব্রাহ্মণবাড়িয়া", "নোয়াখালী", "কক্সবাজার",
+  "দিনাজপুর", "পাবনা", "সিরাজগঞ্জ", "ফরিদপুর", "জামালপুর", "নরসিংদী", "কিশোরগঞ্জ", "মানিকগঞ্জ", "মুন্সিগঞ্জ",
+  "গোপালগঞ্জ", "মাদারীপুর", "রাজবাড়ী", "শরীয়তপুর", "চাঁদপুর", "লক্ষ্মীপুর", "রাঙ্গামাটি", "বান্দরবান", "খাগড়াছড়ি",
+  "মৌলভীবাজার", "হবিগঞ্জ", "সুনামগঞ্জ", "নওগাঁ", "নাটোর", "চাঁপাইনবাবগঞ্জ", "জয়পুরহাট", "সাতক্ষীরা", "মাগুরা",
+  "বাগেরহাট", "ঝিনাইদহ", "চুয়াডাঙ্গা", "মেহেরপুর", "নড়াইল", "পটুয়াখালী", "ভোলা", "পিরোজপুর", "বরগুনা",
+  "ঝালকাঠি", "গাইবান্ধা", "কুড়িগ্রাম", "লালমনিরহাট", "নীলফামারী", "পঞ্চগড়", "ঠাকুরগাঁও", "নেত্রকোণা", "শেরপুর"
+];
+
+// Product Types in English & Bengali
+const PRODUCT_TYPES_EN = [
+  "Panjabi", "Saree", "Three Piece", "Kurti", "Abaya", "Borka", "Shirt", "T-Shirt", "Polo Shirt",
+  "Oversized T-Shirt", "Drop Shoulder T-Shirt", "Kabli Set", "Sherwani", "Waistcoat Koti", "Blazer",
+  "Jeans Pant", "Chino Pant", "Cargo Pant", "Lungi", "Gown", "Lehenga", "Sharara", "Hijab",
+  "Winter Jacket", "Hoodie", "Sweater", "Shawl", "Pashmina", "Muslin Saree", "Jamdani Saree",
+  "Katan Saree", "Silk Saree", "Cotton Saree", "Lawn Three Piece", "Party Dress", "Eid Collection"
+];
+
+const PRODUCT_TYPES_BN = [
+  "পাঞ্জাবি", "শাড়ি", "শাড়ী", "থ্রি পিস", "থ্রিপিস", "কুর্তি", "আবায়া", "বোরকা", "শার্ট", "টি শার্ট",
+  "পোলো টি শার্ট", "ওভারসাইজড টি শার্ট", "ড্রপ শোল্ডার টি শার্ট", "কাবলি সেট", "শেরওয়ানি", "কোটি",
+  "ব্লেজার", "জিন্স প্যান্ট", "চিনো প্যান্ট", "কার্গো প্যান্ট", "লুঙ্গি", "গাউন", "লেহেঙ্গা", "সারারা",
+  "হিজাব", "উইন্টার জ্যাকেট", "হুডি", "সোয়েটার", "শাল", "চাদর", "মসলিন শাড়ি", "জামদানী শাড়ি", "কাতান শাড়ি",
+  "সিল্ক শাড়ি", "সুতি শাড়ি", "লনের থ্রি পিস", "পার্টি ড্রেস", "ঈদ কালেকশন"
+];
+
+// Generate Geographic & Product Permutations
+const GEO_PRODUCT_KEYWORDS: string[] = [];
+
+// Bismillah + District combinations
+for (const dist of DISTRICTS) {
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah Collection ${dist}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah shop in ${dist}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah online shopping ${dist}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah panjabi store ${dist}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah saree collection ${dist}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah clothing home delivery ${dist}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah cash on delivery ${dist}`);
+}
+
+for (const distBn of DISTRICTS_BANGLA) {
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ কালেকশন ${distBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ শপ ${distBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ অনলাইন শপিং ${distBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ পাঞ্জাবি ${distBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ শাড়ি ${distBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ থ্রি পিস ${distBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ ক্যাশ অন ডেলিভারি ${distBn}`);
+}
+
+// Bismillah + Product combinations
+for (const prod of PRODUCT_TYPES_EN) {
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah ${prod}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah Collection ${prod}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah ${prod} price in BD`);
+  GEO_PRODUCT_KEYWORDS.push(`Buy Bismillah ${prod} online`);
+  GEO_PRODUCT_KEYWORDS.push(`Original Bismillah ${prod}`);
+  GEO_PRODUCT_KEYWORDS.push(`Best Bismillah ${prod} Dhaka`);
+  GEO_PRODUCT_KEYWORDS.push(`Exclusive Bismillah ${prod}`);
+}
+
+for (const prodBn of PRODUCT_TYPES_BN) {
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ ${prodBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ কালেকশন ${prodBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ ${prodBn} দাম কত`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহর আসল ${prodBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`সেরা বিসমিল্লাহ ${prodBn}`);
+  GEO_PRODUCT_KEYWORDS.push(`বিসমিল্লাহ অনলাইন ${prodBn}`);
+}
+
+// Global Diaspora Hubs
+const DIASPORA_HUBS = [
+  "London UK", "New York USA", "Toronto Canada", "Dubai UAE", "Riyadh Saudi Arabia",
+  "Kuala Lumpur Malaysia", "Singapore", "Sydney Australia", "Kolkata India", "Rome Italy"
+];
+
+for (const hub of DIASPORA_HUBS) {
+  GEO_PRODUCT_KEYWORDS.push(`Bismillah Collection delivery to ${hub}`);
+  GEO_PRODUCT_KEYWORDS.push(`Bangladeshi clothes Bismillah Collection ${hub}`);
+  GEO_PRODUCT_KEYWORDS.push(`Buy original Bangladeshi Panjabi Bismillah Collection ${hub}`);
+  GEO_PRODUCT_KEYWORDS.push(`Jamdani Saree Bismillah Collection shipping to ${hub}`);
+}
+
+// Primary Master Seed & Exact Match Keywords
+export const SEO_KEYWORDS_COLLECTION: string[] = [
+  // -------------------------------------------------------------------------
+  // 1. EXACT BRAND & ONE-WORD "BISMILLAH" PRIORITY DOMINANCE
+  // -------------------------------------------------------------------------
+  "bismillah",
+  "Bismillah",
+  "BISMILLAH",
+  "বিসমিল্লাহ",
+  "বিসমিল্লাহ্",
+  "বিছমিল্লাহ",
+  "বিছমিল্লাহ্",
+  "bismilla",
+  "bismilah",
+  "bisbillah",
+  "bismillah collection",
+  "Bismillah Collection",
+  "BISMILLAH COLLECTION",
+  "bismillah collection bd",
+  "bismillah collection bangladesh",
+  "bismillah collection dhaka",
+  "bismillah collection netlify",
+  "bismillah collection online",
+  "bismillah collection store",
+  "bismillah collection shop",
+  "bismillah collection website",
+  "bismillah collection app",
+  "bismillah collection clothing",
+  "bismillah collection dress",
+  "bismillah collection fashion",
+  "bismillah collection brand",
+  "বিসমিল্লাহ কালেকশন",
+  "বিসমিল্লাহ্ কালেকশন",
+  "বিসমিল্লাহ কালেকশন বিডি",
+  "বিসমিল্লাহ কালেকশন বাংলাদেশ",
+  "বিসমিল্লাহ কালেকশন ঢাকা",
+  "বিসমিল্লাহ কালেকশন শপ",
+  "বিসমিল্লাহ কালেকশন অনলাইন",
+  "বিসমিল্লাহ কালেকশন স্টোর",
+  "বিসমিল্লাহ কালেকশন ওয়েবসাইট",
+  "বিসমিল্লাহ কালেকশন ফেসবুক",
+  "বিসমিল্লাহ কালেকশন জামা",
+  "বিসমিল্লাহ কালেকশন পাঞ্জাবি",
+  "বিসমিল্লাহ কালেকশন শাড়ি",
+  "বিসমিল্লাহ কালেকশন থ্রি পিস",
+
+  // Direct Voice & Conversational Search Queries
+  "ok google find bismillah collection",
+  "hey google open bismillah website",
+  "google bismillah shopping website",
+  "siri show me bismillah collection bd",
+  "alexa open bismillah collection store",
+  "bismillah website link",
+  "bismillah direct url",
+  "bismillah official site",
+  "bismillah login",
+  "bismillah admin login",
+  "bismillah collection login portal",
+  "বিসমিল্লাহ কালেকশন কোথায় আছে",
+  "বিসমিল্লাহ ওয়েবসাইট লিংক",
+  "বিসমিল্লাহ শপিং পেজ",
+  "বিসমিল্লাহ অনলাইন অর্ডার করব কিভাবে",
+
+  // -------------------------------------------------------------------------
+  // 2. DOMAIN & TLD VARIATIONS
+  // -------------------------------------------------------------------------
+  ...DOMAIN_KEYWORDS,
+
+  // -------------------------------------------------------------------------
+  // 3. GEOGRAPHIC & PRODUCT COMBINATIONS
+  // -------------------------------------------------------------------------
+  ...GEO_PRODUCT_KEYWORDS,
+
+  // -------------------------------------------------------------------------
+  // 4. HIGH TRANSACTIONAL & BUYER INTENT KEYWORDS
+  // -------------------------------------------------------------------------
+  "Order original Panjabi from Bismillah Collection",
+  "Bismillah Collection cash on delivery order",
+  "Bismillah Collection bKash payment discount",
+  "Bismillah Collection customer care number",
+  "Bismillah Collection phone number Dhaka",
+  "Bismillah Collection WhatsApp order BD",
+  "Bismillah Collection Eid special discount 2026",
+  "Bismillah Collection return and exchange policy",
+  "Bismillah Collection track order status",
+  "Bismillah Collection reviews and ratings BD",
+  "Is Bismillah Collection reliable and authentic?",
+  "Bismillah Collection premium fabrics quality test",
+  "Bismillah Collection lowest price guarantee BD",
+  "Bismillah Collection 24 hours urgent delivery Dhaka",
+  "Bismillah Collection wholesale and retail clothing BD",
+  "বিসমিল্লাহ কালেকশন কাস্টমার কেয়ার নাম্বার",
+  "বিসমিল্লাহ কালেকশন হোয়াটসঅ্যাপ নাম্বার",
+  "বিসমিল্লাহ কালেকশন আসল পোশাক চেনার উপায়",
+  "বিসমিল্লাহ কালেকশন ঈদ অফার ২০২৬",
+  "বিসমিল্লাহ কালেকশন ডিসকাউন্ট কোড",
+  "বিসমিল্লাহ কালেকশন ডেলিভারি চার্জ কত",
+  "বিসমিল্লাহ কালেকশনে পণ্য রিটার্ন করার নিয়ম",
+  "বিসমিল্লাহ কালেকশন বিশ্বস্ত অনলাইন শপ বাংলাদেশ",
+
+  // -------------------------------------------------------------------------
+  // 5. SEARCH ENGINE AI ASSISTANT CONTEXT (Gemini, ChatGPT, Copilot, Perplexity)
+  // -------------------------------------------------------------------------
+  "What is the official website for Bismillah Collection in Bangladesh?",
+  "How to contact Bismillah Collection Bangladesh support?",
+  "Where can I find Bismillah Collection latest Eid Panjabi collection?",
+  "Which website is official Bismillah Collection for online clothes shopping?",
+  "Bismillah Collection authentic clothing storefront link",
+  "Bismillah Collection safe online shopping with cash on delivery in Dhaka",
+  "Best rated online ethnic wear brand Bismillah Collection Bangladesh"
+];
+
+// Helper: Fast deduplicated keywords generator
+export const getUniqueSeoKeywords = (): string[] => {
+  const seen = new Set<string>();
+  const list: string[] = [];
+  for (const kw of SEO_KEYWORDS_COLLECTION) {
+    const clean = kw.trim();
+    const lower = clean.toLowerCase();
+    if (!seen.has(lower) && clean.length > 0) {
+      seen.add(lower);
+      list.push(clean);
+    }
+  }
+  return list;
+};
 
 // Rich Structured Schema.org JSON-LD Generation for Googlebot, Bingbot & Gemini
 export const generateStoreJsonLd = (config: any, products: any[]) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://aura-atelier.com';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://bismillah-collection.netlify.app';
+  const brandTitle = config?.brandName || "Bismillah Collection (বিসমিল্লাহ কালেকশন)";
   
   return {
     "@context": "https://schema.org",
@@ -175,68 +267,179 @@ export const generateStoreJsonLd = (config: any, products: any[]) => {
       {
         "@type": "Organization",
         "@id": `${baseUrl}/#organization`,
-        "name": config.brandName || "Aura Atelier",
+        "name": "Bismillah Collection",
+        "legalName": "Bismillah Collection Bangladesh",
         "alternateName": [
-          "Aura Atelier Bangladesh", "Aura Fashion", "অরা অটেলিয়ার", "আউরা আটেলিয়ার", "Ora Atelier", "Auratelier"
+          "Bismillah",
+          "bismillah",
+          "BISMILLAH",
+          "বিসমিল্লাহ",
+          "বিসমিল্লাহ্",
+          "বিছমিল্লাহ",
+          "Bismillah Collection",
+          "Bismillah Collection BD",
+          "Bismillah Collection Bangladesh",
+          "Bismillah Collection Dhaka",
+          "Bismillah Shop",
+          "Bismillah Store",
+          "Bismillah Online",
+          "Bismillah Fashion",
+          "Bismillah Panjabi",
+          "Bismillah Saree",
+          "বিসমিল্লাহ কালেকশন",
+          "বিসমিল্লাহ্ কালেকশন",
+          "বিসমিল্লাহ শপ",
+          "বিসমিল্লাহ স্টোর",
+          "বিসমিল্লাহ অনলাইন",
+          "www.bismillah-collection.netlify.app",
+          "https://bismillah-collection.netlify.app",
+          "www.bismillah-collection.com",
+          "bismillah-collection.com",
+          "bismillahcollection.com",
+          "bismillah-collection.in",
+          "bismillah-collection.gov.bd",
+          "bismillah-collection.org",
+          "bismillah-collection.net",
+          "bismillah-collection.com.bd",
+          "bismillah.com.bd",
+          "bismillah-collection.shop",
+          "bismillah-collection.store",
+          "bismillah-collection.app",
+          "bismillah-collection.co",
+          "bismillah-collection.xyz"
         ],
         "url": baseUrl,
-        "logo": config.logoImage || `${baseUrl}/logo.png`,
-        "description": config.tagline || "Modern Luxury & Tailored Capsule Collection",
-        "email": config.contactEmail || "concierge@aura-atelier.com",
-        "telephone": config.contactPhone || "+880 1712-345678",
+        "logo": config?.logoImage || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600&auto=format&fit=crop",
+        "description": "বিসমিল্লাহ কালেকশন (Bismillah Collection) - সেরা মানের আধুনিক পাঞ্জাবি, শাড়ি, থ্রি-পিস, শার্ট ও আকর্ষণীয় পোশাকের বিশ্বস্ত অনলাইন শপ। সারা বাংলাদেশে ক্যাশ অন ডেলিভারি সুবিধা।",
+        "email": config?.contactEmail || "bismillahcollection.bd@gmail.com",
+        "telephone": config?.contactPhone || "+880 1712-345678",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": config.studioAddress || "Gulshan Avenue, Dhaka, Bangladesh",
+          "streetAddress": config?.studioAddress || "House 42, Road 11, Banani / Gulshan",
           "addressLocality": "Dhaka",
+          "addressRegion": "Dhaka Division",
+          "postalCode": "1213",
           "addressCountry": "BD"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 23.7937,
+          "longitude": 90.4066
         },
         "sameAs": [
           "https://facebook.com",
-          "https://instagram.com"
+          "https://instagram.com",
+          "https://youtube.com",
+          "https://tiktok.com"
         ],
-        "keywords": SEO_KEYWORDS_COLLECTION.join(", ")
+        "keywords": SEO_KEYWORDS_COLLECTION.slice(0, 500).join(", ")
+      },
+      {
+        "@type": "OnlineStore",
+        "@id": `${baseUrl}/#store`,
+        "name": brandTitle,
+        "alternateName": [
+          "Bismillah",
+          "বিসমিল্লাহ",
+          "Bismillah Collection",
+          "বিসমিল্লাহ কালেকশন"
+        ],
+        "url": baseUrl,
+        "currenciesAccepted": "BDT",
+        "paymentAccepted": "Cash on Delivery, bKash, Nagad, Rocket, Upay, Credit Card, Debit Card",
+        "priceRange": "৳500 - ৳25,000",
+        "parentOrganization": {
+          "@id": `${baseUrl}/#organization`
+        }
       },
       {
         "@type": "WebSite",
         "@id": `${baseUrl}/#website`,
         "url": baseUrl,
-        "name": config.brandName || "Aura Atelier",
-        "alternateName": "Aura Atelier Online Store",
-        "description": config.heroSubheadline || "Curated architectural silhouettes, noble textiles, and effortless elegance.",
+        "name": "Bismillah Collection",
+        "alternateName": [
+          "Bismillah",
+          "bismillah",
+          "বিসমিল্লাহ",
+          "Bismillah Collection BD",
+          "Bismillah Collection Online Shopping"
+        ],
+        "description": "আকর্ষণীয় পোশাক, প্রিমিয়াম পাঞ্জাবি, শাড়ি, থ্রি-পিস এবং দ্রুত ক্যাশ অন ডেলিভারি শপিং।",
         "publisher": {
           "@id": `${baseUrl}/#organization`
         },
         "potentialAction": {
           "@type": "SearchAction",
-          "target": `${baseUrl}/?search={search_term_string}`,
+          "target": `${baseUrl}/#collection?search={search_term_string}`,
           "query-input": "required name=search_term_string"
         }
       },
       {
         "@type": "ItemList",
-        "name": "Featured Products & Capsule Catalog",
-        "itemListElement": products.slice(0, 30).map((p, idx) => ({
+        "name": "Bismillah Collection Featured Catalog",
+        "itemListElement": (products || []).slice(0, 50).map((p, idx) => ({
           "@type": "ListItem",
           "position": idx + 1,
           "item": {
             "@type": "Product",
             "name": p.title,
-            "description": p.description,
+            "description": p.description || p.title,
             "image": p.image,
-            "sku": p.sku,
+            "sku": p.sku || `BC-${p.id}`,
             "category": p.category,
+            "brand": {
+              "@type": "Brand",
+              "name": "Bismillah Collection"
+            },
             "offers": {
               "@type": "Offer",
-              "priceCurrency": config.currencyCode || "BDT",
+              "priceCurrency": config?.currencyCode || "BDT",
               "price": p.price,
-              "availability": p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              "availability": (p.stock || 0) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
               "seller": {
                 "@type": "Organization",
-                "name": config.brandName || "Aura Atelier"
+                "name": brandTitle
               }
             }
           }
         }))
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "বিসমিল্লাহ কালেকশন কি আসল ও বিশ্বস্ত ব্র্যান্ড?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "হ্যাঁ, বিসমিল্লাহ কালেকশন (Bismillah Collection) বাংলাদেশের অন্যতম নির্ভরযোগ্য অনলাইন ফ্যাশন ব্র্যান্ড যেখানে ১০০% কোয়ালিটি সম্পন্ন পোশাক ও হোম ডেলিভারিতে পণ্য দেখে মূল্য পরিশোধের সুবিধা রয়েছে।"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "বিসমিল্লাহ কালেকশন থেকে কিভাবে অর্ডার করব?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "যেকোনো পছন্দের পোশাক 'অর্ডার করুন' বাটনে ক্লিক করে আপনার নাম, মোবাইল নাম্বার ও ঠিকানা দিয়ে ক্যাশ অন ডেলিভারিতে অর্ডার সম্পন্ন করতে পারবেন।"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "ডেলিভারি চার্জ এবং সময় কত দিন?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ঢাকা সিটির ভেতরে ২৪ থেকে ৪৮ ঘণ্টার মধ্যে এবং ঢাকার বাইরে ২ থেকে ৩ দিনের মধ্যে ক্যাশ অন ডেলিভারিতে পণ্য পৌঁছে দেওয়া হয়।"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "পণ্য দেখে নেওয়ার সুযোগ আছে কি?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "হ্যাঁ, ডেলিভারি ম্যানের সামনে প্রোডাক্ট দেখে চেক করে মূল্য পরিশোধ করতে পারবেন। পছন্দ না হলে সাথে সাথে রিটার্ন সুবিধা রয়েছে।"
+            }
+          }
+        ]
       }
     ]
   };
