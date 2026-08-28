@@ -10,6 +10,7 @@ import { AdminExportBackup } from './AdminExportBackup';
 import { AdminThreatMap } from './AdminThreatMap';
 import { AdminAiProductCreator } from './AdminAiProductCreator';
 import { AdminSystemDoctor } from './AdminSystemDoctor';
+import { AdminFirebaseDiagnostics } from './AdminFirebaseDiagnostics';
 import {
   LayoutDashboard,
   Package,
@@ -23,12 +24,12 @@ import {
   Sparkles,
   Shield,
   Eye,
-  Link as LinkIcon,
   Check,
   Radio,
   ShieldAlert,
   Wrench,
-  Code2
+  Code2,
+  Database
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -67,19 +68,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRefreshData,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'ai_creator' | 'products' | 'orders' | 'customers' | 'doctor' | 'settings' | 'coupons' | 'export' | 'threat_map'
+    'analytics' | 'ai_creator' | 'products' | 'orders' | 'customers' | 'doctor' | 'firebase_debug' | 'settings' | 'coupons' | 'export' | 'threat_map'
   >('analytics');
 
-  const [copiedLink, setCopiedLink] = useState(false);
-
   const pendingOrdersCount = orders.filter((o) => o.status === 'Pending' || o.status === 'Processing').length;
-
-  const handleCopyAdminLink = () => {
-    const adminUrl = `${window.location.origin}${window.location.pathname}#/admin`;
-    navigator.clipboard.writeText(adminUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
-  };
 
   return (
     <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col font-sans">
@@ -112,25 +104,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2.5">
-            {/* Copy Secret Admin URL */}
-            <button
-              onClick={handleCopyAdminLink}
-              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-neutral-700 active:scale-98"
-              title="Copy direct link to this Admin Panel (/#/admin)"
-            >
-              {copiedLink ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 hidden md:inline">Admin Link Copied!</span>
-                </>
-              ) : (
-                <>
-                  <LinkIcon className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden md:inline">Copy Admin URL</span>
-                </>
-              )}
-            </button>
-
             <button
               onClick={onExitAdmin}
               className="px-3.5 py-2 bg-neutral-800 hover:bg-neutral-750 text-neutral-200 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-colors border border-neutral-700 active:scale-98"
@@ -229,7 +202,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }`}
           >
             <Wrench className="w-4 h-4 text-emerald-400" />
-            <span>System Doctor & Repair</span>
+            <span>System Doctor</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('firebase_debug')}
+            className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === 'firebase_debug'
+                ? 'border-amber-400 text-amber-400 bg-amber-950/20'
+                : 'border-transparent text-amber-400/80 hover:text-amber-300'
+            }`}
+          >
+            <Database className="w-4 h-4 text-amber-400" />
+            <span>Firebase & Auth Diagnostics</span>
+            <span className="px-1.5 py-0.2 bg-amber-400/20 border border-amber-500/40 text-amber-300 rounded-full text-[9px] font-bold font-mono">
+              RULES
+            </span>
           </button>
 
           <button
@@ -287,50 +275,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Main Admin Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        
-        {/* Secret Direct Admin Link Banner */}
-        <div className="bg-gradient-to-r from-amber-950/40 via-neutral-900 to-neutral-900 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-white text-sm">
-                  গোপন এডমিন লিংক (Direct Secret URL)
-                </h3>
-                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[10px] font-mono">
-                  পাবলিক পেইজে কোনো এডমিন বাটন নেই
-                </span>
-              </div>
-              <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
-                পাবলিক স্টোরফ্রন্ট থেকে সমস্ত এডমিন বাটন ও লিংক সম্পূর্ণ বাদ দেওয়া হয়েছে। শুধুমাত্র এই গোপন লিংকটি দিয়ে সরাসরি প্যানেলে প্রবেশ করা যাবে:
-              </p>
-              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-950 border border-neutral-750 rounded-lg text-xs font-mono text-amber-300 select-all max-w-full overflow-x-auto">
-                <LinkIcon className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-                <span>{`${window.location.origin}${window.location.pathname}#/admin`}</span>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={handleCopyAdminLink}
-            className="w-full md:w-auto px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-98 shrink-0"
-          >
-            {copiedLink ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>লিংক কপি হয়েছে!</span>
-              </>
-            ) : (
-              <>
-                <LinkIcon className="w-4 h-4" />
-                <span>এডমিন লিংক কপি করুন</span>
-              </>
-            )}
-          </button>
-        </div>
-
         {activeTab === 'analytics' && (
           <AdminAnalytics products={products} orders={orders} config={config} />
         )}
@@ -378,6 +322,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onRefreshData={onRefreshData}
             onSaveProduct={onSaveProduct}
           />
+        )}
+
+        {activeTab === 'firebase_debug' && (
+          <AdminFirebaseDiagnostics />
         )}
 
         {activeTab === 'settings' && (

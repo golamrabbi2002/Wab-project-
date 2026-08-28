@@ -329,6 +329,37 @@ export const AdminSystemDoctor: React.FC<AdminSystemDoctorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Firebase Auth & Security Rules Quick Diagnostics Card */}
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold shrink-0">
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-serif font-bold text-sm text-white">
+              Firebase Auth & Security Rules Diagnostics Console
+            </h4>
+            <p className="text-[11px] text-neutral-400">
+              ফায়ারস্টোর এক্সেস পারমিশন, টোকেন স্ট্যাটাস ও কালেকশন কোয়েরি রিয়েল-টাইমে পরীক্ষা করুন
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined' && (window as any).runFirebaseDiagnostics) {
+                (window as any).runFirebaseDiagnostics();
+                showToast('✓ Diagnostic probe executed! Check your browser DevTools Console.');
+              }
+            }}
+            className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-amber-300 font-semibold rounded-xl flex items-center gap-2"
+          >
+            <span>Run Console Test</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

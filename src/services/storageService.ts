@@ -63,6 +63,30 @@ function broadcastStorageEvent(eventName: string, detail?: any) {
   }
 }
 
+// Helper to deduplicate product items by unique ID and normalized title
+function deduplicateProducts(products: Product[]): Product[] {
+  if (!Array.isArray(products)) return [];
+  const seenIds = new Set<string>();
+  const seenTitles = new Set<string>();
+  const result: Product[] = [];
+
+  for (const p of products) {
+    if (!p || !p.id) continue;
+    const idKey = String(p.id).trim().toLowerCase();
+    const titleKey = String(p.title || '').trim().toLowerCase();
+
+    // Skip if ID already present
+    if (seenIds.has(idKey)) continue;
+    // Skip if non-empty title already present (prevents duplicates from seed or accidental re-saves)
+    if (titleKey && seenTitles.has(titleKey)) continue;
+
+    seenIds.add(idKey);
+    if (titleKey) seenTitles.add(titleKey);
+    result.push(p);
+  }
+  return result;
+}
+
 export const StorageService = {
   // CONFIG
   getConfig(): StoreConfig {
@@ -147,7 +171,7 @@ export const StorageService = {
     }
   },
 
-  // PRODUCTS
+  // PRODUCTS WITH AUTOMATIC DEDUPLICATION
   getProducts(): Product[] {
     const deletedIds = new Set(this.getDeletedProductIds());
     try {
@@ -155,7 +179,7 @@ export const StorageService = {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter(p => p && p.id && !deletedIds.has(p.id));
+          const filtered = deduplicateProducts(parsed.filter(p => p && p.id && !deletedIds.has(p.id)));
           memoryCache[KEYS.PRODUCTS] = filtered;
           return filtered;
         }
@@ -164,18 +188,18 @@ export const StorageService = {
       console.warn('Failed to parse stored products', e);
     }
     if (memoryCache[KEYS.PRODUCTS] && Array.isArray(memoryCache[KEYS.PRODUCTS])) {
-      const filtered = memoryCache[KEYS.PRODUCTS].filter((p: Product) => p && p.id && !deletedIds.has(p.id));
+      const filtered = deduplicateProducts(memoryCache[KEYS.PRODUCTS].filter((p: Product) => p && p.id && !deletedIds.has(p.id)));
       return filtered;
     }
     // Filter initial products against deleted IDs (as initial memory fallback)
-    const filteredInitials = initialProducts.filter(p => !deletedIds.has(p.id));
+    const filteredInitials = deduplicateProducts(initialProducts.filter(p => !deletedIds.has(p.id)));
     return filteredInitials;
   },
 
   setProductsFromCloud(cloudProducts: Product[]): void {
     try {
       const deletedIds = new Set(this.getDeletedProductIds());
-      const filtered = (cloudProducts || []).filter(p => p && p.id && !deletedIds.has(p.id));
+      const filtered = deduplicateProducts((cloudProducts || []).filter(p => p && p.id && !deletedIds.has(p.id)));
       memoryCache[KEYS.PRODUCTS] = filtered;
       safeSetItem(KEYS.PRODUCTS, JSON.stringify(filtered));
       broadcastStorageEvent('aura_products_updated', filtered);
@@ -188,7 +212,7 @@ export const StorageService = {
     try {
       const deletedIds = new Set(this.getDeletedProductIds());
       const now = new Date().toISOString();
-      const updatedProducts = products
+      const updatedProducts = deduplicateProducts(products
         .filter(p => p && p.id && !deletedIds.has(p.id))
         .map(p => ({
           ...p,
@@ -197,7 +221,7 @@ export const StorageService = {
           stock: Number(p.stock) >= 0 ? Number(p.stock) : 0,
           sizes: Array.isArray(p.sizes) && p.sizes.length > 0 ? p.sizes : ['One Size'],
           updatedAt: p.updatedAt || now
-        }));
+        })));
       memoryCache[KEYS.PRODUCTS] = updatedProducts;
       safeSetItem(KEYS.PRODUCTS, JSON.stringify(updatedProducts));
       broadcastStorageEvent('aura_products_updated', updatedProducts);
@@ -230,9 +254,9 @@ export const StorageService = {
       products.unshift(productWithTimestamp);
     }
     
-    // Save to local cache first
+    // Save to local cache first with deduplication
     const deletedIds = new Set(this.getDeletedProductIds());
-    const filtered = products.filter(p => p && p.id && !deletedIds.has(p.id));
+    const filtered = deduplicateProducts(products.filter(p => p && p.id && !deletedIds.has(p.id)));
     memoryCache[KEYS.PRODUCTS] = filtered;
     safeSetItem(KEYS.PRODUCTS, JSON.stringify(filtered));
     broadcastStorageEvent('aura_products_updated', filtered);
@@ -246,7 +270,7 @@ export const StorageService = {
     this.recordDeletedProductId(productId);
     // 2. Filter out immediately from local memory & storage
     const currentProducts = this.getProducts();
-    const remainingProducts = currentProducts.filter(p => p.id !== productId);
+    const remainingProducts = deduplicateProducts(currentProducts.filter(p => p.id !== productId));
     memoryCache[KEYS.PRODUCTS] = remainingProducts;
     safeSetItem(KEYS.PRODUCTS, JSON.stringify(remainingProducts));
     broadcastStorageEvent('aura_products_updated', remainingProducts);
@@ -263,6 +287,10 @@ export const StorageService = {
       if (p) {
         p.stock = Math.max(0, p.stock - item.quantity);
         p.updatedAt = new Date().toISOString();
+        // Live update in Firestore
+        FirestoreSyncService.saveProduct(p).catch(err => {
+          console.warn('Background Firestore stock decrement notice:', err);
+        });
       }
     });
     this.saveProducts(products);
@@ -363,11 +391,17 @@ export const StorageService = {
       coupons.push(coupon);
     }
     this.saveCoupons(coupons);
+    FirestoreSyncService.saveCoupon(coupon).catch(err => {
+      console.warn('Background Firestore coupon sync notice:', err);
+    });
   },
 
   deleteCoupon(id: string): void {
     const coupons = this.getCoupons().filter((c) => c.id !== id);
     this.saveCoupons(coupons);
+    FirestoreSyncService.deleteCoupon(id).catch(err => {
+      console.warn('Background Firestore delete coupon notice:', err);
+    });
   },
 
   // CUSTOMER / AUTH
@@ -391,6 +425,10 @@ export const StorageService = {
         if (idx >= 0) all[idx] = customer;
         else all.push(customer);
         safeSetItem(KEYS.CUSTOMERS, JSON.stringify(all));
+        // Sync to Firestore
+        FirestoreSyncService.saveCustomer(customer).catch(err => {
+          console.warn('Background Firestore customer sync notice:', err);
+        });
       } else {
         localStorage.removeItem(KEYS.CURRENT_USER);
       }
@@ -408,6 +446,17 @@ export const StorageService = {
       console.warn('Failed to load all customers', e);
     }
     return [];
+  },
+
+  setCustomersFromCloud(customers: Customer[]): void {
+    try {
+      if (Array.isArray(customers)) {
+        safeSetItem(KEYS.CUSTOMERS, JSON.stringify(customers));
+        broadcastStorageEvent('aura_customers_updated', customers);
+      }
+    } catch (e) {
+      console.warn('Failed to set customers from cloud', e);
+    }
   },
 
   // WISHLIST
@@ -604,6 +653,10 @@ export const StorageService = {
     if (idx >= 0) all[idx] = customer;
     else all.push(customer);
     safeSetItem(KEYS.CUSTOMERS, JSON.stringify(all));
+    broadcastStorageEvent('aura_customers_updated', all);
+    FirestoreSyncService.saveCustomer(customer).catch(err => {
+      console.warn('Background Firestore customer sync notice:', err);
+    });
   },
 
   setCurrentCustomer(customer: Customer | null): void {

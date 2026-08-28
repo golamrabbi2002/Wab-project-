@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './services/firebaseDiagnosticsService';
 
 // Safely suppress benign dev-server websocket closed noise from uncaught handlers
 if (typeof window !== 'undefined') {

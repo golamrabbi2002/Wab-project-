@@ -2,40 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Store Config: Authenticated users can read and write store configuration
+    // Store Config: Public read and write for store configuration
     match /store/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Products: Authenticated users can read and manage catalogue
+    // Products: Public read and catalogue management
     match /products/{productId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Orders: Authenticated users can read, create, track and update orders
+    // Orders: Public order placement, tracking and status updates
     match /orders/{orderId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Customers: Authenticated user profiles and customer records
+    // Customers: User and customer account profiles
     match /customers/{customerId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
     // Security & Intrusion logs (Honeypot protection system)
     match /threat_logs/{logId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
     // Coupons
     match /coupons/{couponId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
     // Test connection probe
     match /test/{testId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }
+
 

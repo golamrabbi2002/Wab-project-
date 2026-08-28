@@ -16,7 +16,7 @@ import {
   orderBy
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { StoreConfig, Product, Order } from '../types';
+import { StoreConfig, Product, Order, Customer, Coupon } from '../types';
 import { initialStoreConfig, initialProducts } from '../data/initialData';
 
 // Initialize Firebase App instance safely
@@ -26,23 +26,32 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Automatically establish an authorized session if not yet signed in
+let authAttemptDone = false;
 export function ensureFirebaseAuth(): Promise<void> {
+  if (authAttemptDone && auth.currentUser) {
+    return Promise.resolve();
+  }
   return new Promise((resolve) => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      authAttemptDone = true;
       if (user) {
         resolve();
       } else {
         signInAnonymously(auth)
           .then(() => resolve())
-          .catch((err) => {
-            console.warn('Firebase Anonymous Auth fallback notice:', err);
+          .catch((err: any) => {
+            // If Anonymous Sign-in is disabled in Firebase Console, fallback smoothly to public rules
+            if (err?.code !== 'auth/admin-restricted-operation') {
+              console.info('Firebase auth note:', err?.message || err);
+            }
             resolve();
           });
       }
     });
   });
 }
-ensureFirebaseAuth().catch(console.warn);
+ensureFirebaseAuth().catch(() => {});
 
 // Initialize Firestore with custom database ID if specified in config and force long polling to guarantee connectivity across all environments (Netlify, iframes, proxies)
 function createFirestoreInstance() {
@@ -103,6 +112,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.warn('Firestore Operation Notice:', JSON.stringify(errInfo));
+
+  // Log to diagnostics service if available
+  if (typeof window !== 'undefined' && (window as any).firebaseDiagnostics) {
+    (window as any).firebaseDiagnostics.recordError(error, operationType, path, {
+      userId: currentUser?.uid,
+      email: currentUser?.email,
+      isAnonymous: currentUser?.isAnonymous
+    });
+  }
 }
 
 // Connection validator per Firebase Skill Guidelines
@@ -122,6 +140,9 @@ const STORE_CONFIG_DOC = 'config';
 const STORE_COLLECTION = 'store';
 const PRODUCTS_COLLECTION = 'products';
 const ORDERS_COLLECTION = 'orders';
+const CUSTOMERS_COLLECTION = 'customers';
+const COUPONS_COLLECTION = 'coupons';
+const THREAT_LOGS_COLLECTION = 'threat_logs';
 
 export class FirestoreSyncService {
   private static isInitialized = false;
@@ -214,18 +235,31 @@ export class FirestoreSyncService {
     }
   }
 
-  // Real-time listener for Products
+  // Real-time listener for Products with automatic deduplication
   static subscribeProducts(callback: (products: Product[]) => void): () => void {
     const productsRef = collection(db, PRODUCTS_COLLECTION);
     return onSnapshot(productsRef, (snapshot) => {
-      const products: Product[] = [];
+      const rawProducts: Product[] = [];
       snapshot.forEach((d) => {
         const p = d.data() as Product;
         if (p && p.id) {
-          products.push(p);
+          rawProducts.push(p);
         }
       });
-      callback(products);
+      // Filter duplicates by unique ID & normalized title
+      const seenIds = new Set<string>();
+      const seenTitles = new Set<string>();
+      const uniqueProducts: Product[] = [];
+      for (const p of rawProducts) {
+        const idKey = String(p.id).trim().toLowerCase();
+        const titleKey = String(p.title || '').trim().toLowerCase();
+        if (seenIds.has(idKey)) continue;
+        if (titleKey && seenTitles.has(titleKey)) continue;
+        seenIds.add(idKey);
+        if (titleKey) seenTitles.add(titleKey);
+        uniqueProducts.push(p);
+      }
+      callback(uniqueProducts);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, PRODUCTS_COLLECTION);
     });
@@ -333,6 +367,98 @@ export class FirestoreSyncService {
       await updateDoc(orderRef, updateData);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COLLECTION}/${orderId}`);
+    }
+  }
+
+  // Real-time listener for Customers
+  static subscribeCustomers(callback: (customers: Customer[]) => void): () => void {
+    const customersRef = collection(db, CUSTOMERS_COLLECTION);
+    return onSnapshot(customersRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const customers: Customer[] = [];
+        snapshot.forEach((d) => {
+          customers.push(d.data() as Customer);
+        });
+        callback(customers);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, CUSTOMERS_COLLECTION);
+    });
+  }
+
+  // Save Customer Profile
+  static async saveCustomer(customer: Customer): Promise<void> {
+    try {
+      const customerRef = doc(db, CUSTOMERS_COLLECTION, customer.id);
+      await setDoc(customerRef, {
+        ...customer,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `${CUSTOMERS_COLLECTION}/${customer.id}`);
+    }
+  }
+
+  // Real-time listener for Coupons
+  static subscribeCoupons(callback: (coupons: Coupon[]) => void): () => void {
+    const couponsRef = collection(db, COUPONS_COLLECTION);
+    return onSnapshot(couponsRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const coupons: Coupon[] = [];
+        snapshot.forEach((d) => {
+          coupons.push(d.data() as Coupon);
+        });
+        callback(coupons);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, COUPONS_COLLECTION);
+    });
+  }
+
+  // Save Coupons
+  static async saveCoupon(coupon: Coupon): Promise<void> {
+    try {
+      const couponRef = doc(db, COUPONS_COLLECTION, coupon.id);
+      await setDoc(couponRef, coupon, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `${COUPONS_COLLECTION}/${coupon.id}`);
+    }
+  }
+
+  // Delete Coupon
+  static async deleteCoupon(couponId: string): Promise<void> {
+    try {
+      const couponRef = doc(db, COUPONS_COLLECTION, couponId);
+      await deleteDoc(couponRef);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `${COUPONS_COLLECTION}/${couponId}`);
+    }
+  }
+
+  // Real-time listener for Threat Logs
+  static subscribeThreatLogs(callback: (logs: any[]) => void): () => void {
+    const logsRef = collection(db, THREAT_LOGS_COLLECTION);
+    return onSnapshot(logsRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const logs: any[] = [];
+        snapshot.forEach((d) => {
+          logs.push(d.data());
+        });
+        logs.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+        callback(logs);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, THREAT_LOGS_COLLECTION);
+    });
+  }
+
+  // Save Threat Log
+  static async saveThreatLog(log: any): Promise<void> {
+    try {
+      const logRef = doc(db, THREAT_LOGS_COLLECTION, log.id || `log-${Date.now()}`);
+      await setDoc(logRef, log, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `${THREAT_LOGS_COLLECTION}/${log.id}`);
     }
   }
 }

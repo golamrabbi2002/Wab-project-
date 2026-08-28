@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Customer, StoreConfig } from '../types';
 import { GoogleAuthService, GoogleUserProfile } from '../services/googleAuth';
-import { X, Lock, Mail, User, ShieldCheck, Check, AlertCircle, Key, Sparkles } from 'lucide-react';
+import { storageService } from '../services/storageService';
+import { X, Lock, Mail, User, ShieldCheck, Check, AlertCircle, Key, Sparkles, Eye, EyeOff, UserCheck } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isOfficialButtonRendered, setIsOfficialButtonRendered] = useState(false);
@@ -82,33 +84,145 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
   const handleGoogleSuccess = (googleProfile: GoogleUserProfile) => {
     setIsGoogleLoading(false);
     setAuthError(null);
-    const customer = GoogleAuthService.mapProfileToCustomer(googleProfile);
-    onCustomerLogin(customer);
+    const existingCustomers = storageService.getAllCustomers();
+    const existing = existingCustomers.find(
+      (c) => c.email.toLowerCase() === googleProfile.email.toLowerCase()
+    );
+
+    if (existing) {
+      const updated: Customer = {
+        ...existing,
+        name: googleProfile.name || existing.name,
+        avatar: googleProfile.avatar || existing.avatar,
+      };
+      storageService.saveCustomer(updated);
+      onCustomerLogin(updated);
+    } else {
+      const customer = GoogleAuthService.mapProfileToCustomer(googleProfile);
+      storageService.saveCustomer(customer);
+      onCustomerLogin(customer);
+    }
     onClose();
   };
 
   const handleStandardAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    setAuthError(null);
 
-    const customer: Customer = {
-      id: `cust-${Date.now()}`,
-      email: email.toLowerCase().trim(),
-      name: name.trim() || email.split('@')[0],
-      avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop`,
-      phone: '+880 1712-345678',
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setAuthError('Please enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 4) {
+      setAuthError('Password must be at least 4 characters.');
+      return;
+    }
+
+    const allCustomers = storageService.getAllCustomers();
+    const existing = allCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
+
+    if (mode === 'signin') {
+      if (existing) {
+        storageService.saveCustomer(existing);
+        onCustomerLogin(existing);
+        onClose();
+        return;
+      }
+      // If signing in for first time with this email, create profile
+      const newCustomer: Customer = {
+        id: `cust-${Date.now()}`,
+        email: cleanEmail,
+        name: name.trim() || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop`,
+        phone: '+880 1712-345678',
+        shippingAddress: {
+          street: 'House 42, Road 11, Banani',
+          city: 'Dhaka',
+          state: 'Dhaka Division',
+          zip: '1213',
+          country: 'Bangladesh',
+        },
+        wishlist: [],
+        createdAt: new Date().toISOString(),
+      };
+      storageService.saveCustomer(newCustomer);
+      onCustomerLogin(newCustomer);
+      onClose();
+    } else {
+      // Register mode
+      if (existing) {
+        // Update name if changed and sign in
+        const updated: Customer = {
+          ...existing,
+          name: name.trim() || existing.name,
+        };
+        storageService.saveCustomer(updated);
+        onCustomerLogin(updated);
+        onClose();
+        return;
+      }
+
+      const newCustomer: Customer = {
+        id: `cust-${Date.now()}`,
+        email: cleanEmail,
+        name: name.trim() || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop`,
+        phone: '+880 1712-345678',
+        shippingAddress: {
+          street: 'House 42, Road 11, Banani',
+          city: 'Dhaka',
+          state: 'Dhaka Division',
+          zip: '1213',
+          country: 'Bangladesh',
+        },
+        wishlist: [],
+        createdAt: new Date().toISOString(),
+      };
+      storageService.saveCustomer(newCustomer);
+      onCustomerLogin(newCustomer);
+      onClose();
+    }
+  };
+
+  // Quick Demo Member Login
+  const handleQuickDemoLogin = (type: 'vip' | 'stylist') => {
+    setAuthError(null);
+    const demoProfile: Customer = type === 'vip' ? {
+      id: 'cust-vip-001',
+      email: 'golamrabbi4801@gmail.com',
+      name: 'Golam Rabbi (VIP Atelier)',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
+      phone: '+880 1712-889900',
       shippingAddress: {
-        street: 'House 42, Road 11, Banani',
+        street: 'Suite 14B, Gulshan Avenue 2',
         city: 'Dhaka',
         state: 'Dhaka Division',
-        zip: '1213',
+        zip: '1212',
+        country: 'Bangladesh',
+      },
+      wishlist: [],
+      createdAt: new Date().toISOString(),
+    } : {
+      id: 'cust-stylist-002',
+      email: 'tanzim.atelier@gmail.com',
+      name: 'Tanzim Ahmed (Style Member)',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+      phone: '+880 1819-445566',
+      shippingAddress: {
+        street: 'House 18, Road 7, Dhanmondi',
+        city: 'Dhaka',
+        state: 'Dhaka Division',
+        zip: '1205',
         country: 'Bangladesh',
       },
       wishlist: [],
       createdAt: new Date().toISOString(),
     };
 
-    onCustomerLogin(customer);
+    storageService.saveCustomer(demoProfile);
+    onCustomerLogin(demoProfile);
     onClose();
   };
 
@@ -133,8 +247,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
       setTimeout(() => {
         const demoProfile: GoogleUserProfile = {
           id: `google-${Date.now()}`,
-          email: 'customer.atelier@gmail.com',
-          name: 'Tanzim Ahmed (Google Account)',
+          email: 'golamrabbi4801@gmail.com',
+          name: 'Golam Rabbi (Google Verified)',
           avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
           verifiedEmail: true,
         };
@@ -157,7 +271,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-neutral-950 rounded-full hover:bg-neutral-200/60"
+            className="p-2 text-neutral-400 hover:text-neutral-950 rounded-full hover:bg-neutral-200/60 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -171,7 +285,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
               setAuthError(null);
             }}
             className={`flex-1 py-3 text-center transition-colors ${
-              mode === 'signin' ? 'border-b-2 border-neutral-950 text-neutral-950 bg-white' : 'text-neutral-400 hover:text-neutral-700 bg-neutral-50'
+              mode === 'signin' ? 'border-b-2 border-neutral-950 text-neutral-950 bg-white font-bold' : 'text-neutral-400 hover:text-neutral-700 bg-neutral-50'
             }`}
           >
             Member Sign In
@@ -182,7 +296,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
               setAuthError(null);
             }}
             className={`flex-1 py-3 text-center transition-colors ${
-              mode === 'register' ? 'border-b-2 border-neutral-950 text-neutral-950 bg-white' : 'text-neutral-400 hover:text-neutral-700 bg-neutral-50'
+              mode === 'register' ? 'border-b-2 border-neutral-950 text-neutral-950 bg-white font-bold' : 'text-neutral-400 hover:text-neutral-700 bg-neutral-50'
             }`}
           >
             Register Account
@@ -190,12 +304,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
         </div>
 
         {/* Body */}
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="p-6 sm:p-8 space-y-5">
           
           {authError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2 animate-fadeIn">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <span className="font-semibold block">Authentication Notice</span>
                 <span>{authError}</span>
               </div>
@@ -250,29 +364,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
 
             {/* Status indicator */}
             {effectiveClientId ? (
-              <div className="text-[10px] text-center text-emerald-600 font-mono flex items-center justify-center gap-1 pt-1">
+              <div className="text-[10px] text-center text-emerald-600 font-mono flex items-center justify-center gap-1 pt-0.5">
                 <Check className="w-3 h-3" />
                 <span>Google Identity Services (GIS) Active</span>
               </div>
             ) : (
-              <div className="text-[10px] text-center text-neutral-400 font-mono flex items-center justify-center gap-1 pt-1">
+              <div className="text-[10px] text-center text-neutral-400 font-mono flex items-center justify-center gap-1 pt-0.5">
                 <Key className="w-3 h-3 text-amber-500" />
-                <span>Google OAuth Ready (Configurable via VITE_GOOGLE_CLIENT_ID)</span>
+                <span>Google Sign-In Ready</span>
               </div>
             )}
 
-            <div className="flex items-center gap-3 my-4">
+            <div className="flex items-center gap-3 my-3">
               <div className="flex-1 h-px bg-neutral-200" />
-              <span className="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold">Or Email</span>
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">Or Email Credentials</span>
               <div className="flex-1 h-px bg-neutral-200" />
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleStandardAuth} className="space-y-4 text-xs">
+          <form onSubmit={handleStandardAuth} className="space-y-3.5 text-xs">
             {mode === 'register' && (
               <div>
-                <label className="block font-semibold uppercase tracking-wider text-neutral-700 mb-1">
+                <label className="block font-semibold uppercase tracking-wider text-neutral-700 mb-1 text-[11px]">
                   Full Name
                 </label>
                 <div className="relative">
@@ -282,7 +396,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Tanzim Ahmed"
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-neutral-300 rounded-lg focus:ring-1 focus:ring-neutral-950 focus:outline-none"
+                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-neutral-300 rounded-lg focus:ring-1 focus:ring-neutral-950 focus:outline-none text-neutral-900 placeholder:text-neutral-400"
                   />
                   <User className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
                 </div>
@@ -290,7 +404,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
             )}
 
             <div>
-              <label className="block font-semibold uppercase tracking-wider text-neutral-700 mb-1">
+              <label className="block font-semibold uppercase tracking-wider text-neutral-700 mb-1 text-[11px]">
                 Email Address
               </label>
               <div className="relative">
@@ -300,40 +414,82 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-neutral-300 rounded-lg focus:ring-1 focus:ring-neutral-950 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-neutral-300 rounded-lg focus:ring-1 focus:ring-neutral-950 focus:outline-none text-neutral-900 placeholder:text-neutral-400"
                 />
                 <Mail className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold uppercase tracking-wider text-neutral-700 mb-1">
+              <label className="block font-semibold uppercase tracking-wider text-neutral-700 mb-1 text-[11px]">
                 Password
               </label>
               <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-neutral-300 rounded-lg focus:ring-1 focus:ring-neutral-950 focus:outline-none"
+                  className="w-full pl-9 pr-10 py-2.5 bg-white border border-neutral-300 rounded-lg focus:ring-1 focus:ring-neutral-950 focus:outline-none text-neutral-900 placeholder:text-neutral-400"
                 />
                 <Lock className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-neutral-400 hover:text-neutral-700 focus:outline-none"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest rounded-lg transition-all shadow-md mt-2"
+              className="w-full py-3 bg-neutral-950 hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest rounded-lg transition-all shadow-md mt-1 active:scale-98"
             >
               {mode === 'signin' ? 'Sign In to Atelier' : 'Create Account'}
             </button>
           </form>
 
-          <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200 text-[11px] text-neutral-500 flex items-center gap-2">
+          {/* Quick Demo Test Logins */}
+          <div className="pt-2 border-t border-neutral-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                Instant Demo Access
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('vip')}
+                className="p-2 text-left bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg transition-colors group"
+              >
+                <span className="font-semibold text-neutral-900 block text-[11px] group-hover:text-emerald-700 flex items-center gap-1">
+                  <UserCheck className="w-3 h-3 text-emerald-600" />
+                  VIP Member
+                </span>
+                <span className="text-[9px] text-neutral-500 font-mono truncate block">golamrabbi4801@...</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('stylist')}
+                className="p-2 text-left bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg transition-colors group"
+              >
+                <span className="font-semibold text-neutral-900 block text-[11px] group-hover:text-neutral-950 flex items-center gap-1">
+                  <UserCheck className="w-3 h-3 text-neutral-600" />
+                  Stylist Member
+                </span>
+                <span className="text-[9px] text-neutral-500 font-mono truncate block">tanzim.atelier@...</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-neutral-50 p-2.5 rounded-xl border border-neutral-200 text-[10px] text-neutral-500 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Encrypted local profile authentication with persistent address synchronization.</span>
+            <span>Encrypted member session with persistent cart & order tracking.</span>
           </div>
         </div>
       </div>

@@ -196,6 +196,20 @@ export const App: React.FC = () => {
       }
     });
 
+    const unsubCustomers = FirestoreSyncService.subscribeCustomers((cloudCustomers) => {
+      if (cloudCustomers && cloudCustomers.length > 0) {
+        setCustomers(cloudCustomers);
+        storageService.setCustomersFromCloud(cloudCustomers);
+      }
+    });
+
+    const unsubCoupons = FirestoreSyncService.subscribeCoupons((cloudCoupons) => {
+      if (cloudCoupons && cloudCoupons.length > 0) {
+        setCoupons(cloudCoupons);
+        storageService.saveCoupons(cloudCoupons);
+      }
+    });
+
     const handleStorageChange = () => {
       loadState();
     };
@@ -222,6 +236,9 @@ export const App: React.FC = () => {
     window.addEventListener('aura_products_updated', handleStorageChange);
     window.addEventListener('aura_config_updated', handleStorageChange);
     window.addEventListener('aura_orders_updated', handleStorageChange);
+    window.addEventListener('aura_customers_updated', handleStorageChange);
+    window.addEventListener('aura_customer_updated', handleStorageChange);
+    window.addEventListener('aura_coupons_updated', handleStorageChange);
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('popstate', handleUrlChange);
     window.addEventListener('hashchange', handleUrlChange);
@@ -231,10 +248,15 @@ export const App: React.FC = () => {
       unsubConfig();
       unsubProducts();
       unsubOrders();
+      unsubCustomers();
+      unsubCoupons();
       window.removeEventListener('aura_storage_update', handleStorageChange);
       window.removeEventListener('aura_products_updated', handleStorageChange);
       window.removeEventListener('aura_config_updated', handleStorageChange);
       window.removeEventListener('aura_orders_updated', handleStorageChange);
+      window.removeEventListener('aura_customers_updated', handleStorageChange);
+      window.removeEventListener('aura_customer_updated', handleStorageChange);
+      window.removeEventListener('aura_coupons_updated', handleStorageChange);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('hashchange', handleUrlChange);
@@ -298,9 +320,11 @@ export const App: React.FC = () => {
 
   // Place Order
   const handlePlaceOrder = (order: Order) => {
+    storageService.createOrder(order);
     setCart([]);
     setAppliedCoupon(null);
     setOrders(storageService.getOrders());
+    setProducts(storageService.getProducts());
     showToast(`Order ${order.orderNumber} successfully confirmed! Delivery tracking initiated.`, 'success');
   };
 
