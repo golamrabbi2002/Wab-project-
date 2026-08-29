@@ -183,7 +183,7 @@ export class GoogleAuthService {
               const profile: GoogleUserProfile = {
                 id: payload.sub || `google-${Date.now()}`,
                 email: payload.email,
-                name: payload.name || payload.email.split('@')[0],
+                name: payload.name || (payload.email ? payload.email.split('@')[0] : 'Customer'),
                 avatar: payload.picture || '',
                 givenName: payload.given_name,
                 familyName: payload.family_name,
@@ -262,7 +262,7 @@ export class GoogleAuthService {
                   const profile: GoogleUserProfile = {
                     id: userInfo.sub || `google-${Date.now()}`,
                     email: userInfo.email,
-                    name: userInfo.name || userInfo.email.split('@')[0],
+                    name: userInfo.name || (userInfo.email ? userInfo.email.split('@')[0] : 'Customer'),
                     avatar: userInfo.picture || '',
                     givenName: userInfo.given_name,
                     familyName: userInfo.family_name,
@@ -296,7 +296,7 @@ export class GoogleAuthService {
               const profile: GoogleUserProfile = {
                 id: payload.sub || `google-${Date.now()}`,
                 email: payload.email,
-                name: payload.name || payload.email.split('@')[0],
+                name: payload.name || (payload.email ? payload.email.split('@')[0] : 'Customer'),
                 avatar: payload.picture || '',
                 givenName: payload.given_name,
                 familyName: payload.family_name,
@@ -328,7 +328,7 @@ export class GoogleAuthService {
     return {
       id: profile.id,
       email: profile.email.toLowerCase().trim(),
-      name: profile.name || profile.email.split('@')[0],
+      name: profile.name || (profile.email ? profile.email.split('@')[0] : 'Customer'),
       avatar: profile.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
       phone: '+880 1812-345678',
       shippingAddress: {

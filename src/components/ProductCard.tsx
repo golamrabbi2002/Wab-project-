@@ -19,7 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onQuickView,
   onAddToCart,
 }) => {
-  const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'M');
+  const [selectedSize, setSelectedSize] = useState<string>(product?.sizes?.[0] || 'M');
   const [isHovered, setIsHovered] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -68,7 +68,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       >
         {(isHovered && product.additionalImages?.[0]) || product.image ? (
           <img
-            src={(isHovered && product.additionalImages?.[0]) ? product.additionalImages[0] : product.image}
+            src={(isHovered && product.additionalImages?.[0]) ? product.additionalImages[0] : (product.image || product.images?.[0] || '')}
             alt={product.title}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
             loading="lazy"

@@ -245,7 +245,7 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                           <span className="font-mono font-bold text-neutral-950">{config.currencySymbol}{p.price}</span>
                         </div>
                         <button
-                          onClick={() => onAddToCart(p, p.sizes[0] || 'M')}
+                          onClick={() => onAddToCart(p, p.sizes?.[0] || 'M')}
                           className="mt-2 py-1.5 px-3 bg-neutral-950 text-white rounded text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center gap-1 hover:bg-neutral-800"
                         >
                           <ShoppingBag className="w-3 h-3" /> Move to Bag

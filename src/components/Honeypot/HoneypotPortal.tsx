@@ -402,7 +402,7 @@ export const HoneypotPortal: React.FC<HoneypotPortalProps> = ({ onBackToStore, t
                 <table className="w-full text-xs font-mono text-left">
                   <thead>
                     <tr className="text-neutral-500 border-b border-neutral-800">
-                      {sqlResults.length > 0 &&
+                      {sqlResults.length > 0 && sqlResults[0] &&
                         Object.keys(sqlResults[0]).map((key) => (
                           <th key={key} className="pb-2 px-3">{key}</th>
                         ))}

@@ -1,10 +1,17 @@
-// Web Speech Recognition & Natural Speech Synthesis Service
+// Web Speech Recognition & Natural Speech Synthesis Service for Continuous Gemini Live Experience
 
 export class VoiceService {
   private static recognition: any = null;
   private static synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
   private static isSpeakingNow = false;
+  private static isListeningNow = false;
   private static currentUtterance: SpeechSynthesisUtterance | null = null;
+  private static autoRestartOnEnd = false;
+  private static activeCallbacks: {
+    onResult?: (transcript: string, isFinal: boolean) => void;
+    onError?: (error: string) => void;
+    onEnd?: () => void;
+  } = {};
 
   /**
    * Check if speech recognition is supported in current browser
@@ -15,39 +22,52 @@ export class VoiceService {
   }
 
   /**
-   * Start listening via Microphone
+   * Start listening via Microphone with automatic live stream handling
    */
   static startListening(
     onResult: (transcript: string, isFinal: boolean) => void,
     onError: (error: string) => void,
-    onEnd: () => void
+    onEnd: () => void,
+    continuousLiveMode = true
   ): boolean {
     if (!this.isSpeechRecognitionSupported()) {
-      onError('আপনার ব্রাউজারে স্পিচ রিকগনিশন সাপোর্ট করে না। অনুগ্রহ করে ক্রোম ব্রাউজার ব্যবহার করুন বা লিখে মেসেজ পাঠান।');
+      onError('আপনার ব্রাউজারে স্পিচ রিকগনিশন সাপোর্ট করে না। দয়া করে ক্রোম (Chrome) বা এজ (Edge) ব্রাউজার ব্যবহার করুন।');
       return false;
     }
+
+    this.activeCallbacks = { onResult, onError, onEnd };
+    this.autoRestartOnEnd = continuousLiveMode;
 
     try {
       this.stopListening();
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();
-      this.recognition.continuous = false;
+      this.recognition.continuous = false; // We use session-by-session for crisp final transcript locks
       this.recognition.interimResults = true;
-      this.recognition.lang = 'bn-BD'; // Bengali (Bangladesh) primary
+      this.recognition.lang = 'bn-BD'; // Bengali (Bangladesh) primary with fallback recognition
+
+      this.recognition.onstart = () => {
+        this.isListeningNow = true;
+      };
 
       this.recognition.onresult = (event: any) => {
         let interim = '';
         let final = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            final += event.results[i][0].transcript;
-          } else {
-            interim += event.results[i][0].transcript;
+        if (event && event.results) {
+          for (let i = event.resultIndex || 0; i < event.results.length; ++i) {
+            const resultItem = event.results[i];
+            if (resultItem && resultItem[0]) {
+              if (resultItem.isFinal) {
+                final += resultItem[0].transcript || '';
+              } else {
+                interim += resultItem[0].transcript || '';
+              }
+            }
           }
         }
-        if (final) {
+        if (final && final.trim()) {
           onResult(final.trim(), true);
-        } else if (interim) {
+        } else if (interim && interim.trim()) {
           onResult(interim.trim(), false);
         }
       };
@@ -55,22 +75,33 @@ export class VoiceService {
       this.recognition.onerror = (event: any) => {
         console.warn('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
-          onError('মাইক্রোফোনের পারমিশন দেওয়া হয়নি। ব্রাউজার সেটিংসে গিয়ে মাইক্রোফোন এলাও করুন।');
+          this.autoRestartOnEnd = false;
+          this.isListeningNow = false;
+          onError('মাইক্রোফোন পারমিশন প্রয়োজন। ব্রাউজার বারে মাইক্রোফোন এলাও (Allow) করুন।');
         } else if (event.error === 'no-speech') {
-          onError('কোনো কথা শোনা যায়নি। আবার মাইক্রোফোন চেপে বলুন।');
+          // Silent in live mode - will resume naturally
+          if (!this.autoRestartOnEnd) {
+            this.isListeningNow = false;
+          }
         } else {
-          onError('কথা বুঝতে সাময়িক অসুবিধা হয়েছে। আবার বলুন।');
+          if (!this.autoRestartOnEnd) {
+            this.isListeningNow = false;
+            onError('কথা বুঝতে সাময়িক অসুবিধা হয়েছে। আবার বলুন।');
+          }
         }
       };
 
       this.recognition.onend = () => {
+        this.isListeningNow = false;
         onEnd();
       };
 
       this.recognition.start();
+      this.isListeningNow = true;
       return true;
     } catch (err: any) {
       console.error('Failed to start speech recognition:', err);
+      this.isListeningNow = false;
       onError(err?.message || 'মাইক্রোফোন চালু করতে সমস্যা হয়েছে।');
       return false;
     }
@@ -80,9 +111,11 @@ export class VoiceService {
    * Stop listening
    */
   static stopListening() {
+    this.autoRestartOnEnd = false;
+    this.isListeningNow = false;
     if (this.recognition) {
       try {
-        this.recognition.stop();
+        this.recognition.abort();
       } catch {
         // ignore
       }
@@ -105,9 +138,9 @@ export class VoiceService {
 
     this.stopSpeaking();
 
-    // Clean markdown and non-verbal tokens for crisp audio
+    // Clean markdown and non-verbal tokens for crisp audio speech
     const cleanText = text
-      .replace(/[*_#`~>\[\]]/g, '')
+      .replace(/[*_#`~>\[\]\(\)\{\}]/g, ' ')
       .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
       .replace(/\s+/g, ' ')
       .trim();
@@ -121,7 +154,7 @@ export class VoiceService {
       const utterance = new SpeechSynthesisUtterance(cleanText);
       this.currentUtterance = utterance;
 
-      // Detect Bengali voice if available
+      // Detect Bengali or high quality voice if available
       const voices = this.synth.getVoices() || [];
       const bnVoice = voices.find((v) => v.lang.includes('bn') || v.name.includes('Bangla') || v.name.includes('Bengali'));
       if (bnVoice) {
@@ -171,5 +204,9 @@ export class VoiceService {
 
   static isSpeaking(): boolean {
     return this.isSpeakingNow;
+  }
+
+  static isListening(): boolean {
+    return this.isListeningNow;
   }
 }

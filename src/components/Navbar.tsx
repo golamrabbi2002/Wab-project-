@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
                 {customer ? (
                   <span className="text-xs font-semibold max-w-[80px] truncate hidden sm:inline-block">
-                    {customer.name.split(' ')[0]}
+                    {(customer.name || 'User').split(' ')[0]}
                   </span>
                 ) : (
                   <span className="text-xs font-medium uppercase tracking-wider hidden sm:inline-block">

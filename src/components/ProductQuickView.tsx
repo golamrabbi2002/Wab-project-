@@ -379,7 +379,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                         </span>
                         <button
                           type="button"
-                          onClick={() => onAddToCart(pairing, pairing.sizes[0] || 'M', 1)}
+                          onClick={() => onAddToCart(pairing, pairing.sizes?.[0] || 'M', 1)}
                           className="px-2 py-0.5 bg-neutral-950 hover:bg-neutral-800 text-white text-[10px] font-bold rounded-md transition-all"
                         >
                           + Pair This

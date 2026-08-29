@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mic,
   MicOff,
   Volume2,
   VolumeX,
   Sparkles,
-  Bot,
-  User,
   ShoppingBag,
   Eye,
-  ExternalLink,
   ChevronRight,
   RotateCcw,
   Minimize2,
@@ -17,20 +14,18 @@ import {
   CheckCircle2,
   PhoneCall,
   X,
-  Send,
   Radio,
   BookOpen,
   ShieldCheck,
   Truck,
   Activity,
-  Layers,
   Cpu,
   Orbit,
-  Compass,
   Zap,
   Flame,
   Scan,
-  Terminal,
+  AudioWaveform as WaveformIcon,
+  Headphones,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, StoreConfig } from '../types';
@@ -59,11 +54,11 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isFullScreenDeck, setIsFullScreenDeck] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isMicPaused, setIsMicPaused] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
@@ -73,8 +68,8 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
   const botDisplayName = config.aiBotName || 'ORBITAL-AI v3.7 / বিসমিল্লাহ এআই';
   const brandName = config.brandName || 'বিসমিল্লাহ কালেকশন';
 
-  const welcomeText = `🛰️ [ORBITAL STATION ONLINE]: আসসালামু আলাইকুম! বিসমিল্লাহ ফ্যাশন স্পেস স্টেশন এআই কনসালট্যান্টে আপনাকে স্বাগতম। 🌌✨\n\nআমি আপনার পার্সোনাল কোয়ান্টাম ভয়েস ফ্যাশন গাইড। আমাদের স্টেশনে প্রতিটি পাঞ্জাবি, জামদানি ও সিল্ক শাড়ি এবং লাক্সারি থ্রি-পিস নিখুঁত নিপুণতায় তৈরি করা হয়েছে।\n\n🛡️ সিকিউরিটি প্রোটোকল: ১০০% ক্যাশ অন ডেলিভারি (ডেলিভারিম্যানের সামনে কাপড় ও সাইজ দেখে নেওয়ার সুযোগ) এবং ৭ দিনের ওয়ার্প-স্পিড ফ্রি সাইজ এক্সচেঞ্জ।\n\n🎙️ নিচের মাইক্রোফোন চেপে আপনার পছন্দের পোশাকের কথা বলুন অথবা এখানে মেসেজ পাঠান!`;
-  const welcomeSpeech = `আসসালামু আলাইকুম! বিসমিল্লাহ ফ্যাশন স্পেস স্টেশন এআই এজেন্টে আপনাকে স্বাগতম। আমি আপনার ভয়েস ও ফ্যাশন কনসালট্যান্ট। আজ আপনার জন্য কী ধরনের রাজকীয় পোশাক পছন্দ করব বলুন?`;
+  const welcomeText = `🛰️ [ORBITAL STATION LIVE VOICE]: আসসালামু আলাইকুম! বিসমিল্লাহ কালেকশনে আপনাকে স্বাগতম। 🌌✨\n\nআমি আপনার পার্সোনাল জেমিনি লাইভ ভয়েস ফ্যাশন কনসালট্যান্ট। আপনি সরাসরি মুখে কথা বলে যে কোনো পাঞ্জাবি, জামদানি শাড়ি, সিল্ক শাড়ি বা থ্রি-পিসের কথা জিজ্ঞেস করতে পারেন।\n\n🛡️ প্রোটোকল: ১০০% ক্যাশ অন ডেলিভারি, ডেলিভারিম্যানের সামনে চেক করার সুবিধা ও ৭ দিনের ফ্রি এক্সচেঞ্জ।`;
+  const welcomeSpeech = `আসসালামু আলাইকুম! বিসমিল্লাহ কালেকশনে আপনাকে স্বাগতম। আমি আপনার লাইভ ভয়েস ও ফ্যাশন কনসালট্যান্ট। আজ আপনার জন্য কী ধরনের রাজকীয় পোশাক বা পাঞ্জাবি খুঁজব? মুখে সরাসরি বলুন!`;
 
   const initialGreeting: ChatMessage = {
     id: 'msg_welcome',
@@ -83,17 +78,18 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
     spokenSummary: welcomeSpeech,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     actionPills: [
-      { label: '✨ প্রিমিয়াম পাঞ্জাবি স্ক্যান', action: 'show_panjabi' },
+      { label: '✨ প্রিমিয়াম পাঞ্জাবি দেখান', action: 'show_panjabi' },
       { label: '🥻 এক্সক্লুসিভ শাড়ি কালেকশন', action: 'show_saree' },
       { label: '👗 ডিজাইনার থ্রি-পিস', action: 'show_three_piece' },
-      { label: '🛡️ ক্যাশ অন ডেলিভারি প্রোটোকল', action: 'ask_rules' },
+      { label: '🛡️ ক্যাশ অন ডেলিভারি নিয়ম', action: 'ask_rules' },
     ],
   };
 
   const [messages, setMessages] = useState<ChatMessage[]>([initialGreeting]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const hasSpokenWelcomeRef = useRef(false);
+  const isExecutingQueryRef = useRef(false);
+  const keepListeningRef = useRef(true);
 
   // Background Telemetry Clock Simulation
   useEffect(() => {
@@ -113,140 +109,228 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
     }
   }, [messages, isOpen, isMinimized, liveTranscript]);
 
-  // Open Sound FX and trigger voice welcome
+  // Forward declarations for speech cycle
+  const startLiveListening = useCallback(() => {
+    if (isMicPaused || !isOpen || isExecutingQueryRef.current) return;
+
+    VoiceService.stopSpeaking();
+    setIsSpeaking(false);
+    setVoiceError(null);
+    setLiveTranscript('');
+
+    const started = VoiceService.startListening(
+      (transcript, isFinal) => {
+        setLiveTranscript(transcript);
+        if (isFinal && transcript.trim()) {
+          setLiveTranscript('');
+          soundFx.playLockSuccess();
+          handleSendMessage(transcript.trim());
+        }
+      },
+      (error) => {
+        setVoiceError(error);
+        setIsListening(false);
+        // Automatically attempt retry if error was temporary
+        if (error.includes('সাময়িক') && isOpen && !isMicPaused && keepListeningRef.current) {
+          setTimeout(() => {
+            if (isOpen && !isMicPaused && !isSpeaking && !isExecutingQueryRef.current) {
+              startLiveListening();
+            }
+          }, 2000);
+        }
+      },
+      () => {
+        setIsListening(false);
+        // Auto-rearm if still open, not paused, and not speaking or executing query
+        if (
+          isOpen &&
+          !isMicPaused &&
+          !isSpeaking &&
+          !isExecutingQueryRef.current &&
+          keepListeningRef.current
+        ) {
+          setTimeout(() => {
+            if (isOpen && !isMicPaused && !isSpeaking && !isExecutingQueryRef.current) {
+              startLiveListening();
+            }
+          }, 800);
+        }
+      },
+      true
+    );
+
+    if (started) {
+      setIsListening(true);
+    }
+  }, [isMicPaused, isOpen, isSpeaking]);
+
+  const speakResponse = useCallback(
+    (text: string) => {
+      VoiceService.stopListening();
+      setIsListening(false);
+
+      if (isMuted) {
+        // If muted, jump directly back to live listening
+        if (isOpen && !isMicPaused) {
+          setTimeout(() => startLiveListening(), 600);
+        }
+        return;
+      }
+
+      VoiceService.speak(
+        text,
+        () => {
+          setIsSpeaking(true);
+        },
+        () => {
+          setIsSpeaking(false);
+          // When AI finishes speaking, instantly auto-activate live mic to listen to customer!
+          if (isOpen && !isMicPaused && keepListeningRef.current) {
+            soundFx.playScanBlip();
+            setTimeout(() => {
+              startLiveListening();
+            }, 500);
+          }
+        }
+      );
+    },
+    [isMuted, isOpen, isMicPaused, startLiveListening]
+  );
+
+  const handleSendMessage = useCallback(
+    async (queryText: string) => {
+      const query = queryText.trim();
+      if (!query || isLoading || isExecutingQueryRef.current) return;
+
+      isExecutingQueryRef.current = true;
+      VoiceService.stopSpeaking();
+      VoiceService.stopListening();
+      setIsListening(false);
+      setIsSpeaking(false);
+      soundFx.playScanBlip();
+
+      const userMsg: ChatMessage = {
+        id: `user_${Date.now()}`,
+        sender: 'user',
+        text: query,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
+
+      try {
+        const aiResponse = await AiShoppingService.queryAssistant(
+          query,
+          messages,
+          products,
+          config
+        );
+
+        const speechToPlay =
+          aiResponse.spokenSummary ||
+          AiShoppingService.cleanTextForVoice(aiResponse.text).slice(0, 160);
+
+        const aiMsg: ChatMessage = {
+          id: `ai_${Date.now()}`,
+          sender: 'ai',
+          text: aiResponse.text,
+          spokenSummary: speechToPlay,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          matchedProducts: aiResponse.matchedProducts,
+          actionPills: aiResponse.actionPills,
+        };
+
+        setMessages((prev) => [...prev, aiMsg]);
+        isExecutingQueryRef.current = false;
+        setIsLoading(false);
+
+        // Speak aloud, then it will auto-listen on end!
+        speakResponse(speechToPlay);
+      } catch (err) {
+        console.error('Space Station Live AI error:', err);
+        const fallbackText =
+          '🛰️ কোয়ান্টাম টেলিমেট্রি লিংক সাময়িক বাধাগ্রস্ত হয়েছে। দয়া করে আবার বলুন।';
+        const errorMsg: ChatMessage = {
+          id: `ai_err_${Date.now()}`,
+          sender: 'ai',
+          text: fallbackText,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+        isExecutingQueryRef.current = false;
+        setIsLoading(false);
+        speakResponse(fallbackText);
+      }
+    },
+    [isLoading, messages, products, config, speakResponse]
+  );
+
+  // Trigger startup on open & start greeting audio
   const handleOpenDeck = () => {
     setIsOpen(true);
+    setIsMinimized(false);
+    setIsMicPaused(false);
+    keepListeningRef.current = true;
     soundFx.playStartup();
   };
 
   useEffect(() => {
-    if (isOpen && !hasSpokenWelcomeRef.current && !isMuted) {
+    if (isOpen && !hasSpokenWelcomeRef.current) {
       hasSpokenWelcomeRef.current = true;
       const timer = setTimeout(() => {
         speakResponse(welcomeSpeech);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, isMuted]);
+  }, [isOpen, speakResponse, welcomeSpeech]);
 
+  // Clean shutdown when closed
   useEffect(() => {
     if (!isOpen) {
+      keepListeningRef.current = false;
       VoiceService.stopSpeaking();
       VoiceService.stopListening();
       setIsListening(false);
       setIsSpeaking(false);
+      hasSpokenWelcomeRef.current = false;
     }
   }, [isOpen]);
 
-  const speakResponse = (text: string) => {
-    if (isMuted) return;
-    VoiceService.speak(
-      text,
-      () => setIsSpeaking(true),
-      () => setIsSpeaking(false)
-    );
-  };
-
-  const handleToggleListening = () => {
+  const toggleMicPause = () => {
+    soundFx.playScanBlip();
     if (isListening) {
       VoiceService.stopListening();
       setIsListening(false);
-      setLiveTranscript('');
-      soundFx.playScanBlip();
-      return;
-    }
-
-    VoiceService.stopSpeaking();
-    setIsSpeaking(false);
-    setVoiceError(null);
-    setLiveTranscript('');
-    soundFx.playScanBlip();
-
-    const started = VoiceService.startListening(
-      (transcript, isFinal) => {
-        setLiveTranscript(transcript);
-        if (isFinal) {
-          setIsListening(false);
-          setLiveTranscript('');
-          soundFx.playLockSuccess();
-          handleSendMessage(transcript);
-        }
-      },
-      (error) => {
-        setVoiceError(error);
-        setIsListening(false);
-        setTimeout(() => setVoiceError(null), 4000);
-      },
-      () => {
-        setIsListening(false);
-      }
-    );
-
-    if (started) {
-      setIsListening(true);
+      setIsMicPaused(true);
+      keepListeningRef.current = false;
+    } else {
+      setIsMicPaused(false);
+      keepListeningRef.current = true;
+      startLiveListening();
     }
   };
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const query = (textToSend || inputMessage).trim();
-    if (!query || isLoading) return;
-
-    VoiceService.stopSpeaking();
-    setIsSpeaking(false);
+  const toggleMute = () => {
     soundFx.playScanBlip();
-
-    const userMsg: ChatMessage = {
-      id: `user_${Date.now()}`,
-      sender: 'user',
-      text: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInputMessage('');
-    setIsLoading(true);
-
-    try {
-      const aiResponse = await AiShoppingService.queryAssistant(
-        query,
-        messages,
-        products,
-        config
-      );
-
-      const speechToPlay = aiResponse.spokenSummary || AiShoppingService.cleanTextForVoice(aiResponse.text).slice(0, 160);
-
-      const aiMsg: ChatMessage = {
-        id: `ai_${Date.now()}`,
-        sender: 'ai',
-        text: aiResponse.text,
-        spokenSummary: speechToPlay,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        matchedProducts: aiResponse.matchedProducts,
-        actionPills: aiResponse.actionPills,
-      };
-
-      setMessages((prev) => [...prev, aiMsg]);
-
-      if (!isMuted) {
-        speakResponse(speechToPlay);
-      }
-    } catch (err) {
-      console.error('Space Station AI error:', err);
-      const fallbackText = '🛰️ কোয়ান্টাম টেলিমেট্রি লিংক সাময়িক বাধাগ্রস্ত হয়েছে। অনুগ্রহ করে আবার বলুন।';
-      const errorMsg: ChatMessage = {
-        id: `ai_err_${Date.now()}`,
-        sender: 'ai',
-        text: fallbackText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-      if (!isMuted) {
-        speakResponse(fallbackText);
-      }
-    } finally {
-      setIsLoading(false);
+    if (!isMuted) {
+      VoiceService.stopSpeaking();
+      setIsSpeaking(false);
+      setIsMuted(true);
+    } else {
+      setIsMuted(false);
     }
+  };
+
+  const handleResetSession = () => {
+    soundFx.playStartup();
+    VoiceService.stopSpeaking();
+    VoiceService.stopListening();
+    setMessages([initialGreeting]);
+    setIsListening(false);
+    setIsSpeaking(false);
+    hasSpokenWelcomeRef.current = true;
+    speakResponse('নতুন সেশন প্রস্তুত। আপনার যে কোনো প্রশ্ন বা পছন্দের পোশাকের কথা সরাসরি বলুন।');
   };
 
   const handleActionPillClick = (action: string, label: string) => {
@@ -260,12 +344,10 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
       return;
     }
     if (action === 'open_whatsapp') {
-      const rawPhone = (config.contactPhone || '+880 1712-345678').replace(/[^0-9]/g, '');
-      const cleanPhone = rawPhone.startsWith('88') ? rawPhone : `88${rawPhone}`;
-      window.open(
-        `https://wa.me/${cleanPhone}?text=${encodeURIComponent('Hello Bismillah Collection, I need space station fashion assistance.')}`,
-        '_blank'
-      );
+      const waUrl = `https://wa.me/${(config.supportPhone || '+8801700000000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+        'আসসালামু আলাইকুম! বিসমিল্লাহ কালেকশন থেকে পছন্দের পোশাক অর্ডার করতে সহায়তা চাই।'
+      )}`;
+      window.open(waUrl, '_blank');
       return;
     }
     handleSendMessage(label);
@@ -273,377 +355,476 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
 
   const handleAddToCartWithFeedback = (product: Product) => {
     soundFx.playLockSuccess();
-    const defaultSize = product.sizes && product.sizes.length > 0 ? product.sizes[0] : undefined;
-    onAddToCart(product, defaultSize);
+    onAddToCart(product);
     setAddedProductId(product.id);
-    setTimeout(() => setAddedProductId(null), 2000);
+    setTimeout(() => setAddedProductId(null), 2500);
   };
-
-  const resetChat = () => {
-    soundFx.playStartup();
-    VoiceService.stopSpeaking();
-    VoiceService.stopListening();
-    setIsSpeaking(false);
-    setIsListening(false);
-    setMessages([initialGreeting]);
-    hasSpokenWelcomeRef.current = false;
-    if (!isMuted) {
-      setTimeout(() => speakResponse(welcomeSpeech), 300);
-    }
-  };
-
-  const toggleMute = () => {
-    soundFx.setMuted(!isMuted);
-    if (!isMuted) {
-      VoiceService.stopSpeaking();
-      setIsSpeaking(false);
-      setIsMuted(true);
-    } else {
-      setIsMuted(false);
-      soundFx.playScanBlip();
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return `${config.currencySymbol || '৳'}${price.toLocaleString('en-BD')}`;
-  };
-
-  const coreState = isListening ? 'listening' : isSpeaking ? 'speaking' : isLoading ? 'processing' : 'idle';
 
   return (
-    <div id="bismillah-space-station-ai-root" className="fixed bottom-5 right-5 z-50">
-      {/* Floating Futuristic Space Station Quantum Orb Pod */}
+    <div className="fixed bottom-6 right-6 z-50 select-none font-sans">
+      {/* Floating Space Station Quantum Orb Trigger Button */}
       {!isOpen && (
-        <motion.button
-          id="btn-open-space-station-ai"
-          initial={{ scale: 0.8, opacity: 0 }}
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleOpenDeck}
-          className="relative flex items-center gap-3.5 px-5 py-4 bg-neutral-950/95 text-white rounded-full shadow-[0_0_40px_rgba(245,158,11,0.25)] border-2 border-amber-500/50 hover:border-amber-400 group transition-all backdrop-blur-xl cursor-pointer"
+          exit={{ scale: 0, opacity: 0 }}
+          className="relative group"
         >
-          {/* Orbital Gyroscope Rotating Ring */}
-          <div className="absolute -inset-1 rounded-full border border-cyan-500/30 animate-[spin_8s_linear_infinite] pointer-events-none"></div>
-          <div className="absolute -inset-2.5 rounded-full border border-amber-500/20 animate-[spin_12s_linear_infinite_reverse] pointer-events-none"></div>
+          {/* Orbital Radar Glow Wave Ring */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500 via-amber-400 to-emerald-500 rounded-full blur-md opacity-70 group-hover:opacity-100 animate-pulse transition duration-500"></div>
 
-          {/* Futuristic Glowing Dot Status */}
-          <div className="absolute -top-1 -right-1 flex h-4 w-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-80"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500 border-2 border-black"></span>
+          {/* Orbit Indicator Ring */}
+          <div className="absolute -inset-4 rounded-full border border-cyan-400/40 animate-[spin_12s_linear_infinite] pointer-events-none">
+            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-cyan-300 shadow-[0_0_8px_#06b6d4]"></span>
           </div>
 
-          {/* Mini Hologram Core Pod */}
-          <div className="relative w-11 h-11 rounded-full bg-gradient-to-tr from-cyan-600 via-amber-500 to-emerald-400 p-[2px] flex items-center justify-center shadow-lg">
-            <div className="w-full h-full bg-neutral-950 rounded-full flex items-center justify-center text-amber-300 group-hover:text-cyan-300 transition-colors">
-              <Orbit className="w-5 h-5 animate-[spin_6s_linear_infinite]" />
-            </div>
-          </div>
-
-          {/* Cyber Telemetry Info Text */}
-          <div className="text-left pr-1 hidden sm:block">
-            <div className="flex items-center gap-1.5 font-mono">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400 flex items-center gap-1">
-                <Zap className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <span>SPACESTATION AI</span>
-              </span>
-              <span className="px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 text-[8px] font-bold rounded-sm border border-cyan-400/30">
-                VOICE LIVE
+          <button
+            id="btn-open-space-station-deck"
+            onClick={handleOpenDeck}
+            className="relative flex items-center gap-3 px-5 py-3.5 bg-neutral-950/95 hover:bg-neutral-900 text-white rounded-full border border-cyan-400/60 shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.35)] backdrop-blur-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+          >
+            {/* Holographic Orb Core */}
+            <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 via-neutral-950 to-amber-500 p-[2px] shadow-inner flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-neutral-950 flex items-center justify-center overflow-hidden">
+                <Mic className="w-5 h-5 text-cyan-400 group-hover:text-amber-300 animate-pulse" />
+              </div>
+              <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
               </span>
             </div>
-            <p className="text-xs font-bold text-neutral-100 mt-0.5 flex items-center gap-1">
-              <span>কথা বলুন ও অর্ডার করুন</span>
-              <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform" />
-            </p>
-          </div>
-        </motion.button>
+
+            {/* Title & Live Status */}
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px] tracking-wider uppercase text-cyan-400 font-bold">
+                  GEMINI LIVE VOICE
+                </span>
+                <span className="px-1.5 py-0.2 bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 rounded-full text-[9px] font-mono">
+                  ONLINE
+                </span>
+              </div>
+              <p className="text-xs font-bold text-neutral-100 flex items-center gap-1">
+                <span>কথা বলে শপিং করুন</span>
+                <Sparkles className="w-3 h-3 text-amber-400" />
+              </p>
+            </div>
+          </button>
+        </motion.div>
       )}
 
-      {/* Advanced Space Station Command Deck Window */}
+      {/* Main Holographic Space Station Command HUD */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            id="space-station-command-deck"
-            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.85, y: 20 }}
             animate={{
               opacity: 1,
-              y: 0,
               scale: 1,
+              y: 0,
+              height: isMinimized ? 'auto' : isFullScreenDeck ? '92vh' : '620px',
+              width: isMinimized ? '320px' : isFullScreenDeck ? '95vw' : '440px',
             }}
-            exit={{ opacity: 0, y: 40, scale: 0.9 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className={`bg-neutral-950/95 text-white border border-cyan-500/30 shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col backdrop-blur-2xl transition-all ${
-              isFullScreenDeck
-                ? 'fixed inset-2 sm:inset-6 z-50 rounded-3xl'
-                : isMinimized
-                ? 'w-[94vw] sm:w-[460px] h-auto rounded-3xl'
-                : 'w-[94vw] sm:w-[480px] h-[660px] max-h-[90vh] rounded-3xl'
+            exit={{ opacity: 0, scale: 0.85, y: 20 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 280 }}
+            className={`flex flex-col bg-neutral-950/95 border border-cyan-500/40 text-neutral-100 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(6,182,212,0.25)] rounded-3xl overflow-hidden backdrop-blur-2xl transition-all duration-300 z-50 ${
+              isFullScreenDeck ? 'fixed inset-4 sm:inset-6 m-auto' : ''
             }`}
           >
-            {/* Top Space Station Telemetry Header */}
-            <div className="bg-neutral-900/90 px-4 py-3 border-b border-cyan-500/20 flex items-center justify-between shrink-0 font-mono select-none">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-cyan-500 p-[1px] flex items-center justify-center">
-                  <div className="w-full h-full bg-neutral-950 rounded-xl flex items-center justify-center text-cyan-400">
-                    <Cpu className="w-4 h-4 animate-pulse" />
+            {/* Top Telemetry Space Station Banner & Command Controls */}
+            <div className="p-4 bg-gradient-to-r from-neutral-950 via-cyan-950/40 to-neutral-950 border-b border-cyan-500/30 flex items-center justify-between shrink-0 relative overflow-hidden">
+              {/* Scanline Grid Background */}
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#08334415_1px,transparent_1px),linear-gradient(to_bottom,#08334415_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none"></div>
+
+              {/* Station Brand and Live Status */}
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 via-neutral-900 to-amber-500 p-[2px] shadow-lg flex items-center justify-center">
+                    <div className="w-full h-full bg-neutral-950 rounded-2xl flex items-center justify-center">
+                      <Orbit className="w-5 h-5 text-cyan-400 animate-[spin_10s_linear_infinite]" />
+                    </div>
                   </div>
+                  <span
+                    className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-neutral-950 flex items-center justify-center ${
+                      isSpeaking
+                        ? 'bg-emerald-400 animate-ping'
+                        : isListening
+                        ? 'bg-rose-500 animate-pulse'
+                        : 'bg-cyan-400'
+                    }`}
+                  ></span>
                 </div>
+
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-xs text-white tracking-wider font-sans">
+                    <h3 className="text-xs font-mono font-bold tracking-wider text-cyan-300 uppercase">
                       {botDisplayName}
                     </h3>
-                    <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-bold rounded border border-emerald-400/30 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                      <span>ORBITAL LINK</span>
+                    <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-[9px] font-mono text-cyan-300 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                      LIVE
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[9px] text-neutral-400 mt-0.5">
-                    <span>FREQ: {(94.2 + (telemetryTicks % 10) * 0.1).toFixed(1)} GHz</span>
-                    <span>•</span>
-                    <span className="text-amber-400 font-sans">{brandName}</span>
-                  </div>
+                  <p className="text-[11px] text-neutral-400 font-sans flex items-center gap-1.5 mt-0.5">
+                    <span>{brandName}</span>
+                    <span className="text-neutral-600">•</span>
+                    <span className="text-amber-400 font-mono text-[10px]">
+                      TLM #{telemetryTicks.toString().padStart(3, '0')}
+                    </span>
+                  </p>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1">
+              {/* Control Deck Action Buttons */}
+              <div className="flex items-center gap-1.5 relative z-10">
+                <button
+                  onClick={handleResetSession}
+                  title="নতুন আলোচনা শুরু করুন"
+                  className="p-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-cyan-400 border border-neutral-800 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+
                 <button
                   onClick={toggleMute}
-                  title={isMuted ? 'ভয়েস চালু করুন' : 'ভয়েস মিউট করুন'}
-                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  title={isMuted ? 'ভয়েস চালু করুন' : 'ভয়েস বন্ধ রাখুন'}
+                  className={`p-2 rounded-xl border transition-colors cursor-pointer ${
                     isMuted
-                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                      : 'text-neutral-400 hover:text-cyan-300 hover:bg-white/10'
+                      ? 'bg-rose-950/80 text-rose-400 border-rose-500/50'
+                      : 'bg-neutral-900/80 text-emerald-400 border-neutral-800 hover:bg-neutral-800'
                   }`}
                 >
-                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                  {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                 </button>
-                <button
-                  onClick={resetChat}
-                  title="রিসেট মিশন"
-                  className="p-2 text-neutral-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
+
                 <button
                   onClick={() => setIsFullScreenDeck(!isFullScreenDeck)}
-                  title={isFullScreenDeck ? 'নরমাল স্ক্রিন' : 'ফুল কমান্ড ডেক'}
-                  className="p-2 text-neutral-400 hover:text-cyan-300 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                  title={isFullScreenDeck ? 'পপআপ ভিউ' : 'ফুলস্ক্রিন কমান্ড ডেক'}
+                  className="p-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-amber-400 border border-neutral-800 transition-colors cursor-pointer hidden sm:flex"
                 >
-                  {isFullScreenDeck ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  {isFullScreenDeck ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </button>
+
+                <button
+                  onClick={() => setIsMinimized(!isMinimized)}
+                  title={isMinimized ? 'বড় করুন' : 'মিনিমাইজ'}
+                  className="p-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-cyan-400 border border-neutral-800 transition-colors cursor-pointer"
+                >
+                  <Minimize2 className="w-3.5 h-3.5" />
+                </button>
+
                 <button
                   onClick={() => setIsOpen(false)}
-                  title="কমান্ড ডেক বন্ধ করুন"
-                  className="p-2 text-neutral-400 hover:text-rose-400 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                  title="বন্ধ করুন"
+                  className="p-2 rounded-xl bg-neutral-900/80 hover:bg-rose-950 text-neutral-400 hover:text-rose-400 border border-neutral-800 hover:border-rose-500/40 transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* Central Holographic Gyroscope Reactor Chamber */}
-            {!isMinimized && (
-              <div className="relative bg-gradient-to-b from-neutral-950 via-neutral-900/60 to-neutral-950 border-b border-cyan-500/20 py-2.5 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-                {/* Background Cyber Grid Matrix Pattern */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#083344_1px,transparent_1px),linear-gradient(to_bottom,#083344_1px,transparent_1px)] bg-[size:24px_24px] opacity-20 pointer-events-none"></div>
-
-                {/* Left Telemetry Radar Screen */}
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="shrink-0">
-                    <QuantumCoreVisualizer state={coreState} />
-                  </div>
-
-                  <div className="flex-1 min-w-0 font-mono text-left">
-                    <div className="flex items-center gap-1.5 text-[10px] text-cyan-400">
-                      <Radio className="w-3 h-3 animate-pulse" />
-                      <span className="uppercase font-bold tracking-wider">
-                        {isListening
-                          ? 'LISTENING TO FREQUENCY...'
-                          : isSpeaking
-                          ? 'TRANSMITTING NEURAL AUDIO...'
-                          : isLoading
-                          ? 'QUANTUM CALCULATING...'
-                          : 'NEURAL SYSTEM READY'}
-                      </span>
-                    </div>
-
-                    <p className="text-xs font-sans text-neutral-200 font-medium mt-1">
-                      {isListening
-                        ? '🎙️ আপনার কথা শুনছি... বলুন'
-                        : isSpeaking
-                        ? '🔊 এআই কথা বলছে...'
-                        : 'কথা বলুন বা যেকোনো পছন্দের পোশাক জানতে চান'}
-                    </p>
-
-                    <div className="flex items-center gap-2 mt-1.5 text-[9px] text-neutral-400">
-                      <span className="px-1.5 py-0.2 bg-neutral-800 rounded text-amber-300 font-sans border border-amber-500/30">
-                        ১০০,০০০+ সেলস আইডিয়া
-                      </span>
-                      <span className="px-1.5 py-0.2 bg-neutral-800 rounded text-emerald-300 font-sans border border-emerald-500/30">
-                        ক্যাশ অন ডেলিভারি
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Protocol Pill Tabs */}
-                <div className="flex sm:flex-col gap-1.5 w-full sm:w-auto justify-end">
-                  <button
-                    onClick={() => handleActionPillClick('ask_rules', 'প্ল্যাটফর্মের নিয়ম ও গ্যারান্টি')}
-                    className="px-2.5 py-1 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/40 rounded-lg text-[10px] text-cyan-300 font-sans flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                    <span>ই-কমার্স পলিসি</span>
-                  </button>
-                  <button
-                    onClick={() => handleActionPillClick('show_panjabi', 'পাঞ্জাবি কালেকশন স্ক্যান')}
-                    className="px-2.5 py-1 bg-amber-950/60 hover:bg-amber-900 border border-amber-500/40 rounded-lg text-[10px] text-amber-300 font-sans flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <Flame className="w-3 h-3 text-amber-400" />
-                    <span>ট্রেন্ডিং পাঞ্জাবি</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Conversation Deck Scrollable Body */}
+            {/* Main Interactive Deck Body */}
             {!isMinimized && (
               <>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-950/90 text-neutral-100 relative">
-                  {/* Live Listening Frequency Banner */}
-                  {isListening && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 bg-gradient-to-r from-rose-950/80 via-neutral-900 to-cyan-950/80 border border-rose-500/50 rounded-2xl flex items-center gap-3 shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+                {/* 3D Quantum Core Reactor Visualizer Canvas */}
+                <div className="relative shrink-0 border-b border-cyan-500/20 bg-neutral-950">
+                  <QuantumCoreVisualizer
+                    isListening={isListening}
+                    isSpeaking={isSpeaking}
+                    mode={isSpeaking ? 'speaking' : isListening ? 'listening' : 'idle'}
+                  />
+
+                  {/* Core Diagnostic Readout HUD Overlay */}
+                  <div className="absolute top-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-cyan-400/80 pointer-events-none">
+                    <span className="flex items-center gap-1">
+                      <Cpu className="w-3 h-3 text-cyan-400 animate-pulse" />
+                      <span>GEMINI LIVE NEURAL LINK</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-amber-400">
+                      <Zap className="w-3 h-3" />
+                      <span>WARP SPEED 100%</span>
+                    </span>
+                  </div>
+
+                  {/* Live Status Overlay Badge */}
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-2 border shadow-lg backdrop-blur-md transition-all ${
+                        isSpeaking
+                          ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
+                          : isListening
+                          ? 'bg-rose-950/90 text-rose-300 border-rose-400/50 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse'
+                          : isLoading
+                          ? 'bg-amber-950/90 text-amber-300 border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.3)]'
+                          : isMicPaused
+                          ? 'bg-neutral-900/90 text-neutral-400 border-neutral-700'
+                          : 'bg-cyan-950/90 text-cyan-300 border-cyan-400/40'
+                      }`}
                     >
-                      <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center animate-pulse shrink-0">
-                        <Mic className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0 font-mono">
-                        <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider">
-                          DECODING VOICE FREQUENCY...
-                        </p>
-                        <p className="text-xs font-sans text-white italic truncate mt-0.5">
-                          {liveTranscript ? `"${liveTranscript}"` : 'আপনার পছন্দের পোশাকের কথা বলুন...'}
-                        </p>
+                      {isSpeaking ? (
+                        <>
+                          <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
+                          <span>🔊 এআই কথা বলছে...</span>
+                        </>
+                      ) : isListening ? (
+                        <>
+                          <Mic className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                          <span>🎙️ সরাসরি মুখে বলুন, শুনছি...</span>
+                        </>
+                      ) : isLoading ? (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                          <span>🌌 কোয়ান্টাম প্রসেসিং চলছে...</span>
+                        </>
+                      ) : isMicPaused ? (
+                        <>
+                          <MicOff className="w-3.5 h-3.5 text-neutral-400" />
+                          <span>⏸️ মাইক পজ করা আছে</span>
+                        </>
+                      ) : (
+                        <>
+                          <Headphones className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                          <span>🛰️ লাইভ ভয়েস কানেক্টেড</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigation Pills Bar for Quick Actions & Telemetry Filter */}
+                <div className="px-3.5 py-2 bg-neutral-900/80 border-b border-cyan-500/20 flex items-center justify-between text-xs font-mono">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setActiveDeckTab('console')}
+                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] ${
+                        activeDeckTab === 'console'
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold'
+                          : 'text-neutral-400 hover:text-neutral-200'
+                      }`}
+                    >
+                      <Activity className="w-3 h-3" />
+                      <span>টেলিমেট্রি হিস্ট্রি</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveDeckTab('radar')}
+                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] ${
+                        activeDeckTab === 'radar'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 font-bold'
+                          : 'text-neutral-400 hover:text-neutral-200'
+                      }`}
+                    >
+                      <Scan className="w-3 h-3" />
+                      <span>প্রোডাক্ট স্ক্যানার ({products.length})</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveDeckTab('lore')}
+                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] ${
+                        activeDeckTab === 'lore'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold'
+                          : 'text-neutral-400 hover:text-neutral-200'
+                      }`}
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      <span>পলিসি & ঐতিহ্য</span>
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] text-neutral-500 font-mono hidden sm:inline-block">
+                    LIVE STREAM V3.7
+                  </span>
+                </div>
+
+                {/* Holographic Log Feed / Dynamic Dialogue Area */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-950/15 via-neutral-950 to-neutral-950 custom-scrollbar">
+                  {/* Live Transcript Bubble when customer is speaking */}
+                  {isListening && liveTranscript && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 flex items-center gap-3 text-xs shadow-lg"
+                    >
+                      <Mic className="w-4 h-4 text-rose-400 animate-pulse shrink-0" />
+                      <div className="flex-1">
+                        <span className="font-mono text-[10px] uppercase text-rose-400 font-bold block">
+                          লাইভ ভয়েস ডিকোডিং...
+                        </span>
+                        <p className="font-medium mt-0.5">{liveTranscript}</p>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Voice Error Banner */}
+                  {/* Voice Error Notice if microphone issue occurs */}
                   {voiceError && (
-                    <div className="p-3 bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs rounded-xl flex items-center gap-2 font-sans">
-                      <VolumeX className="w-4 h-4 shrink-0 text-rose-400" />
-                      <span>{voiceError}</span>
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 bg-amber-950/50 border border-amber-500/40 rounded-2xl text-amber-200 text-xs flex items-center justify-between gap-2 font-sans"
+                    >
+                      <span>⚠️ {voiceError}</span>
+                      <button
+                        onClick={startLiveListening}
+                        className="px-2 py-1 bg-amber-500/30 hover:bg-amber-500/50 text-amber-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                      >
+                        আবার চেষ্টা করুন
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {/* Lore / Storytelling Tab View */}
+                  {activeDeckTab === 'lore' && (
+                    <div className="space-y-3 p-3 rounded-2xl bg-neutral-900/60 border border-neutral-800 text-xs">
+                      <div className="flex items-center gap-2 text-amber-400 font-bold font-mono">
+                        <Flame className="w-4 h-4" />
+                        <span>বিসমিল্লাহ কালেকশন এর কাপড়ের ঐতিহ্য ও গ্যারান্টি</span>
+                      </div>
+                      <p className="text-neutral-300 leading-relaxed font-sans">
+                        আমাদের প্রতিটি সুতি, সিল্ক ও কাতান কাপড় সেরা তাঁতিদের হাতে পরম যত্নে বোনা। রঙের স্থায়িত্ব ও আরামদায়ক টেক্সচার বজায় রাখতে প্রিমিয়াম কোয়ালিটি ফিনিশিং করা হয়।
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 pt-2 text-[11px] font-sans">
+                        <div className="p-2.5 rounded-xl bg-neutral-950 border border-emerald-500/30 text-emerald-300">
+                          <span className="font-bold block text-white mb-1">🛡️ ক্যাশ অন ডেলিভারি</span>
+                          পার্সেল খুলে দেখে ও সাইজ নিশ্চিত হয়ে টাকা দেওয়ার পূর্ণ স্বাধীনতা।
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-neutral-950 border border-cyan-500/30 text-cyan-300">
+                          <span className="font-bold block text-white mb-1">🔄 ৭ দিনের ফ্রি এক্সচেঞ্জ</span>
+                          সাইজ বা ফিটিংসে কোনো সমস্যা হলে বিনা দ্বিধায় এক্সচেঞ্জ করে দেওয়া হবে।
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* Messages Feed */}
+                  {/* Radar Tab View (Quick Product Catalog Scan) */}
+                  {activeDeckTab === 'radar' && (
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider block">
+                        🛰️ স্টেশনের সকল এক্সক্লুসিভ কালেকশন ({products.length} টি আইটেম)
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {products.slice(0, 6).map((p) => (
+                          <div
+                            key={p.id}
+                            className="p-2 rounded-xl bg-neutral-900/80 border border-neutral-800 hover:border-cyan-400/50 flex items-center gap-2.5 transition-all"
+                          >
+                            <img
+                              src={p.images?.[0] || (p as any).image || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop'}
+                              alt={p.name}
+                              className="w-12 h-12 rounded-lg object-cover bg-neutral-950 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs font-bold text-white truncate">{p.name}</h4>
+                              <p className="text-[11px] text-amber-400 font-bold font-mono">
+                                ৳{p.price.toLocaleString('en-BD')}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <button
+                                  onClick={() => onQuickViewProduct(p)}
+                                  className="text-[10px] text-cyan-300 hover:underline cursor-pointer flex items-center gap-0.5"
+                                >
+                                  <Eye className="w-2.5 h-2.5" /> ডিটেইলস
+                                </button>
+                                <button
+                                  onClick={() => handleAddToCartWithFeedback(p)}
+                                  className="text-[10px] text-emerald-400 hover:underline cursor-pointer flex items-center gap-0.5 font-bold"
+                                >
+                                  <ShoppingBag className="w-2.5 h-2.5" /> কার্টে নিন
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Standard Console Dialogue Chat Stream */}
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
                       className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
                     >
                       <div
-                        className={`flex items-start gap-2 max-w-[92%] ${
+                        className={`flex items-start gap-2.5 max-w-[92%] ${
                           msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'
                         }`}
                       >
+                        {/* Avatar Indicator */}
                         <div
-                          className={`w-7 h-7 rounded-xl flex items-center justify-center text-[10px] shrink-0 mt-0.5 ${
+                          className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs shrink-0 shadow-md font-mono ${
                             msg.sender === 'user'
-                              ? 'bg-neutral-800 text-cyan-300 border border-neutral-700'
-                              : 'bg-gradient-to-tr from-amber-500 to-cyan-500 text-neutral-950 shadow-md font-bold'
+                              ? 'bg-gradient-to-tr from-cyan-600 to-cyan-400 text-neutral-950 font-bold'
+                              : 'bg-gradient-to-tr from-amber-500 via-neutral-900 to-cyan-500 text-cyan-300 border border-cyan-400/40'
                           }`}
                         >
-                          {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                          {msg.sender === 'user' ? <Mic className="w-3.5 h-3.5" /> : <Orbit className="w-3.5 h-3.5" />}
                         </div>
 
-                        {/* Speech Bubble with Cyber HUD Glass Styling */}
+                        {/* Message Balloon */}
                         <div
-                          className={`p-4 rounded-2xl text-xs leading-relaxed transition-all ${
+                          className={`p-3.5 rounded-2xl shadow-sm text-xs leading-relaxed ${
                             msg.sender === 'user'
-                              ? 'bg-neutral-800/90 text-neutral-100 border border-neutral-700 rounded-tr-none'
-                              : 'bg-neutral-900/90 text-neutral-200 border border-cyan-500/30 rounded-tl-none shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+                              ? 'bg-cyan-950/80 border border-cyan-400/50 text-cyan-100 rounded-tr-none'
+                              : 'bg-neutral-900/90 border border-neutral-800 text-neutral-200 rounded-tl-none font-sans'
                           }`}
                         >
-                          <p className="whitespace-pre-line font-sans">{msg.text}</p>
-
-                          {/* Voice Replay Controller */}
-                          {msg.sender === 'ai' && (
-                            <div className="mt-3 pt-2.5 border-t border-neutral-800 flex items-center justify-between">
-                              <button
-                                onClick={() => speakResponse(msg.spokenSummary || msg.text)}
-                                className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/30 transition-colors cursor-pointer"
-                              >
-                                <Volume2 className="w-3.5 h-3.5" />
-                                <span>ভয়েস আবার শুনুন</span>
-                              </button>
-                              <span className="text-[9px] text-neutral-500 font-mono">{msg.timestamp}</span>
-                            </div>
-                          )}
-
-                          {msg.sender === 'user' && (
-                            <span className="text-[9px] block mt-1.5 text-neutral-400 text-right font-mono">
-                              {msg.timestamp}
+                          {/* Sender and Time HUD */}
+                          <div className="flex items-center justify-between gap-3 text-[10px] font-mono text-neutral-400 mb-1 border-b border-neutral-800 pb-1">
+                            <span className="font-bold text-cyan-400">
+                              {msg.sender === 'user' ? 'YOU (VOICE)' : 'GEMINI ORBITAL AI'}
                             </span>
-                          )}
+                            <span>{msg.timestamp}</span>
+                          </div>
+
+                          {/* Formatted Text */}
+                          <div className="whitespace-pre-wrap font-sans text-neutral-200">
+                            {msg.text}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Holographic Quantum Product Telemetry Cards */}
+                      {/* Matched Product Hologram Cards */}
                       {msg.matchedProducts && msg.matchedProducts.length > 0 && (
-                        <div className="w-full mt-3 pl-9 space-y-2.5">
-                          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-cyan-400 font-mono">
-                            <Scan className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                            <span>QUANTUM PRODUCT TELEMETRY MATRIX:</span>
+                        <div className="w-full mt-3 pl-9 pr-2 space-y-2">
+                          <div className="flex items-center gap-1.5 text-[11px] font-mono text-amber-400 uppercase tracking-wider">
+                            <Scan className="w-3.5 h-3.5 animate-pulse" />
+                            <span>কোয়ান্টাম রিকমেন্ডেড প্রোডাক্টস ({msg.matchedProducts.length})</span>
                           </div>
-                          <div className="grid grid-cols-1 gap-2.5">
+
+                          <div className="grid grid-cols-1 gap-2">
                             {msg.matchedProducts.map((p) => {
                               const isAdded = addedProductId === p.id;
                               return (
                                 <div
                                   key={p.id}
-                                  className="flex items-center gap-3.5 p-3 bg-neutral-900/90 border border-cyan-500/30 hover:border-amber-400 rounded-2xl transition-all shadow-md group relative overflow-hidden"
+                                  className="p-3 bg-neutral-900/90 hover:bg-neutral-800/90 border border-cyan-500/30 hover:border-cyan-400 rounded-2xl flex items-center gap-3 transition-all shadow-md group"
                                 >
-                                  {/* Cyber Corner Accent */}
-                                  <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-bl from-cyan-500/20 to-transparent pointer-events-none"></div>
-
-                                  {/* Product Hologram Photo */}
-                                  <img
-                                    src={p.images?.[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=300'}
-                                    alt={p.title}
-                                    className="w-18 h-20 object-cover rounded-xl bg-neutral-950 shrink-0 border border-cyan-500/30 group-hover:scale-105 transition-transform"
-                                    referrerPolicy="no-referrer"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src =
-                                        'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=300';
-                                    }}
-                                  />
-
-                                  {/* Product Details & Telemetry */}
-                                  <div className="flex-1 min-w-0 font-sans">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 text-[9px] font-bold rounded border border-amber-500/30">
-                                        {p.category}
+                                  <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-neutral-950 shrink-0 border border-neutral-800">
+                                    <img
+                                      src={p.images?.[0] || (p as any).image || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop'}
+                                      alt={p.name}
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                    />
+                                    {p.badge && (
+                                      <span className="absolute top-1 left-1 bg-amber-500 text-neutral-950 text-[8px] font-bold px-1 rounded-sm">
+                                        {p.badge}
                                       </span>
-                                      {p.material && (
-                                        <span className="text-[9px] text-neutral-400 truncate">{p.material}</span>
-                                      )}
-                                    </div>
-                                    <h4 className="text-xs font-bold text-white truncate mt-1 group-hover:text-cyan-300 transition-colors">
-                                      {p.title}
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
+                                      {p.name}
                                     </h4>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                      <span className="text-sm font-extrabold text-amber-400">
-                                        {formatPrice(p.price)}
+                                    <p className="text-[11px] text-neutral-400 truncate mt-0.5">
+                                      {p.fabric || p.category}
+                                    </p>
+
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-xs font-bold text-amber-400 font-mono">
+                                        ৳{p.price.toLocaleString('en-BD')}
                                       </span>
-                                      {p.originalPrice && p.originalPrice > p.price && (
-                                        <span className="text-[10px] text-neutral-500 line-through">
-                                          {formatPrice(p.originalPrice)}
+                                      {p.originalPrice && (
+                                        <span className="text-[10px] text-neutral-500 line-through font-mono">
+                                          ৳{p.originalPrice.toLocaleString('en-BD')}
                                         </span>
                                       )}
                                     </div>
@@ -730,82 +911,119 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Cyber Deck Voice & Command Input Footer */}
-                <div className="p-3.5 bg-neutral-950 border-t border-cyan-500/20 shrink-0 space-y-3">
-                  {/* Big Quantum Voice Record Button */}
-                  <div className="flex items-center gap-2">
+                {/* Pure Gemini Live Voice Control Deck (Zero Text Inputs) */}
+                <div className="p-4 bg-neutral-950 border-t border-cyan-500/20 shrink-0 space-y-3">
+                  {/* Dynamic Live Voice Waveform Bar */}
+                  <div
+                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                      isListening
+                        ? 'bg-rose-950/40 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.25)]'
+                        : isSpeaking
+                        ? 'bg-emerald-950/40 border-emerald-500/50 shadow-[0_0_20px_rgba(52,211,153,0.25)]'
+                        : 'bg-neutral-900/90 border-neutral-800'
+                    }`}
+                  >
+                    {/* Live Frequency Waves Indicator */}
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`w-1 rounded-full ${
+                            isListening
+                              ? 'h-6 bg-rose-400 animate-pulse'
+                              : isSpeaking
+                              ? 'h-5 bg-emerald-400 animate-bounce'
+                              : 'h-2 bg-neutral-600'
+                          }`}
+                        ></span>
+                        <span
+                          className={`w-1 rounded-full ${
+                            isListening
+                              ? 'h-8 bg-rose-300 animate-pulse [animation-delay:0.1s]'
+                              : isSpeaking
+                              ? 'h-7 bg-emerald-300 animate-bounce [animation-delay:0.2s]'
+                              : 'h-3 bg-neutral-600'
+                          }`}
+                        ></span>
+                        <span
+                          className={`w-1 rounded-full ${
+                            isListening
+                              ? 'h-5 bg-rose-400 animate-pulse [animation-delay:0.2s]'
+                              : isSpeaking
+                              ? 'h-6 bg-emerald-400 animate-bounce [animation-delay:0.1s]'
+                              : 'h-2 bg-neutral-600'
+                          }`}
+                        ></span>
+                        <span
+                          className={`w-1 rounded-full ${
+                            isListening
+                              ? 'h-7 bg-rose-300 animate-pulse [animation-delay:0.3s]'
+                              : isSpeaking
+                              ? 'h-4 bg-emerald-300 animate-bounce [animation-delay:0.3s]'
+                              : 'h-3 bg-neutral-600'
+                          }`}
+                        ></span>
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                          {isSpeaking ? (
+                            <span className="text-emerald-400">এআই কথা বলছে (শুনুন)...</span>
+                          ) : isListening ? (
+                            <span className="text-rose-300">🔴 লাইভ শুনছি... মুখে বলুন!</span>
+                          ) : isMicPaused ? (
+                            <span className="text-neutral-400">মাইক সাময়িক বন্ধ রাখা হয়েছে</span>
+                          ) : (
+                            <span className="text-cyan-300">লাইভ ভয়েস মোড সক্রিয়</span>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-neutral-400 font-mono truncate">
+                          {isListening
+                            ? 'আপনি কথা শেষ করলেই এআই উত্তর দেবে'
+                            : isSpeaking
+                            ? 'কথা শেষ হলে স্বয়ংক্রিয়ভাবে মাইক শুনবে'
+                            : 'হ্যান্ডস-ফ্রি রিয়েল-টাইম কথোপকথন'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Mic Toggle Button */}
                     <button
-                      id="btn-voice-record-space-deck"
-                      onClick={handleToggleListening}
-                      className={`flex-1 py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 font-bold text-xs transition-all shadow-lg cursor-pointer ${
+                      id="btn-toggle-live-mic"
+                      onClick={toggleMicPause}
+                      className={`py-2.5 px-4 rounded-xl flex items-center gap-2 font-bold text-xs transition-all shadow-md cursor-pointer shrink-0 ${
                         isListening
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-500/30 animate-pulse'
-                          : 'bg-gradient-to-r from-cyan-600 via-amber-500 to-emerald-500 hover:from-cyan-500 hover:to-emerald-400 text-neutral-950 font-sans shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
+                          : isMicPaused
+                          ? 'bg-cyan-600 hover:bg-cyan-500 text-neutral-950 font-sans'
+                          : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700'
                       }`}
                     >
                       {isListening ? (
                         <>
-                          <MicOff className="w-4 h-4 animate-bounce" />
-                          <span>🎙️ শুনছি... কথা বলা শেষ করতে এখানে চাপুন</span>
+                          <MicOff className="w-3.5 h-3.5" />
+                          <span>পজ করুন</span>
                         </>
                       ) : (
                         <>
-                          <Mic className="w-4 h-4" />
-                          <span>🎙️ কথা বলুন (ভয়েস ইনপুট চালু করুন)</span>
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>মাইক চালু করুন</span>
                         </>
                       )}
                     </button>
-
-                    <button
-                      onClick={toggleMute}
-                      title={isMuted ? 'ভয়েস আউটপুট চালু করুন' : 'ভয়েস বন্ধ রাখুন'}
-                      className={`p-3.5 rounded-2xl border transition-colors cursor-pointer ${
-                        isMuted
-                          ? 'bg-rose-950/60 text-rose-400 border-rose-500/40'
-                          : 'bg-neutral-900 hover:bg-neutral-800 text-emerald-400 border-neutral-700'
-                      }`}
-                    >
-                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                    </button>
                   </div>
 
-                  {/* Fallback Command Input Form */}
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }}
-                    className="relative flex items-center"
-                  >
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
-                      placeholder="অথবা এখানে টাইপ করে লিখুন..."
-                      className="w-full py-2.5 pl-3.5 pr-11 bg-neutral-900 focus:bg-neutral-800 text-xs text-white rounded-2xl border border-neutral-700 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-hidden transition-all placeholder:text-neutral-500 font-sans"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!inputMessage.trim() || isLoading}
-                      className="absolute right-1.5 p-2 bg-gradient-to-tr from-amber-500 to-cyan-500 disabled:opacity-30 text-neutral-950 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </form>
-
-                  {/* Bottom Safety & Direct WhatsApp Comms */}
+                  {/* Safety Protocol & WhatsApp Live Chat */}
                   <div className="flex items-center justify-between text-[10px] text-neutral-400 px-1 font-sans">
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                      <span>১০০% নিরাপদ ক্যাশ অন ডেলিভারি</span>
+                    <span className="flex items-center gap-1 text-neutral-400">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>১০০% ক্যাশ অন ডেলিভারি ও ওপেন বক্স চেক</span>
                     </span>
                     <button
                       onClick={() => handleActionPillClick('open_whatsapp', 'WhatsApp')}
                       className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <PhoneCall className="w-3 h-3" />
-                      <span>হোয়াটসঅ্যাপ কনসালট্যান্ট</span>
+                      <span>হোয়াটসঅ্যাপে কথা বলুন</span>
                     </button>
                   </div>
                 </div>
