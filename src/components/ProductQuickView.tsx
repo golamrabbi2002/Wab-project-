@@ -106,27 +106,29 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 animate-fadeIn">
-        <div className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden border border-neutral-200 grid grid-cols-1 lg:grid-cols-12 max-h-[94vh]">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/80 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 lg:p-6 animate-fadeIn">
+        {/* Modal Container: On Mobile full scrollable page/sheet, On Desktop dual column grid */}
+        <div className="relative bg-white w-full max-w-5xl sm:rounded-3xl shadow-2xl overflow-y-auto lg:overflow-hidden border-0 sm:border border-neutral-200 min-h-screen sm:min-h-0 max-h-none sm:max-h-[92vh] flex flex-col lg:grid lg:grid-cols-12">
           
-          {/* Close Button */}
+          {/* Close Button - Sticky/Fixed on Mobile so user can close anytime */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-20 p-2.5 bg-white/90 hover:bg-white text-neutral-800 rounded-full shadow-lg backdrop-blur-sm transition-transform active:scale-95 border border-neutral-200"
+            className="sticky sm:absolute top-3 right-3 self-end sm:self-auto z-30 p-2.5 bg-white/95 hover:bg-white text-neutral-800 rounded-full shadow-lg backdrop-blur-sm transition-transform active:scale-95 border border-neutral-200 touch-manipulation cursor-pointer"
             title="Close dialog"
+            aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-neutral-900" />
           </button>
 
-          {/* Left Column: Visual Gallery & Interactive Texture Zoom (5 Cols) */}
-          <div className="lg:col-span-5 bg-neutral-100 p-5 sm:p-6 flex flex-col justify-between overflow-y-auto">
+          {/* Left Column: Visual Gallery & Interactive Texture Zoom (5 Cols on PC, Top natural scroll on Mobile) */}
+          <div className="lg:col-span-5 bg-neutral-100 p-4 sm:p-6 flex flex-col justify-between overflow-visible lg:overflow-y-auto shrink-0">
             <div>
               <div 
                 ref={imageContainerRef}
                 onMouseEnter={() => setIsZooming(true)}
                 onMouseLeave={() => setIsZooming(false)}
                 onMouseMove={handleMouseMove}
-                className="relative aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-sm mb-4 cursor-crosshair group"
+                className="relative aspect-[3/4] max-h-[50vh] sm:max-h-none bg-white rounded-2xl overflow-hidden shadow-sm mb-3 sm:mb-4 cursor-crosshair group mx-auto w-full"
               >
                 {currentDisplayImage ? (
                   <img
@@ -192,8 +194,8 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Garment Specs, Size Selector & Tabs (7 Cols) */}
-          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col overflow-y-auto max-h-[94vh]">
+          {/* Right Column: Garment Specs, Size Selector & Tabs (7 Cols on PC, smooth natural scroll on Mobile) */}
+          <div className="lg:col-span-7 p-4 sm:p-8 flex flex-col overflow-visible lg:overflow-y-auto max-h-none lg:max-h-[92vh]">
             
             {/* Category & SKU */}
             <div className="flex items-center justify-between text-xs text-neutral-400 font-semibold uppercase tracking-widest mb-1.5">

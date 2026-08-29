@@ -107,26 +107,27 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   }, [products, selectedCategory, searchQuery, inStockOnly, selectedSizeFilter, maxPrice, sortBy]);
 
   return (
-    <section id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <section id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-6 border-b border-neutral-200 gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-neutral-200 gap-4 sm:gap-6">
         <div>
-          <div className="flex items-center gap-2 text-neutral-400 text-xs font-semibold uppercase tracking-widest mb-1.5">
+          <div className="flex items-center gap-2 text-neutral-400 text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-1">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>Ready-to-Wear Atelier Capsule</span>
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl font-light tracking-wide text-neutral-950">
+          <h2 className="font-serif text-2xl sm:text-4xl font-light tracking-wide text-neutral-950">
             {selectedCategory === 'All' ? 'Complete Collection' : `${selectedCategory} Edition`}
           </h2>
         </div>
 
         {/* Category Pill Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-neutral-200/60 rounded-xl max-w-full overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-neutral-200/60 rounded-xl max-w-full overflow-x-auto no-scrollbar py-1.5">
           {categories.map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => handleCategorySelect(cat)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider transition-all whitespace-nowrap ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider transition-all whitespace-nowrap touch-manipulation cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-neutral-950 text-white shadow-sm font-semibold'
                   : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-200/80'

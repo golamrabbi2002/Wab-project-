@@ -1,6 +1,6 @@
 {
-  "name": "AURA Atelier - Modern Fashion E-Commerce",
-  "description": "Production-ready modern fashion e-commerce platform with dual-view architecture, Google Gemini conversational AI shopping concierge, live product catalog grounding, Firestore real-time persistence, zero-trust admin gateway, and SEO Google Search Console optimization.",
-  "requestFramePermissions": [],
+  "name": "Bismillah Collection - Luxury Fashion & Voice AI",
+  "description": "Production-ready modern fashion e-commerce platform with real-time Voice AI Shopping Assistant, storytelling sales engine, live product catalog grounding, Firestore real-time persistence, and instant order checkout.",
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
