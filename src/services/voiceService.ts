@@ -73,16 +73,17 @@ export class VoiceService {
       };
 
       this.recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed') {
+        const errType = event?.error;
+        // no-speech, aborted, and audio-capture are expected browser lifecycle events in live continuous voice mode
+        if (errType === 'no-speech' || errType === 'aborted') {
+          // Do not log or show error - let onend smoothly re-arm if active
+          return;
+        }
+
+        if (errType === 'not-allowed') {
           this.autoRestartOnEnd = false;
           this.isListeningNow = false;
-          onError('মাইক্রোফোন পারমিশন প্রয়োজন। ব্রাউজার বারে মাইক্রোফোন এলাও (Allow) করুন।');
-        } else if (event.error === 'no-speech') {
-          // Silent in live mode - will resume naturally
-          if (!this.autoRestartOnEnd) {
-            this.isListeningNow = false;
-          }
+          onError('মাইক্রোফোন পারমিশন এলাও (Allow) করুন। ব্রাউজারের অ্যাড্রেস বার থেকে মাইক পারমিশন অন করুন।');
         } else {
           if (!this.autoRestartOnEnd) {
             this.isListeningNow = false;

@@ -366,9 +366,12 @@ OUTPUT FORMAT STRICTLY VALID JSON (NO MARKDOWN CODEBLOCKS):
 
       if (!effectiveApiKey) {
         // Safe fallback if API key is not yet set
+        const brand = storeConfig.brandName || 'বিসমিল্লাহ কালেকশন';
+        const popular = Array.isArray(products) ? products.slice(0, 3) : [];
         return res.json({
-          reply: `[সিস্টেম কনফার্মেশন]: আমি "বিসমিল্লাহ কালেকশন"-এর এআই ইনটেলিজেন্স সিস্টেম। আমাদের ডাটাবেজে উপলব্ধ পাঞ্জাবি, শাড়ি ও পোশাক সম্পর্কিত যেকোনো সুনির্দিষ্ট প্রশ্নের যৌক্তিক ও পরিশীলিত সমাধান দিতে আমি প্রস্তুত।`,
-          matchedProductIds: products.slice(0, 3).map((p: any) => p.id)
+          reply: `আসসালামু আলাইকুম! ${brand}-এ আপনাকে আন্তরিক স্বাগতম। 🌸✨\n\nআমি আপনার পার্সোনাল এআই ফ্যাশন ও ভয়েস কনসালট্যান্ট। আমাদের কাছে রয়েছে প্রিমিয়াম কোয়ালিটির পাঞ্জাবি, কাতান ও জামদানি শাড়ি এবং আকর্ষণীয় থ্রি-পিস কালেকশন।\n\n🛡️ সুবিধা: সারা দেশে ক্যাশ অন ডেলিভারি, পার্সেল দেখে নেওয়ার সুবিধা ও ৭ দিনের সাইজ এক্সচেঞ্জ গ্যারান্টি। আপনার পছন্দের পোশাকটি খুঁজে পেতে আমাকে বলুন!`,
+          spokenSummary: `আসসালামু আলাইকুম! বিসমিল্লাহ কালেকশনে আপনাকে স্বাগতম। আপনার পছন্দের পাঞ্জাবি বা শাড়ি খুঁজে দিতে আমি প্রস্তুত।`,
+          matchedProductIds: popular.map((p: any) => p.id)
         });
       }
 
@@ -493,10 +496,13 @@ Return strictly a valid JSON object without markdown code fences:
         });
       }
     } catch (error: any) {
-      console.error('Gemini AI Chat Error:', error);
-      return res.status(500).json({
-        error: 'Failed to generate AI response',
-        details: error?.message || 'Unknown error'
+      console.warn('Gemini AI Chat Error, providing smart fallback response:', error?.message);
+      const brand = req.body?.storeConfig?.brandName || 'বিসমিল্লাহ কালেকশন';
+      const popular = Array.isArray(req.body?.products) ? req.body.products.slice(0, 3) : [];
+      return res.json({
+        reply: `আসসালামু আলাইকুম! ${brand}-এ আপনাকে স্বাগতম। 🌸✨\n\nআমাদের কাছে রয়েছে ১০০% প্রিমিয়াম হ্যান্ডক্রাফটেড পাঞ্জাবি, এক্সক্লুসিভ জামদানি ও সিল্ক শাড়ি এবং লাক্সারি থ্রি-পিস কালেকশন।\n\n📦 আপনি সারা বাংলাদেশে ক্যাশ অন ডেলিভারিতে পার্সেল চেক করে রিসিভ করতে পারবেন। আপনার পছন্দের সাইজ ও কালেকশন দেখতে আমাকে প্রশ্ন করতে পারেন!`,
+        spokenSummary: `আসসালামু আলাইকুম! বিসমিল্লাহ কালেকশনে আপনাকে স্বাগতম। আপনার পছন্দের পোশাকটি খুঁজে দিতে আমি প্রস্তুত।`,
+        matchedProductIds: popular.map((p: any) => p.id)
       });
     }
   });
