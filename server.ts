@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,15 +12,18 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '25mb' }));
 
-  // Initialize Gemini Client Lazily
-  let aiClient: GoogleGenAI | null = null;
-  function getAi(): GoogleGenAI | null {
-    if (!aiClient && process.env.GEMINI_API_KEY) {
-      aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    }
-    return aiClient;
+  // Helper to instantiate Gemini client with proper telemetry
+  function createGeminiClient(apiKey: string): GoogleGenAI {
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
   }
 
   // Health check endpoint
@@ -200,7 +204,7 @@ async function startServer() {
         });
       }
 
-      const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+      const ai = createGeminiClient(effectiveApiKey);
       const promptParts: any[] = [];
 
       // Add image parts if provided
@@ -375,7 +379,7 @@ OUTPUT FORMAT STRICTLY VALID JSON (NO MARKDOWN CODEBLOCKS):
         });
       }
 
-      const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+      const ai = createGeminiClient(effectiveApiKey);
 
       // Compact catalog summary for Gemini grounding
       const catalogSummary = Array.isArray(products)
@@ -523,11 +527,11 @@ Return strictly a valid JSON object without markdown code fences:
         return res.status(503).json({ error: 'No API key available for TTS, fallback to browser speech synthesis' });
       }
 
-      const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+      const ai = createGeminiClient(effectiveApiKey);
       const prompt = `Read the following with a warm, welcoming, respectful, and crystal-clear sales voice:\n\n${text.slice(0, 500)}`;
 
       const ttsResponse = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-tts-preview',
+        model: 'gemini-3.8-flash-lite-tts',
         contents: [{ parts: [{ text: prompt }] }],
         config: {
           responseModalities: ['AUDIO'],

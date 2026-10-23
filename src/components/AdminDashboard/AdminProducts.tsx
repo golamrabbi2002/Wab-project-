@@ -3,6 +3,7 @@ import { Product, StoreConfig } from '../../types';
 import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
 import { SecurityService } from '../../services/securityService';
 import { ImageOptimizer } from '../../utils/imageOptimizer';
+import { FirebaseStorageService } from '../../services/firebaseStorageService';
 import { SystemDoctorService } from '../../services/systemDoctorService';
 import { AiProductGeneratorService } from '../../services/aiProductGenerator';
 import {
@@ -132,7 +133,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     setIsModalOpen(true);
   };
 
-  // Direct Local Image Upload with Automatic High-Speed Optimization
+  // Direct Image Upload with Cloud Storage & Adaptive Optimization
   const handlePrimaryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -144,19 +145,25 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
 
     setIsCompressing(true);
     setImageError(null);
+    setCompressionStats('Uploading image to Google Firebase Storage...');
     try {
-      const optimized = await ImageOptimizer.optimizeFile(file, 1000, 0.8);
-      setImageBase64(optimized.base64);
+      const result = await FirebaseStorageService.uploadProductImage(file, sku || 'garment');
+      setImageBase64(result.url);
       setDriveImageUrl('');
-      const savedPercent = Math.round(((optimized.originalSizeKb - optimized.sizeKb) / Math.max(1, optimized.originalSizeKb)) * 100);
-      setCompressionStats(`✓ Optimized: ${optimized.originalSizeKb}KB → ${optimized.sizeKb}KB (${savedPercent}% saved)`);
-    } catch {
+      if (result.isCloudStorage) {
+        setCompressionStats(`✓ Google Firebase Cloud Storage এ সফলভাবে আপলোড হয়েছে! (${result.sizeKb}KB)`);
+      } else {
+        setCompressionStats(`✓ অপ্টিমাইজড ফ্যাশন ইমেজ প্রস্তুত! (${result.sizeKb}KB)`);
+      }
+    } catch (err: any) {
+      console.warn('Image upload fallback notice:', err);
       try {
-        const optimized = await ImageOptimizer.optimizeFile(file, 600, 0.7);
+        const optimized = await ImageOptimizer.optimizeFile(file, 800, 0.7);
         setImageBase64(optimized.base64);
         setDriveImageUrl('');
-      } catch (err: any) {
-        setImageError('ছবি অপটিমাইজ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে ছোট সাইজের ছবি আপলোড করুন।');
+        setCompressionStats(`✓ লোকাল অপটিমাইজড ইমেজ প্রস্তুত (${optimized.sizeKb}KB)`);
+      } catch (innerErr: any) {
+        setImageError('ছবি আপলোড ব্যর্থ হয়েছে। অনুগ্রহ করে ছবির সাইজ চেক করুন।');
       }
     } finally {
       setIsCompressing(false);
@@ -192,10 +199,15 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
     for (let i = 0; i < Math.min(files.length, 4); i++) {
       const file = files[i];
       try {
-        const opt = await ImageOptimizer.optimizeFile(file, 800, 0.75);
-        setAdditionalImages((prev) => [...prev.slice(0, 3), opt.base64]);
+        const result = await FirebaseStorageService.uploadProductImage(file, `${sku || 'gallery'}_${i}`);
+        setAdditionalImages((prev) => [...prev.slice(0, 3), result.url]);
       } catch (err) {
-        console.warn('Could not compress additional image', err);
+        try {
+          const opt = await ImageOptimizer.optimizeFile(file, 800, 0.75);
+          setAdditionalImages((prev) => [...prev.slice(0, 3), opt.base64]);
+        } catch {
+          console.warn('Could not compress additional image', err);
+        }
       }
     }
   };

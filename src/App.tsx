@@ -171,16 +171,16 @@ export const App: React.FC = () => {
     });
 
     const unsubProducts = FirestoreSyncService.subscribeProducts((cloudProducts) => {
-      const deletedIds = new Set(storageService.getDeletedProductIds());
-      const validCloudProducts = (cloudProducts || []).filter(p => p && p.id && !deletedIds.has(p.id));
-
-      if (validCloudProducts.length > 0) {
-        setProducts(validCloudProducts);
-        storageService.setProductsFromCloud(validCloudProducts);
-      } else if (cloudProducts && cloudProducts.length === 0) {
-        const localProducts = storageService.getProducts();
-        if (localProducts.length === 0) {
-          setProducts([]);
+      if (cloudProducts && Array.isArray(cloudProducts)) {
+        if (cloudProducts.length > 0) {
+          setProducts(cloudProducts);
+          storageService.setProductsFromCloud(cloudProducts);
+        } else {
+          // If Firestore collection is newly initializing
+          const localProducts = storageService.getProducts();
+          if (localProducts.length > 0) {
+            setProducts(localProducts);
+          }
         }
       }
     });

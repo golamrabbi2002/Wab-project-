@@ -87,25 +87,20 @@ function broadcastStorageEvent(eventName: string, detail?: any) {
   }
 }
 
-// Helper to deduplicate product items by unique ID and normalized title
+// Helper to deduplicate product items strictly by unique ID
 function deduplicateProducts(products: Product[]): Product[] {
   if (!Array.isArray(products)) return [];
   const seenIds = new Set<string>();
-  const seenTitles = new Set<string>();
   const result: Product[] = [];
 
   for (const p of products) {
     if (!p || !p.id) continue;
     const idKey = String(p.id).trim().toLowerCase();
-    const titleKey = String(p.title || '').trim().toLowerCase();
 
     // Skip if ID already present
     if (seenIds.has(idKey)) continue;
-    // Skip if non-empty title already present (prevents duplicates from seed or accidental re-saves)
-    if (titleKey && seenTitles.has(titleKey)) continue;
 
     seenIds.add(idKey);
-    if (titleKey) seenTitles.add(titleKey);
     result.push(p);
   }
   return result;

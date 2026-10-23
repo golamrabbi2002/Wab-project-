@@ -28,7 +28,7 @@ import { StoreConfig, Product, Order, Customer, Coupon } from '../types';
 import { initialStoreConfig, initialProducts } from '../data/initialData';
 
 // Initialize Firebase App instance safely
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
@@ -388,7 +388,7 @@ export class FirestoreSyncService {
     }
   }
 
-  // Real-time listener for Products with automatic deduplication
+  // Real-time listener for Products with unique ID deduplication
   static subscribeProducts(callback: (products: Product[]) => void): () => void {
     const productsRef = collection(db, PRODUCTS_COLLECTION);
     return onSnapshot(productsRef, (snapshot) => {
@@ -399,17 +399,13 @@ export class FirestoreSyncService {
           rawProducts.push(p);
         }
       });
-      // Filter duplicates by unique ID & normalized title
+      // Filter duplicates strictly by unique ID
       const seenIds = new Set<string>();
-      const seenTitles = new Set<string>();
       const uniqueProducts: Product[] = [];
       for (const p of rawProducts) {
         const idKey = String(p.id).trim().toLowerCase();
-        const titleKey = String(p.title || '').trim().toLowerCase();
         if (seenIds.has(idKey)) continue;
-        if (titleKey && seenTitles.has(titleKey)) continue;
         seenIds.add(idKey);
-        if (titleKey) seenTitles.add(titleKey);
         uniqueProducts.push(p);
       }
       callback(uniqueProducts);
@@ -447,6 +443,7 @@ export class FirestoreSyncService {
   // Save or update a single product
   static async saveProduct(product: Product): Promise<void> {
     try {
+      await ensureFirebaseAuth();
       const sanitized = this.sanitizeProductPayload(product);
       const productRef = doc(db, PRODUCTS_COLLECTION, sanitized.id);
       await setDoc(productRef, sanitized, { merge: true });

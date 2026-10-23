@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Product, StoreConfig } from '../../types';
 import { AiProductGeneratorService, AiGeneratedProductDraft } from '../../services/aiProductGenerator';
 import { ImageOptimizer } from '../../utils/imageOptimizer';
+import { FirebaseStorageService } from '../../services/firebaseStorageService';
 import { GoogleDriveSheetService } from '../../services/googleDriveSheetService';
 import {
   Sparkles,
@@ -81,11 +82,11 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
         const file = files[i];
         if (!file.type.startsWith('image/')) continue;
         try {
-          const opt = await ImageOptimizer.optimizeFile(file, 1000, 0.8);
-          newImages.push(opt.base64);
+          const result = await FirebaseStorageService.uploadProductImage(file, 'ai_garment');
+          newImages.push(result.url);
         } catch {
           try {
-            const opt = await ImageOptimizer.optimizeFile(file, 600, 0.7);
+            const opt = await ImageOptimizer.optimizeFile(file, 800, 0.7);
             newImages.push(opt.base64);
           } catch (err) {
             console.warn('Image optimization error in AI product creator', err);
@@ -94,6 +95,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
       }
       if (newImages.length > 0) {
         setUploadedImages((prev) => [...prev, ...newImages]);
+        showToast('✓ ছবি Firebase Cloud Storage-এ আপলোড সম্পন্ন হয়েছে');
       }
     } finally {
       setIsCompressing(false);
