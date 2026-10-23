@@ -19,8 +19,8 @@ export const ImageOptimizer = {
    */
   async optimizeFile(
     file: File | Blob,
-    maxDimension = 1000,
-    quality = 0.8
+    maxDimension = 1800,
+    quality = 0.88
   ): Promise<OptimizedImageResult> {
     const originalSizeKb = Math.round(file.size / 1024);
 
@@ -40,7 +40,7 @@ export const ImageOptimizer = {
             let width = img.width;
             let height = img.height;
 
-            // Maintain aspect ratio while scaling to maxDimension
+            // Maintain aspect ratio while allowing up to 1800px for crystal-clear HD display
             if (width > maxDimension || height > maxDimension) {
               if (width > height) {
                 height = Math.round((height * maxDimension) / width);
@@ -67,44 +67,21 @@ export const ImageOptimizer = {
               return;
             }
 
-            // High-quality rendering
+            // High-quality bicubic rendering
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Attempt WebP first, fallback to JPEG
+            // Export to modern WebP with high-fidelity quality
             let format: 'image/webp' | 'image/jpeg' = 'image/webp';
-            let currentQuality = quality;
-            let optimizedBase64 = canvas.toDataURL(format, currentQuality);
+            let optimizedBase64 = canvas.toDataURL(format, quality);
 
             if (optimizedBase64.startsWith('data:image/png')) {
               format = 'image/jpeg';
-              optimizedBase64 = canvas.toDataURL(format, currentQuality);
+              optimizedBase64 = canvas.toDataURL(format, quality);
             }
 
-            let sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
-
-            // Adaptive compression if image is still large (> 120KB)
-            if (sizeKb > 120) {
-              currentQuality = 0.65;
-              optimizedBase64 = canvas.toDataURL(format, currentQuality);
-              sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
-            }
-
-            if (sizeKb > 150) {
-              // Further scale down if necessary
-              const scaleDownCanvas = document.createElement('canvas');
-              scaleDownCanvas.width = Math.round(width * 0.75);
-              scaleDownCanvas.height = Math.round(height * 0.75);
-              const scaleCtx = scaleDownCanvas.getContext('2d');
-              if (scaleCtx) {
-                scaleCtx.drawImage(canvas, 0, 0, scaleDownCanvas.width, scaleDownCanvas.height);
-                optimizedBase64 = scaleDownCanvas.toDataURL(format, 0.65);
-                sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
-                width = scaleDownCanvas.width;
-                height = scaleDownCanvas.height;
-              }
-            }
+            const sizeKb = Math.round((optimizedBase64.length * (3 / 4)) / 1024);
 
             resolve({
               base64: optimizedBase64,
@@ -136,8 +113,8 @@ export const ImageOptimizer = {
    */
   async optimizeBase64(
     base64String: string,
-    maxDimension = 1000,
-    quality = 0.8
+    maxDimension = 1800,
+    quality = 0.88
   ): Promise<OptimizedImageResult> {
     if (!base64String || !base64String.startsWith('data:image/')) {
       // If it's a web URL (http/https), return as-is
@@ -145,8 +122,8 @@ export const ImageOptimizer = {
         base64: base64String || '',
         sizeKb: Math.round((base64String || '').length / 1024),
         originalSizeKb: Math.round((base64String || '').length / 1024),
-        width: 800,
-        height: 800,
+        width: 1200,
+        height: 1200,
         format: 'image/jpeg'
       };
     }

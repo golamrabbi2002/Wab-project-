@@ -86,7 +86,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
           newImages.push(result.url);
         } catch {
           try {
-            const opt = await ImageOptimizer.optimizeFile(file, 800, 0.7);
+            const opt = await ImageOptimizer.optimizeFile(file, 1600, 0.85);
             newImages.push(opt.base64);
           } catch (err) {
             console.warn('Image optimization error in AI product creator', err);
@@ -95,7 +95,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
       }
       if (newImages.length > 0) {
         setUploadedImages((prev) => [...prev, ...newImages]);
-        showToast('✓ ছবি Firebase Cloud Storage-এ আপলোড সম্পন্ন হয়েছে');
+        showToast('✓ ছবি ক্লাউড স্টোরেজে সফলভাবে আপলোড সম্পন্ন হয়েছে (Full HD)');
       }
     } finally {
       setIsCompressing(false);
@@ -107,6 +107,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
     const formatted = GoogleDriveSheetService.formatGoogleDriveImageUrl(driveUrlInput.trim());
     setUploadedImages((prev) => [...prev, formatted]);
     setDriveUrlInput('');
+    showToast('✓ গুগল ড্রাইভ আনব্লকড হাই-স্পিড লিংক যুক্ত হয়েছে');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -157,7 +158,13 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
         selectedCategory !== 'Auto' ? selectedCategory : undefined
       );
 
-      setLatestDraft(draft);
+      const enrichedDraft = {
+        ...draft,
+        image: userImages[0] || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop',
+        additionalImages: userImages.length > 1 ? userImages.slice(1) : []
+      };
+
+      setLatestDraft(enrichedDraft as any);
 
       // Append AI response
       setChatHistory((prev) => [
@@ -165,8 +172,8 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
         {
           id: `ai-${Date.now()}`,
           sender: 'ai',
-          text: `✨ আপনার পোশাকের যাবতীয় তথ্য সম্পন্ন হয়েছে!\n\n**${draft.title}** (${draft.category})\n- বিক্রয় মূল্য: ৳${draft.price} (মূল মূল্য: ৳${draft.originalPrice})\n- কোড (SKU): ${draft.sku}\n- সাইজ: ${draft.sizes.join(', ')}\n\nনিচের **"পাবলিশ করুন"** বাটনে ক্লিক করলেই সরাসরি স্টোরে যুক্ত হয়ে যাবে।`,
-          generatedDraft: draft,
+          text: `✨ Gemini 3.8 Flash দ্বারা আপনার পোশাকের যাবতীয় তথ্য সম্পন্ন হয়েছে!\n\n**${draft.title}** (${draft.category})\n- বিক্রয় মূল্য: ৳${draft.price} (মূল মূল্য: ৳${draft.originalPrice})\n- কোড (SKU): ${draft.sku}\n- সাইজ: ${draft.sizes.join(', ')}\n\nনিচের **"পাবলিশ করুন"** বাটনে ক্লিক করলেই সরাসরি স্টোরে যুক্ত হয়ে যাবে।`,
+          generatedDraft: enrichedDraft as any,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -187,6 +194,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
 
   const handlePublishDraft = (draft: AiGeneratedProductDraft, customImage?: string) => {
     const primaryImg = customImage || (draft as any).image || (uploadedImages[0] || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop');
+    const extraImages = (draft as any).additionalImages || (uploadedImages.length > 1 ? uploadedImages.slice(1) : []);
     
     const newProd: Product = {
       id: `prod-${Date.now()}`,
@@ -196,7 +204,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
       price: draft.price,
       originalPrice: draft.originalPrice,
       image: primaryImg,
-      additionalImages: uploadedImages.length > 1 ? uploadedImages.slice(1) : [],
+      additionalImages: extraImages,
       sizes: draft.sizes,
       stock: draft.stock,
       sku: draft.sku,
@@ -246,7 +254,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
                 <h3 className="font-serif font-bold text-sm text-white flex items-center gap-2">
                   <span>AI Product Auto-Writer & Chatbot</span>
                   <span className="px-2 py-0.5 bg-amber-400 text-neutral-950 text-[9px] font-mono font-bold rounded-full uppercase">
-                    Admin Gemini Copilot
+                    Gemini 3.8 Flash AI Copilot
                   </span>
                 </h3>
                 <p className="text-[11px] text-neutral-400">

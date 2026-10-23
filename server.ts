@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
@@ -13,6 +14,18 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json({ limit: '25mb' }));
+
+  // Ensure persistent public upload directory exists
+  const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads', 'products');
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+
+  // Serve uploads statically with high-performance caching
+  app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads'), {
+    maxAge: '7d',
+    immutable: true
+  }));
 
   // Helper to instantiate Gemini client with proper telemetry
   function createGeminiClient(apiKey: string): GoogleGenAI {
@@ -29,6 +42,57 @@ async function startServer() {
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
+  });
+
+  // Dedicated High-Resolution Image Cloud Upload Endpoint (for Phone & PC)
+  app.post('/api/upload/image', async (req, res) => {
+    try {
+      const { image, filename } = req.body;
+      if (!image || typeof image !== 'string') {
+        return res.status(400).json({ error: 'No image data provided' });
+      }
+
+      // If already a hosted URL, return as-is
+      if (image.startsWith('http://') || image.startsWith('https://')) {
+        return res.json({ success: true, url: image, sizeKb: 0 });
+      }
+
+      const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (!matches || !matches[1] || !matches[2]) {
+        return res.status(400).json({ error: 'Invalid Base64 Data URL format' });
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      let ext = 'webp';
+      if (mimeType.includes('png')) ext = 'png';
+      else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+      else if (mimeType.includes('gif')) ext = 'gif';
+      else if (mimeType.includes('svg')) ext = 'svg';
+
+      const prefix = (filename || 'prod').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+      const uniqueFilename = `${prefix}_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}.${ext}`;
+      const targetFilePath = path.join(UPLOADS_DIR, uniqueFilename);
+
+      await fs.promises.writeFile(targetFilePath, buffer);
+
+      const publicUrl = `/uploads/products/${uniqueFilename}`;
+      const sizeKb = Math.round(buffer.length / 1024);
+
+      console.log(`[Upload Cloud] Saved high-res image: ${publicUrl} (${sizeKb} KB)`);
+
+      return res.json({
+        success: true,
+        url: publicUrl,
+        sizeKb,
+        mimeType
+      });
+    } catch (uploadErr: any) {
+      console.error('Image Cloud Upload Error:', uploadErr);
+      return res.status(500).json({ error: uploadErr?.message || 'Failed to save uploaded image' });
+    }
   });
 
   // --- Intelligent Garment Classification Engine ---
@@ -207,18 +271,37 @@ async function startServer() {
       const ai = createGeminiClient(effectiveApiKey);
       const promptParts: any[] = [];
 
-      // Add image parts if provided
+      // Add image parts if provided (supports Base64 and local uploaded files)
       if (Array.isArray(images) && images.length > 0) {
         images.slice(0, 3).forEach((imgStr: string) => {
-          if (typeof imgStr === 'string' && imgStr.startsWith('data:image/')) {
-            const matches = imgStr.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-            if (matches && matches[1] && matches[2]) {
-              promptParts.push({
-                inlineData: {
-                  mimeType: matches[1],
-                  data: matches[2]
+          if (typeof imgStr === 'string') {
+            if (imgStr.startsWith('data:image/')) {
+              const matches = imgStr.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+              if (matches && matches[1] && matches[2]) {
+                promptParts.push({
+                  inlineData: {
+                    mimeType: matches[1],
+                    data: matches[2]
+                  }
+                });
+              }
+            } else if (imgStr.startsWith('/uploads/')) {
+              try {
+                const localPath = path.join(process.cwd(), 'public', imgStr);
+                if (fs.existsSync(localPath)) {
+                  const buffer = fs.readFileSync(localPath);
+                  const ext = path.extname(localPath).toLowerCase().replace('.', '');
+                  const mime = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/webp';
+                  promptParts.push({
+                    inlineData: {
+                      mimeType: mime,
+                      data: buffer.toString('base64')
+                    }
+                  });
                 }
-              });
+              } catch (readErr) {
+                console.warn('Could not read local uploaded image for AI inspection:', readErr);
+              }
             }
           }
         });
@@ -281,7 +364,7 @@ OUTPUT FORMAT STRICTLY VALID JSON (NO MARKDOWN CODEBLOCKS):
       });
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [
           {
             role: 'user',

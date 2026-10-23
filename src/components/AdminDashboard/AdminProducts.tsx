@@ -145,23 +145,23 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
 
     setIsCompressing(true);
     setImageError(null);
-    setCompressionStats('Uploading image to Google Firebase Storage...');
+    setCompressionStats('Uploading Full-HD image to Cloud Storage...');
     try {
       const result = await FirebaseStorageService.uploadProductImage(file, sku || 'garment');
       setImageBase64(result.url);
       setDriveImageUrl('');
       if (result.isCloudStorage) {
-        setCompressionStats(`✓ Google Firebase Cloud Storage এ সফলভাবে আপলোড হয়েছে! (${result.sizeKb}KB)`);
+        setCompressionStats(`✓ ফুল হাই-কোয়ালিটি ইমেজ ক্লাউডে সেভ হয়েছে! (${result.sizeKb}KB HD WebP)`);
       } else {
-        setCompressionStats(`✓ অপ্টিমাইজড ফ্যাশন ইমেজ প্রস্তুত! (${result.sizeKb}KB)`);
+        setCompressionStats(`✓ অপ্টিমাইজড হাই-কোয়ালিটি ইমেজ প্রস্তুত! (${result.sizeKb}KB)`);
       }
     } catch (err: any) {
       console.warn('Image upload fallback notice:', err);
       try {
-        const optimized = await ImageOptimizer.optimizeFile(file, 800, 0.7);
+        const optimized = await ImageOptimizer.optimizeFile(file, 1600, 0.85);
         setImageBase64(optimized.base64);
         setDriveImageUrl('');
-        setCompressionStats(`✓ লোকাল অপটিমাইজড ইমেজ প্রস্তুত (${optimized.sizeKb}KB)`);
+        setCompressionStats(`✓ হাই-কোয়ালিটি ইমেজ প্রস্তুত (${optimized.sizeKb}KB)`);
       } catch (innerErr: any) {
         setImageError('ছবি আপলোড ব্যর্থ হয়েছে। অনুগ্রহ করে ছবির সাইজ চেক করুন।');
       }
@@ -177,7 +177,11 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
       const formatted = GoogleDriveSheetService.formatGoogleDriveImageUrl(url.trim());
       setImageBase64(formatted);
       setImageError(null);
-      setCompressionStats(null);
+      if (url.includes('drive.google.com') || url.includes('lh3.googleusercontent.com')) {
+        setCompressionStats('✓ গুগল ড্রাইভ আনব্লকড হাই-স্পিড CDN লিংক রূপান্তর সম্পন্ন!');
+      } else {
+        setCompressionStats(null);
+      }
     }
   };
 
@@ -678,7 +682,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                   <div className="flex-1 space-y-3 w-full">
                     <div>
                       <span className="text-[11px] text-neutral-300 font-semibold block mb-1">
-                        Option 1: Upload from Phone / PC (Auto-Compresses &lt;100KB)
+                        Option 1: Upload from Phone / PC (Full HD Cloud Upload)
                       </span>
                       <input
                         type="file"
@@ -695,7 +699,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                     <div className="border-t border-neutral-800 pt-2">
                       <span className="text-[11px] text-blue-300 font-semibold block mb-1 flex items-center gap-1.5">
                         <HardDrive className="w-3.5 h-3.5" />
-                        <span>Option 2: Google Drive / Web Image URL</span>
+                        <span>Option 2: Google Drive / Web Image URL (Auto Unblocked CDN)</span>
                       </span>
                       <input
                         type="text"

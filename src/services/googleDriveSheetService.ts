@@ -93,17 +93,71 @@ export class GoogleDriveSheetService {
   }
 
   /**
-   * Convert Google Drive shareable link to direct embedding image link
-   * Converts: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-   * Into: https://drive.google.com/uc?export=view&id=FILE_ID
+   * Extract unique File ID from any Google Drive link format:
+   * - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+   * - https://drive.google.com/open?id=FILE_ID
+   * - https://drive.google.com/uc?id=FILE_ID
+   * - https://docs.google.com/uc?id=FILE_ID
+   * - https://lh3.googleusercontent.com/d/FILE_ID
+   */
+  static extractGoogleDriveFileId(url: string): string | null {
+    if (!url) return null;
+    const trimmed = url.trim();
+
+    // Pattern 1: /file/d/{id}
+    const matchFileD = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchFileD && matchFileD[1]) return matchFileD[1];
+
+    // Pattern 2: ?id={id} or &id={id}
+    const matchIdParam = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (matchIdParam && matchIdParam[1]) return matchIdParam[1];
+
+    // Pattern 3: lh3.googleusercontent.com/d/{id}
+    const matchLh3 = trimmed.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchLh3 && matchLh3[1]) return matchLh3[1];
+
+    // Pattern 4: /thumbnail?id={id}
+    const matchThumb = trimmed.match(/\/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+    if (matchThumb && matchThumb[1]) return matchThumb[1];
+
+    // Pattern 5: Direct raw File ID (25 to 50 alphanumeric characters)
+    if (/^[a-zA-Z0-9_-]{25,50}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    return null;
+  }
+
+  /**
+   * Convert Google Drive shareable link to modern unblocked direct Google CDN URL.
+   * Avoids deprecated uc?export=view (which returns 403 Forbidden on web embeds)
+   * and provides instant, high-speed public display.
    */
   static formatGoogleDriveImageUrl(url: string): string {
     if (!url) return url;
-    if (url.includes('drive.google.com/file/d/')) {
-      const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-      }
+    const trimmed = url.trim();
+
+    // If already direct lh3 Google CDN link, return as-is
+    if (trimmed.startsWith('https://lh3.googleusercontent.com/d/')) {
+      return trimmed;
+    }
+
+    const fileId = this.extractGoogleDriveFileId(trimmed);
+    if (fileId) {
+      // Unblocked direct Google CDN endpoint for public images
+      return `https://lh3.googleusercontent.com/d/${fileId}`;
+    }
+
+    return trimmed;
+  }
+
+  /**
+   * High-definition thumbnail endpoint alternative (up to 1600px width)
+   */
+  static getGoogleDriveThumbnailUrl(url: string, size = 1600): string {
+    const fileId = this.extractGoogleDriveFileId(url);
+    if (fileId) {
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
     }
     return url;
   }
