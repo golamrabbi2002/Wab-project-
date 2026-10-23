@@ -648,6 +648,7 @@ export const App: React.FC = () => {
           onSaveCoupon={handleSaveCoupon}
           onDeleteCoupon={handleDeleteCoupon}
           onRefreshData={loadState}
+          showToast={showToast}
         />
 
         {/* Global Floating Toast */}

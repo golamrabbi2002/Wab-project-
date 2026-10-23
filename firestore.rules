@@ -48,7 +48,18 @@ service cloud.firestore {
     // Products: Public read for browsing, inventory and product catalog management
     match /products/{productId} {
       allow read, write: if true;
+
+      // Nested Product Reviews: Public read & creation
+      match /reviews/{reviewId} {
+        allow read, write: if true;
+      }
     }
+
+    // Reviews: Top-level Public customer reviews (read and submit)
+    match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
 
     // Orders: Order placement, tracking by order ID, and order updates
     match /orders/{orderId} {

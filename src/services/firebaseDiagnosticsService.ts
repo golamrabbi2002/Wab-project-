@@ -247,7 +247,7 @@ class FirebaseDiagnosticsService {
   }
 
   public async probeCollection(
-    name: 'store' | 'products' | 'orders' | 'customers' | 'threat_logs'
+    name: 'store' | 'products' | 'orders' | 'customers' | 'threat_logs' | 'reviews'
   ): Promise<CollectionProbeResult> {
     const probeDocId = `_diagnostics_probe_${Date.now()}`;
     const result: CollectionProbeResult = {
@@ -322,11 +322,12 @@ class FirebaseDiagnosticsService {
       await ensureFirebaseAuth();
       const authInfo = await this.getAuthInfo();
 
-      const collectionsToTest: ('store' | 'products' | 'orders' | 'customers' | 'threat_logs')[] = [
+      const collectionsToTest: ('store' | 'products' | 'orders' | 'customers' | 'threat_logs' | 'reviews')[] = [
         'store',
         'products',
         'orders',
         'customers',
+        'reviews',
         'threat_logs'
       ];
 

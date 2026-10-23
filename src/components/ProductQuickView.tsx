@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { Product, StoreConfig } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Product, StoreConfig, Review } from '../types';
 import { 
   X, Heart, ShoppingBag, Star, Check, ShieldCheck, Truck, RefreshCw, 
-  Sparkles, Ruler, ZoomIn, MessageSquare, Plus, CheckCircle2, User, Send 
+  Sparkles, Ruler, ZoomIn, MessageSquare, Plus, CheckCircle2, User, Send, Loader2
 } from 'lucide-react';
 import { SizeGuideModal } from './SizeGuideModal';
+import { FirestoreSyncService } from '../services/firestoreService';
 
 interface ProductQuickViewProps {
   product: Product | null;
@@ -43,20 +44,51 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
   const [userRating, setUserRating] = useState(5);
   const [reviewerName, setReviewerName] = useState('');
   const [reviewComment, setReviewComment] = useState('');
-  const [reviewsList, setReviewsList] = useState<Array<{ name: string; rating: number; date: string; comment: string; verified: boolean }>>([
-    { name: 'Farhan Rahman', rating: 5, date: '2 days ago', comment: 'Exceptional craftsmanship. The weave of the fabric is breathable, luxuriously soft, and fits true to size.', verified: true },
-    { name: 'Nusrat Jahan', rating: 5, date: '1 week ago', comment: 'The drape and silhouette are stunning! Packaging felt like a true Paris/Dhaka luxury atelier.', verified: true },
-  ]);
+  const [cloudReviews, setCloudReviews] = useState<Review[]>([]);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewSuccessMessage, setReviewSuccessMessage] = useState('');
+
+  // Sample seed reviews if none in cloud yet
+  const sampleInitialReviews: Review[] = [
+    {
+      id: 'seed-1',
+      productId: product?.id || '',
+      author: 'Farhan Rahman',
+      rating: 5,
+      date: '2 days ago',
+      comment: 'Exceptional craftsmanship. The weave of the fabric is breathable, luxuriously soft, and fits true to size.',
+      verifiedPurchase: true
+    },
+    {
+      id: 'seed-2',
+      productId: product?.id || '',
+      author: 'Nusrat Jahan',
+      rating: 5,
+      date: '1 week ago',
+      comment: 'The drape and silhouette are stunning! Packaging felt like a true Paris/Dhaka luxury atelier.',
+      verifiedPurchase: true
+    }
+  ];
+
+  // Subscribe to real-time Cloud Firestore reviews whenever product modal opens
+  useEffect(() => {
+    if (!product || !isOpen) return;
+    const unsub = FirestoreSyncService.subscribeProductReviews(product.id, (reviews) => {
+      setCloudReviews(reviews);
+    });
+    return () => unsub();
+  }, [product?.id, isOpen]);
 
   // Sync state if product changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (product) {
       setActiveImage(product.image);
       setSelectedSize(product.sizes?.[0] || 'M');
       setQuantity(1);
       setActiveTab('details');
       setReviewSubmitted(false);
+      setReviewSuccessMessage('');
     }
   }, [product]);
 
@@ -83,21 +115,43 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
     }, 1000);
   };
 
-  const handleAddReview = (e: React.FormEvent) => {
+  const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewerName || !reviewComment) return;
-    const newRev = {
-      name: reviewerName,
+    if (!reviewerName.trim() || !reviewComment.trim() || isSubmittingReview) return;
+    setIsSubmittingReview(true);
+    setReviewSuccessMessage('');
+
+    const newRev: Review = {
+      id: `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      productId: product.id,
+      author: reviewerName.trim(),
       rating: userRating,
       date: 'Just now',
-      comment: reviewComment,
-      verified: true,
+      comment: reviewComment.trim(),
+      verifiedPurchase: true,
     };
-    setReviewsList([newRev, ...reviewsList]);
-    setReviewerName('');
-    setReviewComment('');
-    setReviewSubmitted(true);
+
+    try {
+      await FirestoreSyncService.saveReview(newRev);
+      setReviewerName('');
+      setReviewComment('');
+      setReviewSubmitted(true);
+      setReviewSuccessMessage('ধন্যবাদ! আপনার রিভিউ গুগল ফায়ারবেস ক্লাউডে সংরক্ষিত হয়েছে এবং তাৎক্ষণিক পাবলিশ হয়েছে।');
+      setTimeout(() => setReviewSubmitted(false), 5000);
+    } catch (err) {
+      console.warn('Error saving review to Firestore:', err);
+      // Fallback in memory
+      setCloudReviews((prev) => [newRev, ...prev]);
+      setReviewSubmitted(true);
+      setReviewSuccessMessage('আপনার রিভিউ যোগ করা হয়েছে!');
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
+
+  const activeReviewsList = cloudReviews.length > 0 ? cloudReviews : sampleInitialReviews;
+  const totalReviewsCount = cloudReviews.length > 0 ? cloudReviews.length : (product.reviewsCount || sampleInitialReviews.length);
+
 
   // Curate Complete The Look Pairing
   const relatedPairings = allProducts
@@ -225,8 +279,9 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                 onClick={() => setActiveTab('reviews')}
                 className="text-xs text-neutral-500 underline hover:text-neutral-900 transition-colors"
               >
-                ({reviewsList.length + product.reviewsCount} verified reviews)
+                ({totalReviewsCount} verified reviews)
               </button>
+
             </div>
 
             {/* Price */}
@@ -424,7 +479,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                     activeTab === 'reviews' ? 'border-b-2 border-neutral-950 text-neutral-950' : 'text-neutral-400 hover:text-neutral-700'
                   }`}
                 >
-                  Reviews ({reviewsList.length + product.reviewsCount})
+                  Reviews ({totalReviewsCount})
                 </button>
               </div>
 
@@ -458,7 +513,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                           type="text"
                           value={reviewerName}
                           onChange={(e) => setReviewerName(e.target.value)}
-                          placeholder="Your Name (e.g. Shakib A.)"
+                          placeholder="Your Name (যেমন: তানভীর আহমেদ)"
                           required
                           className="w-full p-2 bg-white border border-neutral-300 rounded-lg text-xs"
                         />
@@ -466,37 +521,51 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                           type="text"
                           value={reviewComment}
                           onChange={(e) => setReviewComment(e.target.value)}
-                          placeholder="How did this garment feel and drape?"
+                          placeholder="পোশাকটির ফেব্রিক, বুনন ও ফিটিং কেমন লেগেছে?"
                           required
                           className="w-full p-2 bg-white border border-neutral-300 rounded-lg text-xs"
                         />
                       </div>
 
-                      <div className="flex justify-end">
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[10px] text-neutral-400 font-mono">
+                          ⚡ Firebase Cloud Real-time Synced
+                        </span>
                         <button
                           type="submit"
-                          className="px-3 py-1.5 bg-neutral-950 hover:bg-neutral-800 text-white rounded-lg text-xs font-bold transition-all"
+                          disabled={isSubmittingReview}
+                          className="px-3.5 py-1.5 bg-neutral-950 hover:bg-neutral-800 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
                         >
-                          Submit Review
+                          {isSubmittingReview ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>পোস্টিং হচ্ছে...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Submit Review</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </form>
 
                     {reviewSubmitted && (
-                      <div className="p-2 bg-emerald-50 text-emerald-800 text-xs rounded-lg flex items-center gap-2">
-                        <Check className="w-4 h-4 text-emerald-600" />
-                        <span>Thank you! Your verified rating has been recorded.</span>
+                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2 animate-fadeIn">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{reviewSuccessMessage || 'Thank you! Your verified rating has been recorded in Cloud Firestore.'}</span>
                       </div>
                     )}
 
                     {/* Reviews List */}
                     <div className="space-y-3 pt-2">
-                      {reviewsList.map((rev, i) => (
-                        <div key={i} className="p-3 bg-white rounded-xl border border-neutral-100 shadow-sm space-y-1">
+                      {activeReviewsList.map((rev, i) => (
+                        <div key={rev.id || i} className="p-3 bg-white rounded-xl border border-neutral-100 shadow-sm space-y-1">
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-neutral-900">{rev.name}</span>
-                              {rev.verified && (
+                              <span className="font-bold text-neutral-900">{rev.author}</span>
+                              {rev.verifiedPurchase && (
                                 <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">
                                   Verified
                                 </span>

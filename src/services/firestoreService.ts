@@ -24,7 +24,7 @@ import {
   orderBy
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { StoreConfig, Product, Order, Customer, Coupon } from '../types';
+import { StoreConfig, Product, Order, Customer, Coupon, Review } from '../types';
 import { initialStoreConfig, initialProducts } from '../data/initialData';
 
 // Initialize Firebase App instance safely
@@ -154,6 +154,7 @@ const ORDERS_COLLECTION = 'orders';
 const CUSTOMERS_COLLECTION = 'customers';
 const COUPONS_COLLECTION = 'coupons';
 const THREAT_LOGS_COLLECTION = 'threat_logs';
+const REVIEWS_COLLECTION = 'reviews';
 
 export class FirestoreSyncService {
   private static isInitialized = false;
@@ -611,4 +612,93 @@ export class FirestoreSyncService {
       handleFirestoreError(error, OperationType.WRITE, `${THREAT_LOGS_COLLECTION}/${log.id}`);
     }
   }
+
+  // --- Real-time Public Customer Reviews ---
+
+  // Real-time listener for Reviews of a specific product
+  static subscribeProductReviews(productId: string, callback: (reviews: Review[]) => void): () => void {
+    const reviewsRef = collection(db, REVIEWS_COLLECTION);
+    return onSnapshot(reviewsRef, (snapshot) => {
+      const reviews: Review[] = [];
+      snapshot.forEach((d) => {
+        const rev = d.data() as Review;
+        if (rev && rev.productId === productId) {
+          reviews.push(rev);
+        }
+      });
+      // Sort newest first
+      reviews.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+      callback(reviews);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, REVIEWS_COLLECTION);
+    });
+  }
+
+  // Real-time listener for All Reviews across the store (Admin Console & aggregates)
+  static subscribeAllReviews(callback: (reviews: Review[]) => void): () => void {
+    const reviewsRef = collection(db, REVIEWS_COLLECTION);
+    return onSnapshot(reviewsRef, (snapshot) => {
+      const reviews: Review[] = [];
+      snapshot.forEach((d) => {
+        const rev = d.data() as Review;
+        if (rev && rev.id) {
+          reviews.push(rev);
+        }
+      });
+      reviews.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+      callback(reviews);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, REVIEWS_COLLECTION);
+    });
+  }
+
+  // Save new Public Customer Review and update product aggregate rating
+  static async saveReview(review: Review): Promise<void> {
+    try {
+      await ensureFirebaseAuth();
+      const reviewRef = doc(db, REVIEWS_COLLECTION, review.id);
+      await setDoc(reviewRef, {
+        ...review,
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+
+      // Automatically update the parent product's reviewsCount and average rating in Cloud Firestore
+      if (review.productId) {
+        try {
+          const productRef = doc(db, PRODUCTS_COLLECTION, review.productId);
+          const pSnap = await getDoc(productRef);
+          if (pSnap.exists()) {
+            const pData = pSnap.data() as Product;
+            const currentCount = Number(pData.reviewsCount) || 0;
+            const currentRating = Number(pData.rating) || 5.0;
+            const newCount = currentCount + 1;
+            const newRating = Number(((currentRating * currentCount + review.rating) / newCount).toFixed(1));
+            await updateDoc(productRef, {
+              reviewsCount: newCount,
+              rating: newRating,
+              updatedAt: new Date().toISOString()
+            });
+          }
+        } catch (pErr) {
+          console.warn('Product rating auto-update note:', pErr);
+        }
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `${REVIEWS_COLLECTION}/${review.id}`);
+      throw error;
+    }
+  }
+
+  // Delete review (Admin moderation)
+  static async deleteReview(reviewId: string): Promise<void> {
+    try {
+      await ensureFirebaseAuth();
+      const reviewRef = doc(db, REVIEWS_COLLECTION, reviewId);
+      await deleteDoc(reviewRef);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `${REVIEWS_COLLECTION}/${reviewId}`);
+      throw error;
+    }
+  }
 }
+

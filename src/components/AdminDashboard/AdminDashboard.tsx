@@ -11,6 +11,7 @@ import { AdminThreatMap } from './AdminThreatMap';
 import { AdminAiProductCreator } from './AdminAiProductCreator';
 import { AdminSystemDoctor } from './AdminSystemDoctor';
 import { AdminFirebaseDiagnostics } from './AdminFirebaseDiagnostics';
+import { AdminReviews } from './AdminReviews';
 import {
   LayoutDashboard,
   Package,
@@ -29,7 +30,8 @@ import {
   ShieldAlert,
   Wrench,
   Code2,
-  Database
+  Database,
+  MessageSquare
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -48,6 +50,7 @@ interface AdminDashboardProps {
   onSaveCoupon: (coupon: Coupon) => void;
   onDeleteCoupon: (id: string) => void;
   onRefreshData: () => void;
+  showToast?: (msg: string, type?: 'success' | 'info') => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -66,9 +69,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onSaveCoupon,
   onDeleteCoupon,
   onRefreshData,
+  showToast,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'ai_creator' | 'products' | 'orders' | 'customers' | 'doctor' | 'firebase_debug' | 'settings' | 'coupons' | 'export' | 'threat_map'
+    'analytics' | 'ai_creator' | 'products' | 'orders' | 'customers' | 'reviews' | 'doctor' | 'firebase_debug' | 'settings' | 'coupons' | 'export' | 'threat_map'
   >('analytics');
 
   const pendingOrdersCount = orders.filter((o) => o.status === 'Pending' || o.status === 'Processing').length;
@@ -194,6 +198,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('reviews')}
+            className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === 'reviews'
+                ? 'border-amber-400 text-amber-400 bg-neutral-900/50'
+                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Customer Reviews</span>
+            <span className="px-1.5 py-0.2 bg-amber-400/20 border border-amber-500/40 text-amber-300 rounded-full text-[9px] font-bold font-mono">
+              CLOUD
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('doctor')}
             className={`py-3.5 px-4 flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'doctor'
@@ -312,6 +331,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             products={products}
             config={config}
             onSaveCustomer={onSaveCustomer}
+          />
+        )}
+
+        {activeTab === 'reviews' && (
+          <AdminReviews
+            products={products}
+            showToast={showToast || ((msg) => alert(msg))}
           />
         )}
 
