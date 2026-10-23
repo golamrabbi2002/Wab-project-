@@ -2,17 +2,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Store Config: Public read and write for store configuration
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'golamrabbi4801@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isCustomerOwner(customerId) {
+      return isSignedIn() && request.auth.uid == customerId;
+    }
+
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Admin authorization documents
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Store Config: Public read and store updates
     match /store/{docId} {
       allow read, write: if true;
     }
 
-    // Products: Public read and catalogue management
+    // Products: Public read for browsing, inventory and product catalog management
     match /products/{productId} {
       allow read, write: if true;
     }
 
-    // Orders: Public order placement, tracking and status updates
+    // Orders: Order placement, tracking by order ID, and order updates
     match /orders/{orderId} {
       allow read, write: if true;
     }
@@ -22,21 +60,19 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Security & Intrusion logs (Honeypot protection system)
-    match /threat_logs/{logId} {
-      allow read, write: if true;
-    }
-
-    // Coupons
+    // Coupons: Promo voucher lookup and management
     match /coupons/{couponId} {
       allow read, write: if true;
     }
 
-    // Test connection probe
+    // Security & Intrusion logs (Honeypot telemetry)
+    match /threat_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // Connection health check test probe
     match /test/{testId} {
       allow read, write: if true;
     }
   }
 }
-
-

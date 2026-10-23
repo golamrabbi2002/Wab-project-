@@ -33,13 +33,21 @@
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "title": { "type": "string", "maxLength": 150 },
+        "subtitle": { "type": "string", "maxLength": 250 },
         "description": { "type": "string", "maxLength": 2500 },
         "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
         "category": { "type": "string", "maxLength": 100 },
         "image": { "type": "string", "maxLength": 2000 },
         "sku": { "type": "string", "maxLength": 50 },
         "stock": { "type": "number" },
-        "isFeatured": { "type": "boolean" }
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "material": { "type": "string", "maxLength": 200 },
+        "careInstructions": { "type": "string", "maxLength": 500 },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
       },
       "required": ["id", "title", "price", "category", "image"]
     },
@@ -61,7 +69,9 @@
         "total": { "type": "number" },
         "status": { "type": "string", "maxLength": 50 },
         "paymentMethod": { "type": "string", "maxLength": 100 },
-        "createdAt": { "type": "string", "maxLength": 50 }
+        "trackingNumber": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
       },
       "required": ["id", "orderNumber", "customerName", "customerPhone", "total", "status"]
     },
@@ -73,9 +83,46 @@
         "id": { "type": "string", "maxLength": 128 },
         "name": { "type": "string", "maxLength": 100 },
         "email": { "type": "string", "maxLength": 150 },
-        "phone": { "type": "string", "maxLength": 50 }
+        "phone": { "type": "string", "maxLength": 50 },
+        "avatar": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
       },
       "required": ["id", "name", "email"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Store discount vouchers and promotional codes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 50 },
+        "discountPercent": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "minOrderAmount": { "type": "number" },
+        "expiryDate": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "code", "discountPercent"]
+    },
+    "ThreatLog": {
+      "title": "ThreatLog",
+      "description": "Honeypot security intrusion capture log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ip": { "type": "string", "maxLength": 100 },
+        "attemptedPath": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "attemptedPath"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Connection test probe document",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "maxLength": 50 }
+      }
     }
   },
   "firestore": {
@@ -94,6 +141,18 @@
     "/customers/{customerId}": {
       "schema": "Customer",
       "description": "Secured customer profile record"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Store promotional voucher discounts"
+    },
+    "/threat_logs/{logId}": {
+      "schema": "ThreatLog",
+      "description": "Intrusion detection honeypot telemetry"
+    },
+    "/test/{testId}": {
+      "schema": "TestConnection",
+      "description": "Connection health check probe"
     }
   }
 }

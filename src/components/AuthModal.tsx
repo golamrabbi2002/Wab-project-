@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Customer, StoreConfig } from '../types';
-import { GoogleAuthService, GoogleUserProfile } from '../services/googleAuth';
+import { FirestoreSyncService } from '../services/firestoreService';
 import { storageService } from '../services/storageService';
-import { X, Lock, Mail, User, ShieldCheck, Check, AlertCircle, Key, Sparkles, Eye, EyeOff, UserCheck } from 'lucide-react';
+import { X, Lock, Mail, User, ShieldCheck, Check, AlertCircle, Sparkles, Eye, EyeOff, UserCheck } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,90 +19,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isOfficialButtonRendered, setIsOfficialButtonRendered] = useState(false);
-
-  const googleButtonContainerRef = useRef<HTMLDivElement>(null);
-  const effectiveClientId = GoogleAuthService.getEffectiveClientId(config?.googleClientId);
-
-  // Initialize and render official Google Identity Services (GIS) button
-  useEffect(() => {
-    let isMounted = true;
-
-    if (!isOpen) {
-      setIsOfficialButtonRendered(false);
-      return;
-    }
-
-    const setupOfficialGoogleButton = async () => {
-      if (!effectiveClientId) {
-        if (isMounted) setIsOfficialButtonRendered(false);
-        return;
-      }
-
-      const isLoaded = await GoogleAuthService.loadGoogleScript();
-      if (!isLoaded || !isMounted) return;
-
-      if (googleButtonContainerRef.current && window.google?.accounts?.id) {
-        const rendered = await GoogleAuthService.renderOfficialButton(
-          googleButtonContainerRef.current,
-          effectiveClientId,
-          (googleProfile: GoogleUserProfile) => {
-            if (!isMounted) return;
-            handleGoogleSuccess(googleProfile);
-          },
-          (errorMsg: string) => {
-            if (!isMounted) return;
-            setAuthError(errorMsg);
-            setIsGoogleLoading(false);
-          },
-          {
-            text: mode === 'signin' ? 'signin_with' : 'signup_with',
-            theme: 'outline',
-            width: googleButtonContainerRef.current.clientWidth || 360,
-          }
-        );
-
-        if (isMounted) {
-          setIsOfficialButtonRendered(rendered);
-        }
-      }
-    };
-
-    setupOfficialGoogleButton();
-
-    return () => {
-      isMounted = false;
-      if (googleButtonContainerRef.current) {
-        googleButtonContainerRef.current.innerHTML = '';
-      }
-    };
-  }, [isOpen, mode, effectiveClientId]);
 
   if (!isOpen) return null;
 
-  // Handle successful Google authentication
-  const handleGoogleSuccess = (googleProfile: GoogleUserProfile) => {
-    setIsGoogleLoading(false);
+  // Real Google Sign-In with Firebase Auth and Firestore Persistence
+  const handleFirebaseGoogleSignIn = async () => {
     setAuthError(null);
-    const existingCustomers = storageService.getAllCustomers();
-    const existing = existingCustomers.find(
-      (c) => c.email.toLowerCase() === googleProfile.email.toLowerCase()
-    );
+    setIsGoogleLoading(true);
 
-    if (existing) {
-      const updated: Customer = {
-        ...existing,
-        name: googleProfile.name || existing.name,
-        avatar: googleProfile.avatar || existing.avatar,
-      };
-      storageService.saveCustomer(updated);
-      onCustomerLogin(updated);
-    } else {
-      const customer = GoogleAuthService.mapProfileToCustomer(googleProfile);
+    try {
+      const customer = await FirestoreSyncService.signInWithGoogle();
       storageService.saveCustomer(customer);
+      storageService.setCurrentCustomer(customer);
       onCustomerLogin(customer);
+      onClose();
+    } catch (err: any) {
+      console.warn('Firebase Google Sign-In error:', err);
+      if (err?.code === 'auth/popup-blocked') {
+        setAuthError('Popup was blocked by your browser. Please allow popups for Google Sign-In.');
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setAuthError('Sign-in cancelled. Please click again to sign in with Google.');
+      } else {
+        setAuthError(err?.message || 'Google authentication failed. Please try again.');
+      }
+    } finally {
+      setIsGoogleLoading(false);
     }
-    onClose();
   };
 
   const handleStandardAuth = (e: React.FormEvent) => {
@@ -186,77 +128,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
     }
   };
 
-  // Quick Demo Member Login
-  const handleQuickDemoLogin = (type: 'vip' | 'stylist') => {
-    setAuthError(null);
-    const demoProfile: Customer = type === 'vip' ? {
-      id: 'cust-vip-001',
-      email: 'golamrabbi4801@gmail.com',
-      name: 'Golam Rabbi (VIP Atelier)',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
-      phone: '+880 1712-889900',
-      shippingAddress: {
-        street: 'Suite 14B, Gulshan Avenue 2',
-        city: 'Dhaka',
-        state: 'Dhaka Division',
-        zip: '1212',
-        country: 'Bangladesh',
-      },
-      wishlist: [],
-      createdAt: new Date().toISOString(),
-    } : {
-      id: 'cust-stylist-002',
-      email: 'tanzim.atelier@gmail.com',
-      name: 'Tanzim Ahmed (Style Member)',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-      phone: '+880 1819-445566',
-      shippingAddress: {
-        street: 'House 18, Road 7, Dhanmondi',
-        city: 'Dhaka',
-        state: 'Dhaka Division',
-        zip: '1205',
-        country: 'Bangladesh',
-      },
-      wishlist: [],
-      createdAt: new Date().toISOString(),
-    };
-
-    storageService.saveCustomer(demoProfile);
-    onCustomerLogin(demoProfile);
-    onClose();
-  };
-
-  // Programmatic trigger for Google Sign-In (Token Client / Prompt flow)
-  const handleProgrammaticGoogleSignIn = async () => {
-    setAuthError(null);
-    setIsGoogleLoading(true);
-
-    if (effectiveClientId) {
-      await GoogleAuthService.signInWithGoogle(
-        effectiveClientId,
-        (googleProfile: GoogleUserProfile) => {
-          handleGoogleSuccess(googleProfile);
-        },
-        (errorMsg: string) => {
-          setIsGoogleLoading(false);
-          setAuthError(errorMsg);
-        }
-      );
-    } else {
-      // Demonstration fallback if Client ID is not yet provided
-      setTimeout(() => {
-        const demoProfile: GoogleUserProfile = {
-          id: `google-${Date.now()}`,
-          email: 'golamrabbi4801@gmail.com',
-          name: 'Golam Rabbi (Google Verified)',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
-          verifiedEmail: true,
-        };
-        handleGoogleSuccess(demoProfile);
-      }, 500);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
       <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-neutral-200">
@@ -316,64 +187,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
             </div>
           )}
 
-          {/* Google Identity Services (GIS) Official Sign-In */}
+          {/* Firebase Google Sign-In */}
           <div className="space-y-2">
-            {/* Dedicated container for official Google Identity Services button */}
-            <div
-              ref={googleButtonContainerRef}
-              className={`w-full flex justify-center min-h-[44px] ${
-                isOfficialButtonRendered ? 'block' : 'hidden'
-              }`}
-            />
+            <button
+              type="button"
+              onClick={handleFirebaseGoogleSignIn}
+              disabled={isGoogleLoading}
+              className="w-full py-3 px-4 bg-white border border-neutral-300 rounded-xl hover:bg-neutral-50 text-neutral-800 text-xs font-semibold flex items-center justify-center gap-3 transition-all shadow-sm hover:shadow active:scale-98 disabled:opacity-75 cursor-pointer"
+            >
+              {isGoogleLoading ? (
+                <div className="w-4 h-4 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                  />
+                </svg>
+              )}
+              <span>
+                {isGoogleLoading ? 'Connecting to Google...' : (mode === 'signin' ? 'Sign in with Google' : 'Sign up with Google')}
+              </span>
+            </button>
 
-            {/* Custom Google Trigger Button (active when GIS official button is loading or as fallback) */}
-            {!isOfficialButtonRendered && (
-              <button
-                type="button"
-                onClick={handleProgrammaticGoogleSignIn}
-                disabled={isGoogleLoading}
-                className="w-full py-3 px-4 bg-white border border-neutral-300 rounded-xl hover:bg-neutral-50 text-neutral-800 text-xs font-semibold flex items-center justify-center gap-3 transition-all shadow-sm hover:shadow active:scale-98"
-              >
-                {isGoogleLoading ? (
-                  <div className="w-4 h-4 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                    />
-                  </svg>
-                )}
-                <span>
-                  {mode === 'signin' ? 'Sign in with Google' : 'Sign up with Google'}
-                </span>
-              </button>
-            )}
-
-            {/* Status indicator */}
-            {effectiveClientId ? (
-              <div className="text-[10px] text-center text-emerald-600 font-mono flex items-center justify-center gap-1 pt-0.5">
-                <Check className="w-3 h-3" />
-                <span>Google Identity Services (GIS) Active</span>
-              </div>
-            ) : (
-              <div className="text-[10px] text-center text-neutral-400 font-mono flex items-center justify-center gap-1 pt-0.5">
-                <Key className="w-3 h-3 text-amber-500" />
-                <span>Google Sign-In Ready</span>
-              </div>
-            )}
+            <div className="text-[10px] text-center text-emerald-600 font-mono flex items-center justify-center gap-1 pt-0.5">
+              <Check className="w-3 h-3 text-emerald-600" />
+              <span>Firebase Cloud Auth & Firestore Synced</span>
+            </div>
 
             <div className="flex items-center gap-3 my-3">
               <div className="flex-1 h-px bg-neutral-200" />
@@ -452,40 +304,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
               {mode === 'signin' ? 'Sign In to Atelier' : 'Create Account'}
             </button>
           </form>
-
-          {/* Quick Demo Test Logins */}
-          <div className="pt-2 border-t border-neutral-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" />
-                Instant Demo Access
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('vip')}
-                className="p-2 text-left bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg transition-colors group"
-              >
-                <span className="font-semibold text-neutral-900 block text-[11px] group-hover:text-emerald-700 flex items-center gap-1">
-                  <UserCheck className="w-3 h-3 text-emerald-600" />
-                  VIP Member
-                </span>
-                <span className="text-[9px] text-neutral-500 font-mono truncate block">golamrabbi4801@...</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('stylist')}
-                className="p-2 text-left bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-lg transition-colors group"
-              >
-                <span className="font-semibold text-neutral-900 block text-[11px] group-hover:text-neutral-950 flex items-center gap-1">
-                  <UserCheck className="w-3 h-3 text-neutral-600" />
-                  Stylist Member
-                </span>
-                <span className="text-[9px] text-neutral-500 font-mono truncate block">tanzim.atelier@...</span>
-              </button>
-            </div>
-          </div>
 
           <div className="bg-neutral-50 p-2.5 rounded-xl border border-neutral-200 text-[10px] text-neutral-500 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />

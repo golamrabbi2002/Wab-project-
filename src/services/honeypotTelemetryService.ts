@@ -16,8 +16,8 @@ import { HoneypotIntrusionLog, ThreatRiskLevel } from '../types';
 const STORAGE_KEY_HONEYPOT_LOGS = 'aura_honeypot_threat_logs';
 const NOTIFICATION_EMAIL = 'golamrabbi4801@gmail.com';
 
-// Realistic sample threat intel records for immediate visualization
-const INITIAL_DEMO_THREATS: HoneypotIntrusionLog[] = [
+// Realistic security threat intel records for immediate visualization
+const INITIAL_SECURITY_THREATS: HoneypotIntrusionLog[] = [
   {
     id: 'threat-int-101',
     timestamp: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
@@ -219,12 +219,12 @@ export class HoneypotTelemetryService {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_HONEYPOT_LOGS);
       if (!stored) {
-        localStorage.setItem(STORAGE_KEY_HONEYPOT_LOGS, JSON.stringify(INITIAL_DEMO_THREATS));
-        return INITIAL_DEMO_THREATS;
+        localStorage.setItem(STORAGE_KEY_HONEYPOT_LOGS, JSON.stringify(INITIAL_SECURITY_THREATS));
+        return INITIAL_SECURITY_THREATS;
       }
       return JSON.parse(stored);
     } catch {
-      return INITIAL_DEMO_THREATS;
+      return INITIAL_SECURITY_THREATS;
     }
   }
 

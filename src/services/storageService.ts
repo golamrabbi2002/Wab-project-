@@ -24,6 +24,30 @@ const memoryCache: Record<string, any> = {
   [KEYS.CART]: []
 };
 
+const CURRENT_CATALOG_VERSION = 'bismillah_real_v3_2026';
+
+function checkCatalogUpgrade(): void {
+  try {
+    const version = safeGetItem('bismillah_store_version');
+    if (version !== CURRENT_CATALOG_VERSION) {
+      safeSetItem(KEYS.CONFIG, JSON.stringify(initialStoreConfig));
+      safeSetItem(KEYS.PRODUCTS, JSON.stringify(initialProducts));
+      safeSetItem(KEYS.COUPONS, JSON.stringify(initialCoupons));
+      safeSetItem(KEYS.ORDERS, JSON.stringify(initialOrders));
+      // Remove old dummy product keys from deleted tombstone
+      localStorage.removeItem(KEYS.DELETED_PRODUCT_IDS);
+      safeSetItem('bismillah_store_version', CURRENT_CATALOG_VERSION);
+      memoryCache[KEYS.CONFIG] = initialStoreConfig;
+      memoryCache[KEYS.PRODUCTS] = [...initialProducts];
+      memoryCache[KEYS.COUPONS] = [...initialCoupons];
+      memoryCache[KEYS.ORDERS] = [...initialOrders];
+    }
+  } catch (e) {
+    console.warn('Catalog upgrade check notice:', e);
+  }
+}
+checkCatalogUpgrade();
+
 // Safe LocalStorage setter with QuotaExceeded auto-cleanup
 function safeSetItem(key: string, value: string): void {
   try {
@@ -569,7 +593,7 @@ export const StorageService = {
     return this.importFullBackup(jsonString);
   },
 
-  resetToDefaultDemo(): void {
+  resetToDefaults(): void {
     try {
       localStorage.removeItem(KEYS.CONFIG);
       localStorage.removeItem(KEYS.PRODUCTS);
@@ -586,8 +610,8 @@ export const StorageService = {
     this.saveOrders(initialOrders);
   },
 
-  resetToDefaults(): void {
-    this.resetToDefaultDemo();
+  resetToDefaultDemo(): void {
+    this.resetToDefaults();
   },
 
   // Helper Cart Methods

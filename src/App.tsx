@@ -210,6 +210,15 @@ export const App: React.FC = () => {
       }
     });
 
+    // Real-time Firebase Google Auth state listener & Cloud Firestore Customer persistence
+    const unsubAuth = FirestoreSyncService.onAuthStateSync((cloudCustomer) => {
+      if (cloudCustomer) {
+        setCurrentCustomer(cloudCustomer);
+        storageService.saveCustomer(cloudCustomer);
+        storageService.setCurrentCustomer(cloudCustomer);
+      }
+    });
+
     const handleStorageChange = () => {
       loadState();
     };
@@ -250,6 +259,7 @@ export const App: React.FC = () => {
       unsubOrders();
       unsubCustomers();
       unsubCoupons();
+      unsubAuth();
       window.removeEventListener('aura_storage_update', handleStorageChange);
       window.removeEventListener('aura_products_updated', handleStorageChange);
       window.removeEventListener('aura_config_updated', handleStorageChange);
@@ -328,7 +338,7 @@ export const App: React.FC = () => {
     showToast(`Order ${order.orderNumber} successfully confirmed! Delivery tracking initiated.`, 'success');
   };
 
-  // Wishlist Toggle
+  // Wishlist Toggle with Cloud Firestore persistence
   const handleToggleWishlist = (productId: string) => {
     if (!currentCustomer) {
       setIsAuthModalOpen(true);
@@ -339,20 +349,27 @@ export const App: React.FC = () => {
     if (currentCustomer) {
       const updatedCustomer = { ...currentCustomer, wishlist: updatedWishlist };
       setCurrentCustomer(updatedCustomer);
+      FirestoreSyncService.saveCustomer(updatedCustomer).catch(console.warn);
       const isSaved = updatedWishlist.includes(productId);
       showToast(isSaved ? 'Garment saved to wishlist' : 'Removed from wishlist');
     }
   };
 
-  // Customer Auth
+  // Customer Auth with Cloud Firestore Persistence
   const handleCustomerLogin = (customer: Customer) => {
     storageService.setCurrentCustomer(customer);
     setCurrentCustomer(customer);
     setCustomers(storageService.getCustomers());
+    FirestoreSyncService.saveCustomer(customer).catch(console.warn);
     showToast(`Welcome to the Atelier, ${customer.name}`);
   };
 
-  const handleCustomerLogout = () => {
+  const handleCustomerLogout = async () => {
+    try {
+      await FirestoreSyncService.signOutCustomer();
+    } catch (e) {
+      console.warn('Sign out notice:', e);
+    }
     storageService.setCurrentCustomer(null);
     setCurrentCustomer(null);
     showToast('Signed out of Atelier membership.');
@@ -364,6 +381,8 @@ export const App: React.FC = () => {
     storageService.saveCustomer(updated);
     storageService.setCurrentCustomer(updated);
     setCurrentCustomer(updated);
+    FirestoreSyncService.saveCustomer(updated).catch(console.warn);
+    showToast('Delivery address updated and synced to Cloud Firestore.');
   };
 
   // Admin Auth & Portal Navigation

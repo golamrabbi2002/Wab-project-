@@ -1,5 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut,
+  User as FirebaseUser
+} from 'firebase/auth';
 import { 
   initializeFirestore,
   getFirestore, 
@@ -41,7 +49,7 @@ export function ensureFirebaseAuth(): Promise<void> {
         signInAnonymously(auth)
           .then(() => resolve())
           .catch((err: any) => {
-            // If Anonymous Sign-in is disabled in Firebase Console, fallback smoothly to public rules
+            // If Anonymous Sign-in is restricted in Firebase Console, smoothly continue
             if (err?.code !== 'auth/admin-restricted-operation') {
               console.info('Firebase auth note:', err?.message || err);
             }
@@ -53,9 +61,9 @@ export function ensureFirebaseAuth(): Promise<void> {
 }
 ensureFirebaseAuth().catch(() => {});
 
-// Initialize Firestore with custom database ID if specified in config and force long polling to guarantee connectivity across all environments (Netlify, iframes, proxies)
+// Initialize Firestore with custom database ID if specified in config
 function createFirestoreInstance() {
-  const dbId = firebaseConfig.firestoreDatabaseId || undefined;
+  const dbId = (firebaseConfig as any).firestoreDatabaseId || undefined;
   try {
     return initializeFirestore(app, {
       experimentalForceLongPolling: true,
@@ -127,14 +135,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 export async function testConnection(): Promise<boolean> {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
+    console.info('Cloud Firestore connection established.');
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firestore: Client operating in offline mode.');
+      console.warn('Please check your Firebase configuration or network status.');
     }
     return false;
   }
 }
+// Execute test connection probe on startup
+testConnection().catch(() => {});
 
 const STORE_CONFIG_DOC = 'config';
 const STORE_COLLECTION = 'store';
@@ -147,12 +158,13 @@ const THREAT_LOGS_COLLECTION = 'threat_logs';
 export class FirestoreSyncService {
   private static isInitialized = false;
 
-  // Initialize and ensure default documents exist in Firestore without overwriting local custom data
+  // Initialize and ensure authentic real documents exist in Firestore
   static async initDefaults(currentLocalConfig?: StoreConfig, currentLocalProducts?: Product[]): Promise<void> {
     if (this.isInitialized) return;
     try {
       await ensureFirebaseAuth();
-      // Check if store config exists
+      
+      // Ensure store config is updated with real brand settings
       const configRef = doc(db, STORE_COLLECTION, STORE_CONFIG_DOC);
       const configSnap = await getDoc(configRef);
       if (!configSnap.exists()) {
@@ -165,17 +177,39 @@ export class FirestoreSyncService {
         } catch (err) {
           handleFirestoreError(err, OperationType.WRITE, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
         }
+      } else {
+        const existingData = configSnap.data() as StoreConfig;
+        if (existingData.currencySymbol !== '৳' || !existingData.brandName.includes('BISMILLAH')) {
+          try {
+            await setDoc(configRef, {
+              ...existingData,
+              brandName: initialStoreConfig.brandName,
+              tagline: initialStoreConfig.tagline,
+              currencySymbol: '৳',
+              currencyCode: 'BDT',
+              heroHeadline: initialStoreConfig.heroHeadline,
+              heroSubheadline: initialStoreConfig.heroSubheadline,
+              announcementText: initialStoreConfig.announcementText,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `${STORE_COLLECTION}/${STORE_CONFIG_DOC}`);
+          }
+        }
       }
 
-      // Check if products exist
+      // Check and populate products
       const productsRef = collection(db, PRODUCTS_COLLECTION);
       const productsSnap = await getDocs(productsRef);
-      if (productsSnap.empty) {
-        const prodsToSave = (currentLocalProducts && currentLocalProducts.length > 0) 
-          ? currentLocalProducts 
-          : initialProducts;
-        for (const product of prodsToSave) {
-          const pDoc = doc(db, PRODUCTS_COLLECTION, product.id);
+      const prodsToSave = (currentLocalProducts && currentLocalProducts.length > 0) 
+        ? currentLocalProducts 
+        : initialProducts;
+
+      // Seed any missing real products
+      for (const product of prodsToSave) {
+        const pDoc = doc(db, PRODUCTS_COLLECTION, product.id);
+        const pSnap = await getDoc(pDoc);
+        if (!pSnap.exists()) {
           try {
             await setDoc(pDoc, {
               ...product,
@@ -186,10 +220,129 @@ export class FirestoreSyncService {
           }
         }
       }
+
+      // Clean up legacy dummy test products
+      const legacyDummyIds = ['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5', 'prod-6', 'prod-7'];
+      for (const oldId of legacyDummyIds) {
+        try {
+          const oldDoc = doc(db, PRODUCTS_COLLECTION, oldId);
+          const oldSnap = await getDoc(oldDoc);
+          if (oldSnap.exists()) {
+            await deleteDoc(oldDoc);
+          }
+        } catch (err) {
+          // Silent cleanup
+        }
+      }
+
       this.isInitialized = true;
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, STORE_COLLECTION);
     }
+  }
+
+  // --- Real-time Firebase Authentication with Google & Cloud Firestore User Persistence ---
+
+  // Sign in using Google Provider via Firebase Auth popup
+  static async signInWithGoogle(): Promise<Customer> {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
+
+    const customer = await this.syncFirebaseUserToCustomer(user);
+    return customer;
+  }
+
+  // Sign out customer from Firebase Auth
+  static async signOutCustomer(): Promise<void> {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.warn('Sign-out note:', error);
+    }
+  }
+
+  // Map Firebase User to Customer and persist in Cloud Firestore /customers/{uid}
+  static async syncFirebaseUserToCustomer(user: FirebaseUser): Promise<Customer> {
+    const customerRef = doc(db, CUSTOMERS_COLLECTION, user.uid);
+    let customer: Customer;
+
+    try {
+      const snap = await getDoc(customerRef);
+      if (snap.exists()) {
+        const existingData = snap.data() as Customer;
+        customer = {
+          ...existingData,
+          id: user.uid,
+          email: user.email?.toLowerCase() || existingData.email,
+          name: user.displayName || existingData.name || (user.email ? user.email.split('@')[0] : 'Member'),
+          avatar: user.photoURL || existingData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
+          updatedAt: new Date().toISOString()
+        };
+      } else {
+        customer = {
+          id: user.uid,
+          email: (user.email || '').toLowerCase(),
+          name: user.displayName || (user.email ? user.email.split('@')[0] : 'Member'),
+          avatar: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
+          phone: user.phoneNumber || '+880 1812-345678',
+          shippingAddress: {
+            street: 'House 14, Road 7, Dhanmondi',
+            city: 'Dhaka',
+            state: 'Dhaka Division',
+            zip: '1205',
+            country: 'Bangladesh',
+          },
+          wishlist: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      // Persist customer record to Cloud Firestore
+      await setDoc(customerRef, customer, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `${CUSTOMERS_COLLECTION}/${user.uid}`);
+      customer = {
+        id: user.uid,
+        email: (user.email || '').toLowerCase(),
+        name: user.displayName || (user.email ? user.email.split('@')[0] : 'Member'),
+        avatar: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
+        phone: user.phoneNumber || '+880 1812-345678',
+        shippingAddress: {
+          street: 'House 14, Road 7, Dhanmondi',
+          city: 'Dhaka',
+          state: 'Dhaka Division',
+          zip: '1205',
+          country: 'Bangladesh',
+        },
+        wishlist: [],
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    return customer;
+  }
+
+  // Subscribe to Firebase Auth state changes
+  static onAuthStateSync(callback: (customer: Customer | null) => void): () => void {
+    return onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser && !firebaseUser.isAnonymous) {
+        try {
+          const customer = await this.syncFirebaseUserToCustomer(firebaseUser);
+          callback(customer);
+        } catch (err) {
+          console.warn('Error syncing Firebase user to customer profile:', err);
+        }
+      } else {
+        // No non-anonymous user signed in
+        callback(null);
+      }
+    });
   }
 
   // Real-time listener for Store Config
@@ -386,7 +539,7 @@ export class FirestoreSyncService {
     });
   }
 
-  // Save Customer Profile
+  // Save Customer Profile directly to Cloud Firestore /customers/{id}
   static async saveCustomer(customer: Customer): Promise<void> {
     try {
       const customerRef = doc(db, CUSTOMERS_COLLECTION, customer.id);

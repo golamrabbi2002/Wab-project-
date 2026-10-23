@@ -42,6 +42,7 @@ export interface Customer {
   };
   wishlist: string[]; // Product IDs
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface OrderItem {

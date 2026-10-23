@@ -63,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const categories = ['All', 'Tops', 'Outerwear', 'Bottoms', 'Dresses', 'Accessories'];
+  const categories = ['All', 'Panjabi', 'Saree', 'Three-Piece', 'Tops', 'Bottoms', 'Accessories'];
 
   return (
     <>
