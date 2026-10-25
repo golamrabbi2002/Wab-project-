@@ -330,12 +330,15 @@ export const App: React.FC = () => {
 
   // Place Order
   const handlePlaceOrder = (order: Order) => {
-    storageService.createOrder(order);
+    const created = storageService.createOrder(order);
     setCart([]);
     setAppliedCoupon(null);
     setOrders(storageService.getOrders());
     setProducts(storageService.getProducts());
-    showToast(`Order ${order.orderNumber} successfully confirmed! Delivery tracking initiated.`, 'success');
+    const msg = created.autoVerified
+      ? `অর্ডার #${created.orderNumber} রোবোটিক্যালি ভেরিফাইড ও নিশ্চিত হয়েছে! ডেলিভারি ট্র্যাকিং সক্রিয়।`
+      : `অর্ডার #${created.orderNumber} সফলভাবে গ্রহণ করা হয়েছে!`;
+    showToast(msg, 'success');
   };
 
   // Wishlist Toggle with Cloud Firestore persistence

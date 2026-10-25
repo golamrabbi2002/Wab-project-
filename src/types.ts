@@ -80,6 +80,8 @@ export interface Order {
   status: OrderStatus;
   paymentMethod: string;
   transactionId?: string;
+  senderPhone?: string;
+  autoVerified?: boolean;
   deliveryZone?: string;
   trackingNumber?: string;
   createdAt: string;

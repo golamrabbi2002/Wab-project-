@@ -346,19 +346,20 @@ export const StorageService = {
 
   createOrder(orderData: Order | Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Order {
     const orders = this.getOrders();
-    const newOrder: Order = {
+    const rawOrder: Order = {
       ...orderData,
       id: 'id' in orderData ? orderData.id : `ord-${Date.now()}`,
       orderNumber: 'orderNumber' in orderData ? orderData.orderNumber : `AUR-${Math.floor(100000 + Math.random() * 900000)}`,
       createdAt: 'createdAt' in orderData ? orderData.createdAt : new Date().toISOString(),
     };
-    orders.unshift(newOrder);
+    const sanitized = FirestoreSyncService.sanitizeOrderPayload(rawOrder) as Order;
+    orders.unshift(sanitized);
     this.saveOrders(orders);
-    this.decrementStock(newOrder.items);
-    FirestoreSyncService.saveOrder(newOrder).catch(err => {
+    this.decrementStock(sanitized.items);
+    FirestoreSyncService.saveOrder(sanitized).catch(err => {
       console.warn('Background Firestore order sync notice:', err);
     });
-    return newOrder;
+    return sanitized;
   },
 
   updateOrderStatus(orderId: string, status: Order['status'], trackingNumber?: string): void {

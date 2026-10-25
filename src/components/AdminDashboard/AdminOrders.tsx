@@ -127,12 +127,23 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpda
                       </div>
                     </td>
 
-                    {/* Total */}
+                    {/* Total & Payment */}
                     <td className="py-3.5 px-4">
                       <div className="font-mono font-bold text-white text-sm">
-                        {config.currencySymbol}{o.total.toFixed(2)}
+                        {config.currencySymbol}{o.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
-                      <div className="text-[10px] text-neutral-500">{o.paymentMethod}</div>
+                      <div className="text-[10px] text-neutral-300 font-medium">{o.paymentMethod}</div>
+                      {o.transactionId && (
+                        <div className="text-[10px] font-mono text-amber-300 mt-0.5">
+                          TrxID: <span className="underline select-all">{o.transactionId}</span>
+                        </div>
+                      )}
+                      {o.autoVerified && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800/80 px-1.5 py-0.5 rounded-full font-bold mt-1">
+                          <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                          <span>⚡ Auto-Approved</span>
+                        </span>
+                      )}
                     </td>
 
                     {/* Status Badge & Selector */}
@@ -239,6 +250,39 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpda
                     {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zip}<br />
                     {selectedOrder.shippingAddress.country}
                   </div>
+                </div>
+              </div>
+
+              {/* Payment & Auto-Verification Details */}
+              <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                    Payment Verification & TrxID
+                  </span>
+                  {selectedOrder.autoVerified && (
+                    <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 font-mono">
+                      <Sparkles className="w-3 h-3 text-emerald-400" />
+                      <span>Robotic Auto-Approved</span>
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-neutral-300">
+                  <div>
+                    <span className="text-[10px] text-neutral-500 block">Payment Method:</span>
+                    <span className="font-semibold text-white">{selectedOrder.paymentMethod}</span>
+                  </div>
+                  {selectedOrder.transactionId && (
+                    <div>
+                      <span className="text-[10px] text-neutral-500 block">Transaction ID (TrxID):</span>
+                      <span className="font-mono font-bold text-amber-400 select-all">{selectedOrder.transactionId}</span>
+                    </div>
+                  )}
+                  {selectedOrder.senderPhone && (
+                    <div>
+                      <span className="text-[10px] text-neutral-500 block">Sender Phone:</span>
+                      <span className="font-mono text-white select-all">{selectedOrder.senderPhone}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -72,24 +72,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
         onClose();
         return;
       }
-      // If signing in for first time with this email, create profile
+      // If signing in for first time with this email, create real profile
       const newCustomer: Customer = {
         id: `cust-${Date.now()}`,
         email: cleanEmail,
         name: name.trim() || (cleanEmail.includes('@') ? cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Customer'),
         avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop`,
-        phone: '+880 1712-345678',
+        phone: '',
         shippingAddress: {
-          street: 'House 42, Road 11, Banani',
+          street: '',
           city: 'Dhaka',
           state: 'Dhaka Division',
-          zip: '1213',
+          zip: '',
           country: 'Bangladesh',
         },
         wishlist: [],
         createdAt: new Date().toISOString(),
       };
       storageService.saveCustomer(newCustomer);
+      FirestoreSyncService.saveCustomer(newCustomer).catch(() => {});
       onCustomerLogin(newCustomer);
       onClose();
     } else {
@@ -101,6 +102,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
           name: name.trim() || existing.name,
         };
         storageService.saveCustomer(updated);
+        FirestoreSyncService.saveCustomer(updated).catch(() => {});
         onCustomerLogin(updated);
         onClose();
         return;
@@ -111,18 +113,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
         email: cleanEmail,
         name: name.trim() || (cleanEmail.includes('@') ? cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Customer'),
         avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop`,
-        phone: '+880 1712-345678',
+        phone: '',
         shippingAddress: {
-          street: 'House 42, Road 11, Banani',
+          street: '',
           city: 'Dhaka',
           state: 'Dhaka Division',
-          zip: '1213',
+          zip: '',
           country: 'Bangladesh',
         },
         wishlist: [],
         createdAt: new Date().toISOString(),
       };
       storageService.saveCustomer(newCustomer);
+      FirestoreSyncService.saveCustomer(newCustomer).catch(() => {});
       onCustomerLogin(newCustomer);
       onClose();
     }

@@ -43,17 +43,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [includeGiftWrap, setIncludeGiftWrap] = useState(false);
   const [giftMessage, setGiftMessage] = useState('');
 
-  // Delivery Zone
+  // Delivery Zone & Payment
   const [deliveryZone, setDeliveryZone] = useState<'dhaka' | 'outside_dhaka' | 'express'>('dhaka');
   const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'rocket' | 'cod' | 'card'>('bkash');
   const [transactionId, setTransactionId] = useState('');
   const [senderNumber, setSenderNumber] = useState('');
   const [saveProfile, setSaveProfile] = useState(true);
+  const [copiedType, setCopiedType] = useState<string | null>(null);
 
-  // Card info
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvc, setCardCvc] = useState('888');
+  const copyToClipboard = (text: string, type: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {});
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2500);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -94,17 +98,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (paymentMethod === 'card') {
+      return; // Card is Coming Soon
+    }
+
     const orderNumber = `ATL-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const cleanTxId = SecurityService.sanitizeTransactionId(transactionId);
+    const cleanSenderPhone = SecurityService.sanitizePhone(senderNumber);
+
+    // Robotic Auto-Approval condition
+    const isMfs = paymentMethod === 'bkash' || paymentMethod === 'nagad' || paymentMethod === 'rocket';
+    const isAutoApproved = isMfs && cleanTxId.length >= 6;
+
     const paymentLabel =
       paymentMethod === 'bkash'
-        ? `bKash (TrxID: ${transactionId || 'Pending'})`
+        ? `bKash ${cleanTxId ? `(TrxID: ${cleanTxId})` : ''}`
         : paymentMethod === 'nagad'
-        ? `Nagad (TrxID: ${transactionId || 'Pending'})`
+        ? `Nagad ${cleanTxId ? `(TrxID: ${cleanTxId})` : ''}`
         : paymentMethod === 'rocket'
-        ? `Rocket (TrxID: ${transactionId || 'Pending'})`
-        : paymentMethod === 'cod'
-        ? 'Cash on Delivery (ক্যাশ অন ডেলিভারি)'
-        : 'Credit / Debit Card';
+        ? `Rocket ${cleanTxId ? `(TrxID: ${cleanTxId})` : ''}`
+        : 'Cash on Delivery (ক্যাশ অন ডেলিভারি)';
 
     const cleanName = SecurityService.sanitizeText(name, 80);
     const cleanEmail = SecurityService.sanitizeEmail(email) || 'customer@guest.com';
@@ -113,7 +126,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const cleanCity = SecurityService.sanitizeText(city, 80);
     const cleanState = SecurityService.sanitizeText(state, 80);
     const cleanZip = SecurityService.sanitizeText(zip, 20);
-    const cleanTxId = SecurityService.sanitizeTransactionId(transactionId);
     const cleanGiftMessage = giftMessage ? SecurityService.sanitizeText(giftMessage, 300) : '';
 
     const newOrder: Order = {
@@ -134,14 +146,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       })),
       subtotal: Math.max(0, Number(subtotal) || 0),
       discount: Math.max(0, Number(discount) || 0),
-      couponCode: appliedCoupon?.code ? SecurityService.sanitizeText(appliedCoupon.code, 30) : undefined,
+      couponCode: appliedCoupon?.code ? SecurityService.sanitizeText(appliedCoupon.code, 30) : '',
       tax: Math.max(0, Number(tax) || 0),
       shippingCost: Math.max(0, Number(shippingCost) || 0),
       total: Math.max(0, Number(total) || 0),
-      status: 'Pending',
+      status: isAutoApproved ? 'Processing' : 'Pending',
       paymentMethod: paymentLabel,
-      transactionId: cleanTxId || undefined,
-      notes: includeGiftWrap ? `[Signature Gift Packaging & Calligraphy Note]: ${cleanGiftMessage || 'Complimentary Gift Ribbon'}` : undefined,
+      transactionId: cleanTxId,
+      senderPhone: cleanSenderPhone,
+      autoVerified: isAutoApproved,
+      notes: includeGiftWrap ? `[Signature Gift Packaging & Calligraphy Note]: ${cleanGiftMessage || 'Complimentary Gift Ribbon'}` : '',
       deliveryZone:
         deliveryZone === 'dhaka'
           ? 'Inside Dhaka (ঢাকা সিটি)'
@@ -513,43 +527,78 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               {/* bKash Instructions Box */}
               {paymentMethod === 'bkash' && (
-                <div className="bg-pink-50/80 border border-pink-200 rounded-2xl p-5 space-y-4 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-pink-200">
-                    <span className="font-bold text-pink-900 uppercase tracking-wider text-[11px]">
-                      bKash Payment Instructions
+                <div className="bg-pink-50/90 border border-pink-200 rounded-2xl p-5 space-y-4 text-xs shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-pink-200">
+                    <span className="font-bold text-pink-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-pink-600 animate-ping" />
+                      <span>bKash Smart Checkout & Auto-Verification</span>
                     </span>
-                    <span className="bg-pink-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">
-                      Merchant / Send Money
+                    <span className="bg-pink-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-xs">
+                      Send Money / Payment
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 text-neutral-700 leading-relaxed">
-                    <p>1. Open your bKash app and choose <span className="font-bold text-pink-800">Send Money / Payment</span>.</p>
-                    <p>2. Enter our number: <span className="font-mono font-bold text-sm bg-white px-2 py-0.5 rounded border border-pink-300 text-pink-900">{config.bkashMerchantNumber || '01712-345678'}</span></p>
-                    <p>3. Enter total amount: <span className="font-mono font-bold text-pink-900">{config.currencySymbol}{total.toFixed(2)}</span></p>
-                    <p>4. Complete payment with PIN and enter the 10-character Transaction ID (TrxID) below:</p>
+                  {/* Payment Steps */}
+                  <div className="space-y-2 text-neutral-700 leading-relaxed bg-white/70 p-3.5 rounded-xl border border-pink-100">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-neutral-600 font-medium">১. আমাদের বিকাশ নম্বর:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-sm bg-pink-100 px-2.5 py-1 rounded-lg border border-pink-300 text-pink-950">
+                          {config.bkashMerchantNumber || '01712-345678'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(config.bkashMerchantNumber || '01712-345678', 'bkash')}
+                          className="px-2.5 py-1 bg-pink-600 hover:bg-pink-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                        >
+                          {copiedType === 'bkash' ? 'কপি হয়েছে!' : 'নম্বর কপি'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-neutral-600">
+                      <span>২. মোট প্রদেয় পরিমাণ:</span>
+                      <span className="font-mono font-bold text-sm text-pink-900">
+                        {config.currencySymbol}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-neutral-500 pt-1">
+                      ৩. আপনার বিকাশ অ্যাপ বা *247# ডায়াল করে টাকা পাঠিয়ে প্রাপ্ত TrxID ও নম্বর নিচে লিখুন।
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  {/* Robotic Badge */}
+                  <div className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-emerald-50 to-pink-50 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-900">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span><strong>রোবোটিক অটো-ভেরিফিকেশন:</strong> TrxID দিয়ে সাবমিট করার সাথে সাথেই সিস্টেম স্বয়ংক্রিয়ভাবে অর্ডার Approved করে দেবে!</span>
+                  </div>
+
+                  {/* TrxID & Sender Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block font-semibold text-pink-900 mb-1">bKash Transaction ID (TrxID) *</label>
+                      <label className="block font-semibold text-pink-950 mb-1">
+                        বিকাশ TrxID (Transaction ID) *
+                      </label>
                       <input
                         type="text"
                         required
                         value={transactionId}
                         onChange={(e) => setTransactionId(e.target.value.toUpperCase())}
-                        placeholder="e.g. 9J8B7C6X5Y"
-                        className="w-full bg-white border border-pink-300 rounded-lg p-2.5 text-xs font-mono uppercase focus:outline-none focus:border-pink-600"
+                        placeholder="যেমন: BKA89X2Z1"
+                        className="w-full bg-white border border-pink-300 rounded-xl p-2.5 text-xs font-mono uppercase focus:outline-none focus:border-pink-600 focus:ring-1 focus:ring-pink-600 shadow-xs placeholder:text-neutral-400"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-pink-900 mb-1">Your Sender bKash Number</label>
+                      <label className="block font-semibold text-pink-950 mb-1">
+                        যে বিকাশ নম্বর থেকে পাঠিয়েছেন
+                      </label>
                       <input
                         type="tel"
                         value={senderNumber}
                         onChange={(e) => setSenderNumber(e.target.value)}
                         placeholder="01XXXXXXXXX"
-                        className="w-full bg-white border border-pink-300 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-pink-600"
+                        className="w-full bg-white border border-pink-300 rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:border-pink-600 focus:ring-1 focus:ring-pink-600 shadow-xs placeholder:text-neutral-400"
                       />
                     </div>
                   </div>
@@ -558,43 +607,78 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               {/* Nagad Instructions Box */}
               {paymentMethod === 'nagad' && (
-                <div className="bg-orange-50/80 border border-orange-200 rounded-2xl p-5 space-y-4 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-orange-200">
-                    <span className="font-bold text-orange-900 uppercase tracking-wider text-[11px]">
-                      Nagad Payment Instructions
+                <div className="bg-orange-50/90 border border-orange-200 rounded-2xl p-5 space-y-4 text-xs shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-orange-200">
+                    <span className="font-bold text-orange-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+                      <span>Nagad Smart Checkout & Auto-Verification</span>
                     </span>
-                    <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">
-                      Merchant / Send Money
+                    <span className="bg-orange-500 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-xs">
+                      Send Money / Payment
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 text-neutral-700 leading-relaxed">
-                    <p>1. Open Nagad app and select <span className="font-bold text-orange-800">Send Money / Merchant Pay</span>.</p>
-                    <p>2. Enter Nagad number: <span className="font-mono font-bold text-sm bg-white px-2 py-0.5 rounded border border-orange-300 text-orange-900">{config.nagadMerchantNumber || '01812-345678'}</span></p>
-                    <p>3. Enter total amount: <span className="font-mono font-bold text-orange-900">{config.currencySymbol}{total.toFixed(2)}</span></p>
-                    <p>4. After confirmation, enter your Transaction ID below:</p>
+                  {/* Payment Steps */}
+                  <div className="space-y-2 text-neutral-700 leading-relaxed bg-white/70 p-3.5 rounded-xl border border-orange-100">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-neutral-600 font-medium">১. আমাদের নগদ নম্বর:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-sm bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-300 text-orange-950">
+                          {config.nagadMerchantNumber || '01812-345678'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(config.nagadMerchantNumber || '01812-345678', 'nagad')}
+                          className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                        >
+                          {copiedType === 'nagad' ? 'কপি হয়েছে!' : 'নম্বর কপি'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-neutral-600">
+                      <span>২. মোট প্রদেয় পরিমাণ:</span>
+                      <span className="font-mono font-bold text-sm text-orange-900">
+                        {config.currencySymbol}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-neutral-500 pt-1">
+                      ৩. নগদ অ্যাপ বা *167# ডায়াল করে টাকা পাঠিয়ে প্রাপ্ত TrxID ও নম্বর নিচে লিখুন।
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  {/* Robotic Badge */}
+                  <div className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-emerald-50 to-orange-50 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-900">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span><strong>রোবোটিক অটো-ভেরিফিকেশন:</strong> নগদের TrxID দিলে স্বয়ংক্রিয়ভাবে অর্ডার Approved হয়ে ডেলিভারি প্রসেস শুরু হবে!</span>
+                  </div>
+
+                  {/* TrxID & Sender Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block font-semibold text-orange-900 mb-1">Nagad Transaction ID (TrxID) *</label>
+                      <label className="block font-semibold text-orange-950 mb-1">
+                        নগদ TrxID (Transaction ID) *
+                      </label>
                       <input
                         type="text"
                         required
                         value={transactionId}
                         onChange={(e) => setTransactionId(e.target.value.toUpperCase())}
-                        placeholder="e.g. 7K2M9N3P"
-                        className="w-full bg-white border border-orange-300 rounded-lg p-2.5 text-xs font-mono uppercase focus:outline-none focus:border-orange-600"
+                        placeholder="যেমন: 7K2M9N3P"
+                        className="w-full bg-white border border-orange-300 rounded-xl p-2.5 text-xs font-mono uppercase focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-xs placeholder:text-neutral-400"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-orange-900 mb-1">Your Sender Nagad Number</label>
+                      <label className="block font-semibold text-orange-950 mb-1">
+                        যে নগদ নম্বর থেকে পাঠিয়েছেন
+                      </label>
                       <input
                         type="tel"
                         value={senderNumber}
                         onChange={(e) => setSenderNumber(e.target.value)}
                         placeholder="01XXXXXXXXX"
-                        className="w-full bg-white border border-orange-300 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-orange-600"
+                        className="w-full bg-white border border-orange-300 rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-xs placeholder:text-neutral-400"
                       />
                     </div>
                   </div>
@@ -603,77 +687,94 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               {/* Rocket Instructions Box */}
               {paymentMethod === 'rocket' && (
-                <div className="bg-purple-50/80 border border-purple-200 rounded-2xl p-5 space-y-4 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-purple-200">
+                <div className="bg-purple-50/90 border border-purple-200 rounded-2xl p-5 space-y-4 text-xs shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-purple-200">
                     <span className="font-bold text-purple-900 uppercase tracking-wider text-[11px]">
-                      Rocket Payment Instructions
+                      Rocket Smart Payment
+                    </span>
+                    <span className="bg-purple-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                      Personal / Merchant
                     </span>
                   </div>
-                  <div className="space-y-1.5 text-neutral-700">
-                    <p>Send <span className="font-mono font-bold text-purple-900">{config.currencySymbol}{total.toFixed(2)}</span> to Rocket Account: <span className="font-mono font-bold text-purple-900">{config.rocketMerchantNumber || '01912-345678'}</span></p>
+                  <div className="flex items-center justify-between bg-white/70 p-3 rounded-xl border border-purple-100 flex-wrap gap-2">
+                    <span className="text-neutral-600">রকেট নম্বর:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-purple-950 bg-purple-100 px-2 py-0.5 rounded border border-purple-300">
+                        {config.rocketMerchantNumber || '01912-345678'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(config.rocketMerchantNumber || '01912-345678', 'rocket')}
+                        className="px-2 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded"
+                      >
+                        {copiedType === 'rocket' ? 'কপি হয়েছে!' : 'কপি'}
+                      </button>
+                    </div>
                   </div>
                   <div>
-                    <label className="block font-semibold text-purple-900 mb-1">Rocket Transaction ID (TrxID) *</label>
+                    <label className="block font-semibold text-purple-950 mb-1">
+                      Rocket Transaction ID (TrxID) *
+                    </label>
                     <input
                       type="text"
                       required
                       value={transactionId}
                       onChange={(e) => setTransactionId(e.target.value.toUpperCase())}
                       placeholder="e.g. RCKT-4938201"
-                      className="w-full bg-white border border-purple-300 rounded-lg p-2.5 text-xs font-mono focus:outline-none focus:border-purple-600"
+                      className="w-full bg-white border border-purple-300 rounded-xl p-2.5 text-xs font-mono uppercase focus:outline-none focus:border-purple-600"
                     />
                   </div>
                 </div>
               )}
 
-              {/* COD Box */}
+              {/* Cash on Delivery Box */}
               {paymentMethod === 'cod' && (
-                <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 text-xs space-y-2">
+                <div className="bg-gradient-to-r from-neutral-50 to-neutral-100 border border-neutral-200 rounded-2xl p-5 text-xs space-y-2.5 shadow-sm">
                   <div className="flex items-center gap-2 text-neutral-900 font-bold">
                     <Truck className="w-4 h-4 text-emerald-600" />
-                    <span>Cash on Delivery (ক্যাশ অন ডেলিভারি)</span>
+                    <span>Cash on Delivery (ক্যাশ অন ডেলিভারি - সারাদেশে প্রযোজ্য)</span>
                   </div>
-                  <p className="text-neutral-600 leading-relaxed">
-                    You can pay the full order amount in cash to the courier delivery rider upon inspecting and receiving your package at your doorstep.
+                  <p className="text-neutral-600 leading-relaxed text-[11px]">
+                    প্যাকেজটি আপনার ঠিকানায় পৌঁছানোর পর ডেলিভারিম্যানের সামনে ড্রেসটি চেক করে মূল্য পরিশোধ করতে পারবেন। কোনো অগ্রিম পেমেন্টের প্রয়োজন নেই।
                   </p>
                 </div>
               )}
 
-              {/* Card Details */}
+              {/* Card Details: LUXURY ANIMATED COMING SOON ILLUSION */}
               {paymentMethod === 'card' && (
-                <div className="bg-neutral-900 text-white p-5 rounded-2xl shadow-xl space-y-4 font-mono text-xs">
-                  <div className="flex justify-between items-center text-neutral-400">
-                    <span className="text-[10px] uppercase tracking-widest font-sans">Secure Visa / Mastercard</span>
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-neutral-400 uppercase tracking-wider mb-1 font-sans">Card Number</label>
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-2.5 text-white tracking-widest text-sm focus:outline-none focus:border-amber-400 font-mono"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] text-neutral-400 uppercase tracking-wider mb-1 font-sans">Expires</label>
-                      <input
-                        type="text"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-2 text-white text-center focus:outline-none focus:border-amber-400"
-                      />
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 p-6 text-white border border-amber-500/50 shadow-2xl space-y-4">
+                  {/* Shimmer illusion background glow */}
+                  <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+                  <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-400/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center border border-amber-400/30">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                      <span className="font-serif font-bold text-sm tracking-wider text-white">
+                        Bank Card Gateway
+                      </span>
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-neutral-400 uppercase tracking-wider mb-1 font-sans">CVC / CVV</label>
-                      <input
-                        type="password"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-2 text-white text-center focus:outline-none focus:border-amber-400"
-                      />
+
+                    <div className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-neutral-950 font-bold text-[10px] tracking-widest uppercase shadow-lg shadow-amber-500/25 animate-pulse">
+                      ✨ COMING SOON
                     </div>
+                  </div>
+
+                  <div className="relative z-10 bg-neutral-900/90 border border-neutral-800 rounded-xl p-4 space-y-2 backdrop-blur-md">
+                    <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>অফিসিয়াল ব্যাংক গেটওয়ে লাইসেন্সিং চলমান</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-300 leading-relaxed font-sans">
+                      দেশি ও বিদেশি যেকোনো Visa, MasterCard, এবং American Express (AMEX) ক্রেডিট ও ডেবিট কার্ড থেকে সরাসরি ওটিপি (OTP) দিয়ে পেমেন্ট নেওয়ার জন্য ব্যাংকিং গেটওয়ে অনুমোদন প্রক্রিয়াধীন। অতি শীঘ্রই এটি লাইভ হবে।
+                    </p>
+                  </div>
+
+                  <div className="relative z-10 flex items-center gap-2 p-3 bg-amber-950/40 border border-amber-800/40 rounded-xl text-[11px] text-amber-200">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>বর্তমানে দ্রুত অর্ডার কনফার্ম করতে অনুগ্রহ করে <strong>বিকাশ</strong>, <strong>নগদ</strong> অথবা <strong>ক্যাশ অন ডেলিভারি</strong> নির্বাচন করুন।</span>
                   </div>
                 </div>
               )}
@@ -687,7 +788,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex justify-between text-neutral-600">
                   <span>Grand Total to Pay:</span>
                   <span className="text-base font-bold font-mono text-neutral-950">
-                    {config.currencySymbol}{total.toFixed(2)}
+                    {config.currencySymbol}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -702,13 +803,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   ← Back to Details
                 </button>
 
-                <button
-                  type="submit"
-                  className="px-8 py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-all shadow-xl flex items-center gap-2"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Confirm Order ({config.currencySymbol}{total.toFixed(2)})</span>
-                </button>
+                {paymentMethod === 'card' ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="px-6 py-3.5 bg-neutral-300 text-neutral-500 text-xs font-bold uppercase tracking-wider rounded-lg cursor-not-allowed shadow-none"
+                  >
+                    বিকাশ, নগদ বা ক্যাশ অন ডেলিভারি বাছুন
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="px-8 py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-all shadow-xl flex items-center gap-2 active:scale-98"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Confirm Order ({config.currencySymbol}{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
+                  </button>
+                )}
               </div>
             </form>
           )}
@@ -735,6 +846,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               {/* Receipt Summary Box */}
               <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 text-left text-xs space-y-4 max-w-lg mx-auto">
+                {placedOrder.autoVerified && (
+                  <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>⚡ <strong>রোবোটিক অটো-অ্যাপ্রুভাল:</strong> আপনার TrxID সফলভাবে রিসিভ হয়েছে এবং অর্ডারটি স্বয়ংক্রিয়ভাবে Approved করা হয়েছে!</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center pb-3 border-b border-neutral-200 font-mono">
                   <div>
                     <span className="text-[10px] text-neutral-400 block uppercase">Order Reference</span>

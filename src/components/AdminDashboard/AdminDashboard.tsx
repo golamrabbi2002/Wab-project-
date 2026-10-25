@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, Order, StoreConfig, Coupon, Customer } from '../../types';
 import { AdminAnalytics } from './AdminAnalytics';
 import { AdminProducts } from './AdminProducts';
@@ -12,6 +12,7 @@ import { AdminAiProductCreator } from './AdminAiProductCreator';
 import { AdminSystemDoctor } from './AdminSystemDoctor';
 import { AdminFirebaseDiagnostics } from './AdminFirebaseDiagnostics';
 import { AdminReviews } from './AdminReviews';
+import { luxuryAudio } from '../../utils/audioNotification';
 import {
   LayoutDashboard,
   Package,
@@ -31,7 +32,8 @@ import {
   Wrench,
   Code2,
   Database,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -75,10 +77,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'analytics' | 'ai_creator' | 'products' | 'orders' | 'customers' | 'reviews' | 'doctor' | 'firebase_debug' | 'settings' | 'coupons' | 'export' | 'threat_map'
   >('analytics');
 
+  const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
+
+  useEffect(() => {
+    const handleNewOrder = (e: any) => {
+      if (e && e.detail) {
+        setNewOrderAlert(e.detail);
+        luxuryAudio.playNewOrderChime();
+        const timer = setTimeout(() => {
+          setNewOrderAlert(null);
+        }, 9000);
+        return () => clearTimeout(timer);
+      }
+    };
+    window.addEventListener('aura_new_order_received', handleNewOrder);
+    return () => window.removeEventListener('aura_new_order_received', handleNewOrder);
+  }, []);
+
   const pendingOrdersCount = orders.filter((o) => o.status === 'Pending' || o.status === 'Processing').length;
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col font-sans relative">
+      
+      {/* Live Order Incoming Alert Popup */}
+      {newOrderAlert && (
+        <div className="fixed top-20 right-4 sm:right-8 z-50 max-w-sm sm:max-w-md w-full bg-neutral-950/95 border-2 border-amber-400 rounded-2xl p-4 shadow-2xl animate-fadeIn text-white flex items-start justify-between gap-3 backdrop-blur-xl">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-amber-400 text-neutral-950 rounded-xl font-bold shadow-md shrink-0">
+              <ShoppingCart className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-bold">
+                  🔔 NEW ORDER RECEIVED
+                </span>
+                {newOrderAlert.autoVerified && (
+                  <span className="text-[9px] font-mono bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">
+                    ⚡ AUTO-APPROVED
+                  </span>
+                )}
+              </div>
+              <h4 className="font-bold text-sm text-white">
+                {newOrderAlert.orderNumber} • {config.currencySymbol}{newOrderAlert.total.toLocaleString()}
+              </h4>
+              <p className="text-xs text-neutral-300">
+                গ্রাহক: {newOrderAlert.customerName} ({newOrderAlert.customerPhone || 'N/A'})
+              </p>
+              <p className="text-[11px] text-amber-200/90 font-mono">
+                পেমেন্ট: {newOrderAlert.paymentMethod}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 items-end shrink-0">
+            <button
+              onClick={() => setNewOrderAlert(null)}
+              className="text-neutral-400 hover:text-white p-1 rounded-lg"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('orders');
+                setNewOrderAlert(null);
+              }}
+              className="text-[10px] bg-amber-400 hover:bg-amber-300 text-neutral-950 px-2.5 py-1 rounded-lg font-bold transition-colors uppercase shadow-xs"
+            >
+              View Order
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Top Admin Navigation Bar */}
       <header className="sticky top-0 z-40 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800">

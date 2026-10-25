@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search, Package, Truck, CheckCircle2, Clock, ShieldCheck, Phone, MapPin, ExternalLink } from 'lucide-react';
+import { X, Search, Package, Truck, CheckCircle2, Clock, ShieldCheck, Phone, MapPin, ExternalLink, Sparkles } from 'lucide-react';
 import { Order, StoreConfig } from '../types';
 
 interface OrderTrackingModalProps {
@@ -148,10 +148,24 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                   <div>
                     <span className="text-[10px] text-neutral-400 block">Total Amount</span>
                     <span className="font-bold text-amber-400 font-mono">
-                      {config.currencySymbol}{searchedOrder.total.toFixed(2)}
+                      {config.currencySymbol}{searchedOrder.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
+
+                {searchedOrder.autoVerified && (
+                  <div className="mt-3 pt-3 border-t border-neutral-800 flex items-center justify-between text-xs text-emerald-300">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>রোবোটিক ভেরিফিকেশন সম্পন্ন (Order Approved)</span>
+                    </span>
+                    {searchedOrder.transactionId && (
+                      <span className="font-mono text-[11px] bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800/80">
+                        TrxID: {searchedOrder.transactionId}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Visual Status Stepper */}

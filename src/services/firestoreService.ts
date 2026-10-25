@@ -26,6 +26,7 @@ import {
 import firebaseConfig from '../../firebase-applet-config.json';
 import { StoreConfig, Product, Order, Customer, Coupon, Review } from '../types';
 import { initialStoreConfig, initialProducts } from '../data/initialData';
+import { luxuryAudio } from '../utils/audioNotification';
 
 // Initialize Firebase App instance safely
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -479,43 +480,128 @@ export class FirestoreSyncService {
     }
   }
 
-  // Real-time listener for Orders
+  private static knownOrderIds: Set<string> | null = null;
+
+  // Sanitize order payload to eliminate undefined fields and activate Robotic Auto-Approval for TrxID
+  public static sanitizeOrderPayload(order: Order): Record<string, any> {
+    const hasTrx = Boolean(order.transactionId && String(order.transactionId).trim().length >= 6);
+    const methodStr = (order.paymentMethod || '').toLowerCase();
+    const isMfs = methodStr.includes('bkash') || methodStr.includes('nagad') || methodStr.includes('rocket');
+
+    // Robotic Auto-Approval: If client submitted a valid TrxID, auto-approve immediately
+    const shouldAutoApprove = (isMfs && hasTrx) || order.autoVerified === true;
+    const finalStatus = shouldAutoApprove ? 'Processing' : (order.status || 'Pending');
+
+    return {
+      id: String(order.id || `ord-${Date.now()}`),
+      orderNumber: String(order.orderNumber || `AUR-${Date.now()}`),
+      customerId: String(order.customerId || ''),
+      customerName: String(order.customerName || 'Valued Client'),
+      customerEmail: String(order.customerEmail || 'client@aura.com'),
+      customerPhone: String(order.customerPhone || ''),
+      shippingAddress: {
+        street: String(order.shippingAddress?.street || ''),
+        city: String(order.shippingAddress?.city || 'Dhaka'),
+        state: String(order.shippingAddress?.state || 'Dhaka Division'),
+        zip: String(order.shippingAddress?.zip || '1212'),
+        country: String(order.shippingAddress?.country || 'Bangladesh'),
+      },
+      items: Array.isArray(order.items)
+        ? order.items.map((item) => ({
+            productId: String(item.productId || ''),
+            title: String(item.title || 'Exclusive Garment'),
+            size: String(item.size || 'One Size'),
+            price: Number(item.price) >= 0 ? Number(item.price) : 0,
+            quantity: Math.max(1, Number(item.quantity) || 1),
+            image: String(item.image || ''),
+          }))
+        : [],
+      subtotal: Number(order.subtotal) >= 0 ? Number(order.subtotal) : 0,
+      discount: Number(order.discount) >= 0 ? Number(order.discount) : 0,
+      couponCode: order.couponCode ? String(order.couponCode) : '',
+      tax: Number(order.tax) >= 0 ? Number(order.tax) : 0,
+      shippingCost: Number(order.shippingCost) >= 0 ? Number(order.shippingCost) : 0,
+      total: Number(order.total) >= 0 ? Number(order.total) : 0,
+      status: String(finalStatus),
+      paymentMethod: String(order.paymentMethod || 'bKash'),
+      transactionId: order.transactionId ? String(order.transactionId).trim() : '',
+      senderPhone: order.senderPhone ? String(order.senderPhone).trim() : '',
+      autoVerified: Boolean(shouldAutoApprove),
+      deliveryZone: String(order.deliveryZone || 'Inside Dhaka'),
+      trackingNumber: order.trackingNumber ? String(order.trackingNumber).trim() : '',
+      notes: order.notes ? String(order.notes).trim() : '',
+      createdAt: String(order.createdAt || new Date().toISOString()),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  // Real-time listener for Orders with live Audio chime & notification broadcast
   static subscribeOrders(callback: (orders: Order[]) => void): () => void {
     const ordersRef = collection(db, ORDERS_COLLECTION);
     return onSnapshot(ordersRef, (snapshot) => {
-      if (!snapshot.empty) {
-        const orders: Order[] = [];
-        snapshot.forEach((d) => {
-          orders.push(d.data() as Order);
+      const orders: Order[] = [];
+      const newIncomingOrders: Order[] = [];
+
+      snapshot.forEach((d) => {
+        const orderData = d.data() as Order;
+        if (orderData && orderData.id) {
+          orders.push(orderData);
+          if (FirestoreSyncService.knownOrderIds !== null && !FirestoreSyncService.knownOrderIds.has(orderData.id)) {
+            newIncomingOrders.push(orderData);
+          }
+        }
+      });
+
+      // Update known IDs
+      const currentIds = new Set(orders.map((o) => o.id));
+
+      if (FirestoreSyncService.knownOrderIds !== null && newIncomingOrders.length > 0) {
+        // Play boutique crystal chime and broadcast event
+        luxuryAudio.playNewOrderChime();
+        newIncomingOrders.forEach((o) => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('aura_new_order_received', { detail: o }));
+          }
         });
-        // Sort descending by createdAt
-        orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        callback(orders);
       }
+
+      FirestoreSyncService.knownOrderIds = currentIds;
+
+      // Sort descending by createdAt
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(orders);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, ORDERS_COLLECTION);
     });
   }
 
-  // Save new Order
-  static async saveOrder(order: Order): Promise<void> {
+  // Save new Order safely with zero undefined properties
+  static async saveOrder(order: Order): Promise<Order> {
     try {
-      const orderRef = doc(db, ORDERS_COLLECTION, order.id);
-      await setDoc(orderRef, order);
+      await ensureFirebaseAuth();
+      const sanitized = this.sanitizeOrderPayload(order);
+      const orderRef = doc(db, ORDERS_COLLECTION, sanitized.id);
+      await setDoc(orderRef, sanitized);
+      return sanitized as Order;
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `${ORDERS_COLLECTION}/${order.id}`);
+      throw error;
     }
   }
 
-  // Update order status
+  // Update order status with audio confirmation
   static async updateOrderStatus(orderId: string, status: string, trackingNumber?: string): Promise<void> {
     try {
       const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-      const updateData: Record<string, any> = { status };
+      const updateData: Record<string, any> = { 
+        status,
+        updatedAt: new Date().toISOString()
+      };
       if (trackingNumber !== undefined) {
-        updateData.trackingNumber = trackingNumber;
+        updateData.trackingNumber = String(trackingNumber).trim();
       }
       await updateDoc(orderRef, updateData);
+      luxuryAudio.playStatusChime();
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COLLECTION}/${orderId}`);
     }
