@@ -34,13 +34,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
       onCustomerLogin(customer);
       onClose();
     } catch (err: any) {
-      console.warn('Firebase Google Sign-In error:', err);
-      if (err?.code === 'auth/popup-blocked') {
-        setAuthError('Popup was blocked by your browser. Please allow popups for Google Sign-In.');
+      console.warn('Google Sign-In notice:', err);
+      if (err?.code === 'auth/unauthorized-domain') {
+        setAuthError('Google সাইন-ইন ডোমেন অথরাইজেশন প্রক্রিয়া চলছে। অনুগ্রহ করে নিচে সরাসরি আপনার ইমেইল ও পাসওয়ার্ড দিয়ে লগইন অথবা অ্যাকাউন্ট রেজিস্টার করুন।');
+      } else if (err?.code === 'auth/popup-blocked') {
+        setAuthError('ব্রাউজার থেকে পপআপ ব্লক করা হয়েছে। অনুগ্রহ করে ব্রাউজারে পপআপ অ্যালাউ করুন।');
       } else if (err?.code === 'auth/popup-closed-by-user') {
-        setAuthError('Sign-in cancelled. Please click again to sign in with Google.');
+        setAuthError('সাইন-ইন উইন্ডো বন্ধ করা হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।');
       } else {
-        setAuthError(err?.message || 'Google authentication failed. Please try again.');
+        setAuthError('সাইন-ইন সম্পন্ন করা যায়নি। অনুগ্রহ করে নিচে ইমেইল ও পাসওয়ার্ড দিয়ে সরাসরি লগইন করুন।');
       }
     } finally {
       setIsGoogleLoading(false);
@@ -225,14 +227,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, config, o
               </span>
             </button>
 
-            <div className="text-[10px] text-center text-emerald-600 font-mono flex items-center justify-center gap-1 pt-0.5">
-              <Check className="w-3 h-3 text-emerald-600" />
-              <span>Firebase Cloud Auth & Firestore Synced</span>
-            </div>
-
             <div className="flex items-center gap-3 my-3">
               <div className="flex-1 h-px bg-neutral-200" />
-              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">Or Email Credentials</span>
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">Or Sign in with Email</span>
               <div className="flex-1 h-px bg-neutral-200" />
             </div>
           </div>

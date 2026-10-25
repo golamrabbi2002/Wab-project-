@@ -95,9 +95,9 @@ async function startServer() {
     }
   });
 
-  // --- Intelligent Garment Classification Engine ---
-  interface GarmentCategoryInfo {
-    category: 'Panjabi' | 'Saree' | 'Three-Piece' | 'Kurtis' | 'Tops' | 'Bottoms' | 'Outerwear' | 'Accessories' | 'Footwear';
+  // --- Universal Intelligent Product Catalog Engine ---
+  interface ProductCatalogInfo {
+    category: string;
     sizes: string[];
     skuPrefix: string;
     material: string;
@@ -106,126 +106,114 @@ async function startServer() {
     careInstructions: string;
   }
 
-  function getCategoryTemplate(category: GarmentCategoryInfo['category'], rawTitle: string): GarmentCategoryInfo {
-    switch (category) {
-      case 'Saree':
-        return {
-          category: 'Saree',
-          sizes: ['Free Size (১২ হাত + ব্লাউজ পিস)'],
-          skuPrefix: 'SAR',
-          material: 'প্রিমিয়াম সফট সিল্ক / ঐতিহ্যবাহী জামদানি উইভিং ও গর্জিয়াস জরি আঁচল',
-          subtitle: 'ঐতিহ্যবাহী নিখুঁত বুনন ও রাজকীয় আঁচল ডিজাইন',
-          descriptionSnippet: `${rawTitle || 'এক্সক্লুসিভ ডিজাইনার শাড়ি'} — প্রতিটি উৎসবে আপনার রূপ ও আভিজাত্যকে আরও মনমাতানো করে তুলতে তৈরি এই ঐতিহ্যবাহী শাড়ি। প্রিমিয়াম সিল্ক ও সূক্ষ্ম সুতার বুননে বোনা, সাথে পাচ্ছেন ম্যাচিং ব্লাউজ পিস।`,
-          careInstructions: 'ড্রাই ক্লিন ওয়াশ আবশ্যক। সরাসরি রোদে না শুকিয়ে ছায়ায় শুকান।'
-        };
-      case 'Three-Piece':
-        return {
-          category: 'Three-Piece',
-          sizes: ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'],
-          skuPrefix: 'THR',
-          material: 'লাক্সারি সুইস লন / ডিজিটাল প্রিন্ট কটন কামিজ, কমফোর্ট সেলোয়ার ও গর্জিয়াস ওড়না',
-          subtitle: 'ডিজাইনার ডিজিটাল প্রিন্ট ও গর্জিয়াস এমব্রয়ডারি কারুকাজ',
-          descriptionSnippet: `${rawTitle || 'লাক্সারি থ্রি-পিস কালেকশন'} — আধুনিক ফ্যাশন ও রুচিশীলতার অনন্য নিদর্শন। সেরা মানের ফেব্রিক ও দীর্ঘস্থায়ী রঙের নিশ্চয়তা সহ আকর্ষণীয় ডিজাইনের কামিজ, আরামদায়ক সেলোয়ার ও ওড়নার পারফেক্ট কম্বিনেশন।`,
-          careInstructions: 'হালকা ডিটারজেন্টে নরম ওয়াশ। কড়া রোদে বেশিক্ষণ রাখবেন না।'
-        };
-      case 'Kurtis':
-        return {
-          category: 'Kurtis',
-          sizes: ['S (36)', 'M (38)', 'L (40)', 'XL (42)'],
-          skuPrefix: 'KRT',
-          material: '১০০% প্রিমিয়াম রেয়ন কটন / সফট জর্জেট',
-          subtitle: 'স্মার্ট ও আকর্ষণীয় আধুনিক ক্যাজুয়াল আউটফিট',
-          descriptionSnippet: `${rawTitle || 'স্টাইলিশ ডিজাইনার কুর্তি'} — ক্যাজুয়াল আড্ডা, অফিস কিংবা ভার্সিটির জন্য আরামদায়ক ও নজরকাড়া কুর্তি। অত্যন্ত সফট এবং ব্রিদেবল ফেব্রিকে তৈরি।`,
-          careInstructions: 'মেশিন বা হ্যান্ড ওয়াশ উপযোগী। হালকা তাপে আয়রন করুন।'
-        };
-      case 'Tops':
-        return {
-          category: 'Tops',
-          sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-          skuPrefix: 'TOP',
-          material: '১০০% পিওর ফাইন অক্সফোর্ড কটন',
-          subtitle: 'স্মার্ট ক্যাজুয়াল ও অফিসিয়াল রেগুলার ফিট',
-          descriptionSnippet: `${rawTitle || 'প্রিমিয়াম ক্যাজুয়াল শার্ট'} — স্মার্ট ও আত্মবিশ্বাসী লুক দিতে নিখুঁত সেলাই ও প্রিমিয়াম ফেব্রিকে প্রস্তুত।`,
-          careInstructions: 'মেশিন ওয়াশ উপযোগী। স্বাভাবিক রোদে শুকান।'
-        };
-      case 'Bottoms':
-        return {
-          category: 'Bottoms',
-          sizes: ['30', '32', '34', '36', '38'],
-          skuPrefix: 'BOT',
-          material: 'প্রিমিয়াম স্ট্রেচ টুইল / সফট কটন',
-          subtitle: 'আরামদায়ক রেগুলার ও স্লিম ফিট বটমওয়্যার',
-          descriptionSnippet: `${rawTitle || 'ক্লাসিক ডিজাইনার বটমস'} — আরামদায়ক ফিটিং এবং টেকসই ফেব্রিক যা দীর্ঘসময় পরিধানে স্বস্তি দেয়।`,
-          careInstructions: 'মেশিন ওয়াশ উপযোগী।'
-        };
-      case 'Panjabi':
-      default:
-        return {
-          category: 'Panjabi',
-          sizes: ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'],
-          skuPrefix: 'PAN',
-          material: '১০০% প্রি-ওয়াশড ফাইন কম্বড কটন | সূক্ষ্ম কম্পিউটার ও হ্যান্ড এমব্রয়ডারি',
-          subtitle: 'অভিজাত প্রিমিয়াম কারুকাজ, সফট কলার ও নিখুঁত ফিটিং',
-          descriptionSnippet: `${rawTitle || 'এক্সক্লুসিভ ডিজাইনার পাঞ্জাবি'} — জুম্মাহর নামাজ, ঈদ কিংবা যেকোনো পারিবারিক উৎসবে আপনার ব্যক্তিত্বকে ফুটিয়ে তুলতে নিখুঁত কারুকাজের এই রাজকীয় পাঞ্জাবি। ১০০% কটন ফেব্রিক আপনাকে দেবে দিনভর আরাম ও স্বস্তি।`,
-          careInstructions: 'হ্যান্ড ওয়াশ অথবা ড্রাই ক্লিন। রোদে বেশিক্ষণ রাখবেন না। মাঝারি তাপে আয়রন করুন।'
-        };
-    }
-  }
-
-  function resolveGarmentCategory(rawTitle: string, hintCategory?: string): GarmentCategoryInfo {
+  function resolveUniversalProductInfo(rawTitle: string, hintCategory?: string): ProductCatalogInfo {
     const text = (rawTitle || '').toLowerCase();
     const hint = (hintCategory || '').toLowerCase();
 
-    // 1. If user provided a specific manual category choice (other than Auto)
-    if (hint && hint !== 'auto') {
-      if (hint === 'saree' || hint === 'shari' || hint.includes('শাড়ি') || hint.includes('শাড়ি')) {
-        return getCategoryTemplate('Saree', rawTitle);
-      }
-      if (hint === 'panjabi' || hint === 'punjabi' || hint.includes('পাঞ্জাবি') || hint.includes('পাঞ্জাবী')) {
-        return getCategoryTemplate('Panjabi', rawTitle);
-      }
-      if (hint.includes('three') || hint.includes('thri') || hint.includes('থ্রি') || hint.includes('kameez')) {
-        return getCategoryTemplate('Three-Piece', rawTitle);
-      }
-      if (hint.includes('kurti') || hint.includes('কুর্তি')) {
-        return getCategoryTemplate('Kurtis', rawTitle);
-      }
-      if (hint.includes('top') || hint.includes('shirt') || hint.includes('শার্ট')) {
-        return getCategoryTemplate('Tops', rawTitle);
-      }
-      if (hint.includes('bottom') || hint.includes('pant') || hint.includes('প্যান্ট')) {
-        return getCategoryTemplate('Bottoms', rawTitle);
-      }
+    // 1. Bucket & Household plastic/home living items (Explicit user request)
+    if (text.includes('বালতি') || text.includes('bucket') || text.includes('মগ') || text.includes('bowl') || text.includes('ঝুড়ি') || text.includes('ঝুড়ি') || text.includes('প্লাস্টিক') || hint.includes('household') || hint.includes('home')) {
+      const isBucket = text.includes('বালতি') || text.includes('bucket');
+      return {
+        category: 'Household & Living',
+        sizes: ['স্ট্যান্ডার্ড (১৬ লিটার)', 'বড় (২০ লিটার)'],
+        skuPrefix: 'BLT',
+        material: 'ফুড-গ্রেড ভার্জিন আনব্রেকেবল প্লাস্টিক ও অ্যালয় স্টিল হ্যান্ডেল',
+        subtitle: isBucket ? 'হেভি-ডিউটি মজবুত গ্রিপ ও দীর্ঘস্থায়ী কোয়ালিটি' : 'টেকসই গৃহস্থালী সামগ্রী',
+        descriptionSnippet: isBucket
+          ? `${rawTitle || 'প্রিমিয়াম প্লাস্টিক বালতি'} — দৈনন্দিন গৃহস্থালী ব্যবহারে সর্বোচ্চ স্থায়িত্ব নিশ্চিত করতে তৈরি। ১০০% ভার্জিন প্লাস্টিক মেটেরিয়াল হওয়ায় সহজে ভাঙে না এবং মরিচারোধী অ্যালয় মেটাল হ্যান্ডেল ভারী পানি বহনে দেয় মসৃণ ও আরামদায়ক গ্রিপ।`
+          : `${rawTitle || 'প্রিমিয়াম গৃহস্থালী পণ্য'} — উন্নত মেটেরিয়ালে প্রস্তুত টেকসই ও ব্যবহারবান্ধব হোম এক্সেসরিজ।`,
+        careInstructions: 'ব্যবহারের পর পরিষ্কার পানি দিয়ে ধুয়ে রাখুন। অতিরিক্ত তাপে রাখবেন না।'
+      };
     }
 
-    // 2. High-precision Bengali & English Keywords
-    const panjabiMatches = ['পাঞ্জাবি', 'পাঞ্জাবী', 'panjabi', 'punjabi', 'kabli', 'কাবলি', 'পায়জামা পাঞ্জাবি', 'কুর্তা', 'kurta', 'jubba', 'জুব্বা'];
-    const sareeMatches = ['শাড়ি', 'শাড়ি', 'saree', 'sari', 'shari', 'sharee', 'জামদানি', 'jamdani', 'বেনারসি', 'banarasi', 'কাতান', 'katan', 'তসর', 'tussar', 'টাঙ্গাইল'];
-    const threePieceMatches = ['থ্রি-পিস', 'থ্রিপিস', 'থ্রি পিস', 'three piece', 'three-piece', '3 piece', '3-piece', 'কামিজ', 'kameez', 'salwar', 'সালোয়ার', 'সালোয়ার', 'সেলোয়ার', 'লেহেঙ্গা', 'lehenga', 'গাউন', 'gown', 'আনোয়ারকলি', 'anarkali'];
-    const kurtiMatches = ['কুর্তি', 'kurti', 'kurtis', 'টিউনিক', 'tunic'];
-    const topsMatches = ['শার্ট', 'shirt', 't-shirt', 'টি-শার্ট', 'polo', 'পোলো', 'টপ', 'top', 'blouse', 'ব্লাউজ', 'blazer', 'ব্লেজার'];
-    const bottomsMatches = ['প্যান্ট', 'pant', 'trouser', 'ট্রাউজার', 'জিন্স', 'jeans', 'পালাজ্জো', 'palazzo'];
+    // 2. Footwear / Shoes
+    if (text.includes('জুতো') || text.includes('জুতা') || text.includes('shoe') || text.includes('sneaker') || text.includes('sandal') || text.includes('loafer') || hint.includes('footwear')) {
+      return {
+        category: 'Footwear',
+        sizes: ['39', '40', '41', '42', '43', '44'],
+        skuPrefix: 'SHOE',
+        material: 'প্রিমিয়াম পিইউ লেদার / ব্রিদেবল মেশ ও অ্যান্টি-স্লিপ রাবার সোল',
+        subtitle: 'স্টাইলিশ লুক, সফট কুশনিং ও দীর্ঘস্থায়ী আরামদায়ক ফিটিং',
+        descriptionSnippet: `${rawTitle || 'প্রিমিয়াম ফুটওয়্যার'} — প্রতিদিনের হাঁটাচলা ও ফরমাল বা ক্যাজুয়াল আউটফিটের সাথে মানানসই। হাই-গ্রিপ অ্যান্টি-স্লিপ সোল প্রতিটি কদমে দেয় আত্মবিশ্বাস।`,
+        careInstructions: 'শুকনো নরম কাপড় দিয়ে মুছে রাখুন। সরাসরি পানিতে বেশিক্ষণ ভিজিয়ে রাখবেন না।'
+      };
+    }
 
-    const hasPanjabi = panjabiMatches.some(k => text.includes(k));
-    const hasSaree = sareeMatches.some(k => text.includes(k));
-    const hasThreePiece = threePieceMatches.some(k => text.includes(k));
-    const hasKurti = kurtiMatches.some(k => text.includes(k));
-    const hasTops = topsMatches.some(k => text.includes(k));
-    const hasBottoms = bottomsMatches.some(k => text.includes(k));
+    // 3. Saree
+    if (hint === 'saree' || hint === 'shari' || text.includes('শাড়ি') || text.includes('শাড়ি') || text.includes('saree') || text.includes('জামদানি') || text.includes('বেনারসি') || text.includes('কাতান')) {
+      return {
+        category: 'Saree',
+        sizes: ['Free Size (১২ হাত + ব্লাউজ পিস)'],
+        skuPrefix: 'SAR',
+        material: 'প্রিমিয়াম সফট সিল্ক / ঐতিহ্যবাহী জামদানি উইভিং ও গর্জিয়াস জরি আঁচল',
+        subtitle: 'ঐতিহ্যবাহী নিখুঁত বুনন ও রাজকীয় আঁচল ডিজাইন',
+        descriptionSnippet: `${rawTitle || 'এক্সক্লুসিভ ডিজাইনার শাড়ি'} — প্রতিটি উৎসবে আপনার রূপ ও আভিজাত্যকে আরও মনমাতানো করে তুলতে তৈরি এই ঐতিহ্যবাহী শাড়ি। প্রিমিয়াম সিল্ক ও সূক্ষ্ম সুতার বুননে বোনা, সাথে পাচ্ছেন ম্যাচিং ব্লাউজ পিস।`,
+        careInstructions: 'ড্রাই ক্লিন ওয়াশ আবশ্যক। সরাসরি রোদে না শুকিয়ে ছায়ায় শুকান।'
+      };
+    }
 
-    // Specific disambiguation rules:
-    // "Silk Panjabi" -> Panjabi (not Saree)
-    if (hasPanjabi && !hasSaree) return getCategoryTemplate('Panjabi', rawTitle);
-    // "Banarasi Saree" / "Jamdani Saree" -> Saree (not Panjabi)
-    if (hasSaree && !hasPanjabi) return getCategoryTemplate('Saree', rawTitle);
-    if (hasThreePiece) return getCategoryTemplate('Three-Piece', rawTitle);
-    if (hasKurti) return getCategoryTemplate('Kurtis', rawTitle);
-    if (hasTops) return getCategoryTemplate('Tops', rawTitle);
-    if (hasBottoms) return getCategoryTemplate('Bottoms', rawTitle);
-    if (hasPanjabi) return getCategoryTemplate('Panjabi', rawTitle);
-    if (hasSaree) return getCategoryTemplate('Saree', rawTitle);
+    // 4. Three-Piece
+    if (hint.includes('three') || text.includes('থ্রি-পিস') || text.includes('থ্রিপিস') || text.includes('কামিজ') || text.includes('three piece')) {
+      return {
+        category: 'Three-Piece',
+        sizes: ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'],
+        skuPrefix: 'THR',
+        material: 'লাক্সারি সুইস লন / ডিজিটাল প্রিন্ট কটন কামিজ, কমফোর্ট সেলোয়ার ও গর্জিয়াস ওড়না',
+        subtitle: 'ডিজাইনার ডিজিটাল প্রিন্ট ও গর্জিয়াস এমব্রয়ডারি কারুকাজ',
+        descriptionSnippet: `${rawTitle || 'লাক্সারি থ্রি-পিস কালেকশন'} — আধুনিক ফ্যাশন ও রুচিশীলতার অনন্য নিদর্শন। সেরা মানের ফেব্রিক ও দীর্ঘস্থায়ী রঙের নিশ্চয়তা সহ আকর্ষণীয় ডিজাইনের কামিজ, আরামদায়ক সেলোয়ার ও ওড়নার পারফেক্ট কম্বিনেশন।`,
+        careInstructions: 'হালকা ডিটারজেন্টে নরম ওয়াশ। কড়া রোদে বেশিক্ষণ রাখবেন না।'
+      };
+    }
 
-    return getCategoryTemplate('Panjabi', rawTitle);
+    // 5. Kurtis
+    if (hint.includes('kurti') || text.includes('কুর্তি') || text.includes('kurti') || text.includes('টিউনিক')) {
+      return {
+        category: 'Kurtis',
+        sizes: ['S (36)', 'M (38)', 'L (40)', 'XL (42)'],
+        skuPrefix: 'KRT',
+        material: '১০০% প্রিমিয়াম রেয়ন কটন / সফট জর্জেট',
+        subtitle: 'স্মার্ট ও আকর্ষণীয় আধুনিক ক্যাজুয়াল আউটফিট',
+        descriptionSnippet: `${rawTitle || 'স্টাইলিশ ডিজাইনার কুর্তি'} — ক্যাজুয়াল আড্ডা, অফিস কিংবা ভার্সিটির জন্য আরামদায়ক ও নজরকাড়া কুর্তি। অত্যন্ত সফট এবং ব্রিদেবল ফেব্রিকে তৈরি।`,
+        careInstructions: 'মেশিন বা হ্যান্ড ওয়াশ উপযোগী। হালকা তাপে আয়রন করুন।'
+      };
+    }
+
+    // 6. Tops / Shirts
+    if (hint.includes('top') || text.includes('শার্ট') || text.includes('shirt') || text.includes('টি-শার্ট') || text.includes('polo')) {
+      return {
+        category: 'Tops',
+        sizes: ['S', 'M', 'L', 'XL', 'XXL'],
+        skuPrefix: 'TOP',
+        material: '১০০% পিওর ফাইন অক্সফোর্ড কটন',
+        subtitle: 'স্মার্ট ক্যাজুয়াল ও অফিসিয়াল রেগুলার ফিট',
+        descriptionSnippet: `${rawTitle || 'প্রিমিয়াম ক্যাজুয়াল শার্ট'} — স্মার্ট ও আত্মবিশ্বাসী লুক দিতে নিখুঁত সেলাই ও প্রিমিয়াম ফেব্রিকে প্রস্তুত।`,
+        careInstructions: 'মেশিন ওয়াশ উপযোগী। স্বাভাবিক রোদে শুকান।'
+      };
+    }
+
+    // 7. Panjabi
+    if (hint.includes('panjabi') || text.includes('পাঞ্জাবি') || text.includes('পাঞ্জাবী') || text.includes('panjabi') || text.includes('punjabi') || text.includes('kabli')) {
+      return {
+        category: 'Panjabi',
+        sizes: ['M (38)', 'L (40)', 'XL (42)', 'XXL (44)'],
+        skuPrefix: 'PAN',
+        material: '১০০% প্রি-ওয়াশড ফাইন কম্বড কটন | সূক্ষ্ম কম্পিউটার ও হ্যান্ড এমব্রয়ডারি',
+        subtitle: 'অভিজাত প্রিমিয়াম কারুকাজ, সফট কলার ও নিখুঁত ফিটিং',
+        descriptionSnippet: `${rawTitle || 'এক্সক্লুসিভ ডিজাইনার পাঞ্জাবি'} — জুম্মাহর নামাজ, ঈদ কিংবা যেকোনো পারিবারিক উৎসবে আপনার ব্যক্তিত্বকে ফুটিয়ে তুলতে নিখুঁত কারুকাজের এই রাজকীয় পাঞ্জাবি। ১০০% কটন ফেব্রিক আপনাকে দেবে দিনভর আরাম ও স্বস্তি।`,
+        careInstructions: 'হ্যান্ড ওয়াশ অথবা ড্রাই ক্লিন। রোদে বেশিক্ষণ রাখবেন না। মাঝারি তাপে আয়রন করুন।'
+      };
+    }
+
+    // 8. General / Accessories / Other Goods
+    return {
+      category: hint && hint !== 'auto' ? hint : 'General',
+      sizes: ['Standard / এক সাইজ'],
+      skuPrefix: 'GEN',
+      material: 'উচ্চমানের টেকসই ও প্রিমিয়াম উপাদান',
+      subtitle: 'সেরা মান ও আধুনিক কার্যকারিতার নিশ্চয়তা',
+      descriptionSnippet: `${rawTitle || 'প্রিমিয়াম প্রডাক্ট'} — আধুনিক জীবনযাত্রার উপযোগী গুণগত মান ও দীর্ঘস্থায়ী স্থায়িত্বের নিশ্চয়তা নিয়ে তৈরি এই পণ্যটি আপনাকে দেবে সেরা অভিজ্ঞতা। ক্যাশ অন ডেলিভারিতে চেক করে নেওয়ার সুবিধা।`,
+      careInstructions: 'পরিষ্কার ও শুষ্ক স্থানে সংরক্ষণ করুন।'
+    };
   }
 
   // AI Product Details & Content Generator Endpoint (Admin Copilot)
@@ -240,27 +228,28 @@ async function startServer() {
         storeConfig = {}
       } = req.body;
 
-      const basePrice = Math.max(0, Number(price) || 1850);
-      const calculatedOrigPrice = Math.round(basePrice * 1.25);
-      const templateInfo = resolveGarmentCategory(title, category);
+      const titleClean = (title || '').trim();
+      const basePrice = Math.max(0, Number(price) || 0);
+      const calculatedOrigPrice = basePrice > 0 ? Math.round(basePrice * 1.25) : 0;
+      const templateInfo = resolveUniversalProductInfo(titleClean, category);
 
       const effectiveApiKey = (storeConfig.geminiApiKey && typeof storeConfig.geminiApiKey === 'string' && storeConfig.geminiApiKey.trim())
         ? storeConfig.geminiApiKey.trim()
         : process.env.GEMINI_API_KEY;
 
       if (!effectiveApiKey) {
-        // Fallback response structure using deterministic knowledge base
+        // Fallback response structure using universal deterministic knowledge base
         const cleanSku = `${templateInfo.skuPrefix}-${Math.floor(1000 + Math.random() * 9000)}`;
         return res.json({
-          title: title.trim() || `এক্সক্লুসিভ ${templateInfo.category} কালেকশন`,
+          title: titleClean || templateInfo.subtitle,
           subtitle: templateInfo.subtitle,
           category: templateInfo.category,
-          price: basePrice,
-          originalPrice: calculatedOrigPrice,
+          price: basePrice || 1250,
+          originalPrice: calculatedOrigPrice || 1550,
           sku: cleanSku,
           sizes: templateInfo.sizes,
           stock: 25,
-          description: `${templateInfo.descriptionSnippet}\n\n১০০% কালার গ্যারান্টি, প্রিমিয়াম ফিনিশিং এবং ক্যাশ অন ডেলিভারিতে পার্সেল খুলে দেখে নেওয়ার সুযোগ।`,
+          description: `${templateInfo.descriptionSnippet}\n\nপ্রিমিয়াম ফিনিশিং এবং ক্যাশ অন ডেলিভারিতে পার্সেল চেক করে দেখে নেওয়ার শতভাগ সুযোগ।`,
           material: templateInfo.material,
           careInstructions: templateInfo.careInstructions,
           badges: ['New', 'Bestseller'],
@@ -308,59 +297,54 @@ async function startServer() {
       }
 
       const systemInstruction = `
-You are the world-class Luxury Fashion Merchandiser and Copywriter for "${storeConfig.brandName || 'বিসমিল্লাহ কালেকশন'}".
-Your task is to take the merchant's heading, price, photos, and generate a complete, accurate, high-converting product catalog entry in Bengali.
+You are an expert universal e-commerce merchandiser, product vision analyzer, and professional copywriter for "${storeConfig.brandName || 'বিসমিল্লাহ কালেকশন'}".
+You analyze product images and merchant prompts for ANY and ALL categories of products:
+- Household & Living (e.g. buckets/বালতি, plasticware, cookware, mops, kitchenware, home storage)
+- Fashion & Garments (e.g. Panjabi, Saree, Three-Piece, Kurtis, Shirts, T-Shirts, Pants, Winter wear)
+- Footwear (e.g. Sneakers, Formal Shoes, Loafers, Sandals)
+- Accessories (e.g. Bags, Belts, Watches, Jewelry, Wallets)
+- Electronics & Gadgets (e.g. Irons, Lights, Chargers, Blenders)
+- General & Departmental goods.
 
-CRITICAL PRODUCT IDENTIFICATION RULES (DO NOT MIX UP):
-1. SAREE (শাড়ি / শাড়ি):
-   - Unstitched 6-yard or 12-haath draped female garment with aanchal/pallu (e.g. Jamdani, Banarasi, Katan, Silk Saree, Cotton Saree).
-   - Category MUST be strictly "Saree".
-   - Sizes MUST be: ["Free Size (১২ হাত + ব্লাউজ পিস)"] or ["Free Size"].
-   - SKU prefix MUST start with "SAR-".
-   - NEVER call a Saree a Panjabi!
+CRITICAL REAL-TIME OBJECT RECOGNITION RULES:
+1. Examine the provided photo(s) with high visual precision. Identify the EXACT real-world object:
+   - If the photo shows a plastic bucket (বালতি), tub, or water container:
+     * category MUST be "Household & Living" or "গৃহস্থালী সামগ্রী" (NEVER clothing, NEVER Panjabi!).
+     * title: If the merchant provided a title, polish it. If merchant title was empty/omitted, GENERATE an authentic Bengali title like "প্রিমিয়াম হেভি-ডিউটি প্লাস্টিক বালতি (১৬ লিটার)" or based on visual appearance.
+     * material: "ফুড-গ্রেড ভার্জিন প্লাস্টিক ও অ্যালয় স্টিল হ্যান্ডেল" or real plastic/steel composition.
+     * sizes: Capacity/volume measurements like ["১২ লিটার", "১৬ লিটার", "২০ লিটার"] or ["স্ট্যান্ডার্ড (১৬ লিটার)"] (NEVER clothing sizes like M/L/XL for a bucket!).
+     * careInstructions: Cleaning and handling instructions for home plasticware.
+   - If the photo shows Footwear:
+     * category: "Footwear", sizes: ["39", "40", "41", "42", "43"].
+   - If the photo shows clothing:
+     * visually differentiate Saree (draped fabric), Panjabi (collar placket tunic), Three-Piece, Kurti, or Western shirt.
+   - For ANY other object (iron, clock, sunglasses, perfume, etc.):
+     * name the exact object truthfully, choose an accurate category, and write realistic Bengali specifications.
+2. Custom title ("${titleClean}") is OPTIONAL:
+   - If the merchant gave a title, respect and polish it.
+   - If the merchant left the title blank or wrote a generic note, GENERATE a high-converting, accurate Bengali product title directly from the photo.
+3. Realistic Pricing in BDT (৳): If merchant gave price (${basePrice}), use it; otherwise provide a realistic retail price.
+4. Output MUST be strictly valid JSON without markdown code fences.
 
-2. PANJABI (পাঞ্জাবি / পাঞ্জাবী):
-   - Traditional long male tunic/kurta with a collar and chest button placket (e.g. Cotton Panjabi, Silk Panjabi, Kabli).
-   - Note: "Silk Panjabi" is a PANJABI made of Silk fabric, NOT a Saree!
-   - Category MUST be strictly "Panjabi".
-   - Sizes MUST be: ["M (38)", "L (40)", "XL (42)", "XXL (44)"].
-   - SKU prefix MUST start with "PAN-".
-   - NEVER call a Panjabi a Saree!
-
-3. THREE-PIECE (থ্রি-পিস / সালোয়ার কামিজ):
-   - 3-piece female suit with kameez, salwar/pants, and dupatta/orna.
-   - Category MUST be strictly "Three-Piece".
-   - Sizes MUST be: ["M (38)", "L (40)", "XL (42)", "XXL (44)"].
-   - SKU prefix MUST start with "THR-".
-
-4. KURTIS (কুর্তি / টিউনিক):
-   - Single piece female top/kurti. Category: "Kurtis". Sizes: ["S (36)", "M (38)", "L (40)", "XL (42)"]. SKU prefix: "KRT-".
-
-5. TOPS (শার্ট / টি-শার্ট / টপস):
-   - Western shirts, polos, tops. Category: "Tops". Sizes: ["S", "M", "L", "XL", "XXL"]. SKU prefix: "TOP-".
-
-6. Multimodal Vision:
-   - If photo is provided, visually identify whether it's a draped Saree on a woman/mannequin, a male Panjabi with collar/cuffs, or a Three-Piece.
-
-OUTPUT FORMAT STRICTLY VALID JSON (NO MARKDOWN CODEBLOCKS):
+OUTPUT SCHEMA:
 {
-  "title": "Polished Bengali Title",
-  "subtitle": "Short Bengali Subtitle",
-  "category": "Saree | Panjabi | Three-Piece | Kurtis | Tops | Bottoms",
+  "title": "Precise, attractive Bengali product title",
+  "subtitle": "Short Bengali subtitle highlighting main USP",
+  "category": "Household & Living | Panjabi | Saree | Three-Piece | Kurtis | Tops | Bottoms | Footwear | Accessories | Electronics | General",
   "price": number,
   "originalPrice": number,
-  "sku": "string",
+  "sku": "string (e.g. BLT-1029, SHOE-3012, PAN-4012)",
   "sizes": ["string"],
   "stock": number,
-  "description": "Rich 2-3 paragraph Bengali description highlighting elegance, fabric comfort, Eid/wedding occasion, and cash on delivery assurance.",
-  "material": "Specific fabric in Bengali",
-  "careInstructions": "Care guidelines in Bengali",
-  "badges": ["New"],
+  "description": "Engaging 2-3 paragraph Bengali product description highlighting quality, utility, durability, and cash on delivery guarantee.",
+  "material": "Specific authentic material in Bengali",
+  "careInstructions": "Care & usage guidelines in Bengali",
+  "badges": ["New", "Bestseller"],
   "featured": true
 }`;
 
       promptParts.push({
-        text: `Please generate the product catalog JSON for garment titled: "${title || templateInfo.category}" with price ${basePrice} BDT. Target Category Hint: ${category || templateInfo.category}.`
+        text: `Analyze the uploaded product image(s) or description. Merchant provided title: "${titleClean || '(Empty - please detect object from image)'}". Merchant price hint: ${basePrice > 0 ? `${basePrice} BDT` : 'Suggest realistic market price'}. Category hint: ${category || 'Auto-detect'}. Notes: ${notes || 'None'}. Return JSON.`
       });
 
       const response = await ai.models.generateContent({
@@ -380,35 +364,36 @@ OUTPUT FORMAT STRICTLY VALID JSON (NO MARKDOWN CODEBLOCKS):
       const textResponse = response.text || '';
       try {
         const parsed = JSON.parse(textResponse);
-        const resolved = resolveGarmentCategory(parsed.title || title, parsed.category || category);
-        
+        const resolvedPrice = Number(parsed.price) > 0 ? Number(parsed.price) : (basePrice > 0 ? basePrice : 1250);
+        const resolvedOrigPrice = Number(parsed.originalPrice) > resolvedPrice ? Number(parsed.originalPrice) : Math.round(resolvedPrice * 1.25);
+
         return res.json({
-          title: parsed.title || title || resolved.category,
-          subtitle: parsed.subtitle || resolved.subtitle,
-          category: parsed.category || resolved.category,
-          price: Number(parsed.price) || basePrice,
-          originalPrice: Number(parsed.originalPrice) || calculatedOrigPrice,
-          sku: parsed.sku || `${resolved.skuPrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
-          sizes: (Array.isArray(parsed.sizes) && parsed.sizes.length > 0) ? parsed.sizes : resolved.sizes,
+          title: parsed.title || titleClean || templateInfo.subtitle,
+          subtitle: parsed.subtitle || templateInfo.subtitle,
+          category: parsed.category || templateInfo.category,
+          price: resolvedPrice,
+          originalPrice: resolvedOrigPrice,
+          sku: parsed.sku || `${templateInfo.skuPrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
+          sizes: (Array.isArray(parsed.sizes) && parsed.sizes.length > 0) ? parsed.sizes : templateInfo.sizes,
           stock: Number(parsed.stock) || 25,
-          description: parsed.description || resolved.descriptionSnippet,
-          material: parsed.material || resolved.material,
-          careInstructions: parsed.careInstructions || resolved.careInstructions,
+          description: parsed.description || templateInfo.descriptionSnippet,
+          material: parsed.material || templateInfo.material,
+          careInstructions: parsed.careInstructions || templateInfo.careInstructions,
           badges: Array.isArray(parsed.badges) ? parsed.badges : ['New'],
           featured: typeof parsed.featured === 'boolean' ? parsed.featured : true
         });
       } catch (parseErr) {
         console.warn('Could not parse Gemini JSON, returning formatted template', parseErr);
         return res.json({
-          title: title || `প্রিমিয়াম ${templateInfo.category} কালেকশন`,
+          title: titleClean || `প্রিমিয়াম ${templateInfo.category} কালেকশন`,
           subtitle: templateInfo.subtitle,
           category: templateInfo.category,
-          price: basePrice,
-          originalPrice: calculatedOrigPrice,
+          price: basePrice || 1250,
+          originalPrice: calculatedOrigPrice || 1550,
           sku: `${templateInfo.skuPrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
           sizes: templateInfo.sizes,
           stock: 25,
-          description: textResponse || templateInfo.descriptionSnippet,
+          description: templateInfo.descriptionSnippet,
           material: templateInfo.material,
           careInstructions: templateInfo.careInstructions,
           badges: ['New'],
@@ -417,10 +402,11 @@ OUTPUT FORMAT STRICTLY VALID JSON (NO MARKDOWN CODEBLOCKS):
       }
     } catch (err: any) {
       console.error('AI Product Generation Error:', err);
-      const basePrice = Math.max(0, Number(req.body?.price) || 1850);
-      const templateInfo = resolveGarmentCategory(req.body?.title || '', req.body?.category);
+      const basePrice = Math.max(0, Number(req.body?.price) || 1250);
+      const titleClean = (req.body?.title || '').trim();
+      const templateInfo = resolveUniversalProductInfo(titleClean, req.body?.category);
       return res.json({
-        title: req.body?.title || `প্রিমিয়াম ${templateInfo.category} কালেকশন`,
+        title: titleClean || templateInfo.subtitle,
         subtitle: templateInfo.subtitle,
         category: templateInfo.category,
         price: basePrice,

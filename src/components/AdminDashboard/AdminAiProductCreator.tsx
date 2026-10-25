@@ -61,7 +61,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
     {
       id: 'welcome',
       sender: 'ai',
-      text: `স্বাগতম এডমিন প্যানেলে! 🤖✨\n\nআমি আপনার **এআই মার্চেন্ডাইজিং কো-পাইলট**। নতুন পোশাক যুক্ত করতে আপনার কোনো লম্বা ফর্ম পূরণ করতে হবে না:\n\n১. **১টি বা একাধিক ছবি** আপলোড করুন\n২. শুধু **হেডিং/নাম** ও **দাম (৳)** লিখুন\n\nবাকি চমৎকার বিবরণী (Description), কাপড়ের ধরন (Material), সাইজ (Sizes), এসকেইউ (SKU), অরিজিনাল ডিসকাউন্ট প্রাইস ইত্যাদি এআই স্বয়ংক্রিয়ভাবে লিখে দেবে!`,
+      text: `স্বাগতম এডমিন প্যানেলে! 🤖✨\n\nআমি আপনার **রিয়েল-টাইম এআই মার্চেন্ডাইজিং কো-পাইলট (Gemini 3.8 Flash)**। যেকোনো পণ্য (পোশাক, প্লাস্টিক বালতি, জুতো, এক্সেসরিজ, হোম ডেকর ইত্যাদি) যুক্ত করতে পারেন:\n\n১. **১টি বা একাধিক পণ্যের ছবি** আপলোড করুন\n২. **পণ্যের নাম ঐচ্ছিক (Optional)** — নাম না দিলে এআই সরাসরি ছবি দেখে পণ্যের সঠিক নাম ও ক্যাটাগরি নিজে তৈরি করবে!\n৩. ইচ্ছামতো দাম (৳) বসাতে পারেন বা ফাঁকা রাখলে এআই উপযুক্ত বাজারদর নির্ধারণ করবে।\n\nসম্পূর্ণ বিবরণ (Description), মেটেরিয়াল (Material), সাইজ/ক্যাপাসিটি (Sizes), এসকেইউ (SKU) স্বয়ংক্রিয়ভাবে তৈরি হবে!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -95,7 +95,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
       }
       if (newImages.length > 0) {
         setUploadedImages((prev) => [...prev, ...newImages]);
-        showToast('✓ ছবি ক্লাউড স্টোরেজে সফলভাবে আপলোড সম্পন্ন হয়েছে (Full HD)');
+        showToast('✓ ছবি সফলভাবে যুক্ত হয়েছে (Full HD)');
       }
     } finally {
       setIsCompressing(false);
@@ -107,7 +107,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
     const formatted = GoogleDriveSheetService.formatGoogleDriveImageUrl(driveUrlInput.trim());
     setUploadedImages((prev) => [...prev, formatted]);
     setDriveUrlInput('');
-    showToast('✓ গুগল ড্রাইভ আনব্লকড হাই-স্পিড লিংক যুক্ত হয়েছে');
+    showToast('✓ গুগল ড্রাইভ হাই-স্পিড লিংক যুক্ত হয়েছে');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -125,25 +125,29 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
 
     const titleToUse = heading.trim();
     if (!titleToUse && uploadedImages.length === 0) {
-      showToast('⚠️ অনুগ্রহ করে একটি হেডিং/শিরোনাম লিখুন অথবা ছবি আপলোড করুন');
+      showToast('⚠️ অনুগ্রহ করে একটি ছবি আপলোড করুন অথবা শিরোনাম লিখুন');
       return;
     }
 
-    const parsed = AiProductGeneratorService.parsePrompt(titleToUse || 'প্রিমিয়াম ডিজাইনার পোশাক');
-    const finalPrice = Number(priceInput) > 0 ? Number(priceInput) : parsed.price;
-    const finalTitle = parsed.title;
+    const parsed = AiProductGeneratorService.parsePrompt(titleToUse);
+    const finalPrice = Number(priceInput) > 0 ? Number(priceInput) : (parsed.price > 0 ? parsed.price : 0);
+    const finalTitle = parsed.title; // can be empty string if user left it blank
 
     setIsProcessing(true);
 
     // Add user message to chat feed
     const userMsgId = `usr-${Date.now()}`;
     const userImages = [...uploadedImages];
+    const displayUserText = finalTitle
+      ? `শিরোনাম: ${finalTitle}\n${finalPrice > 0 ? `দাম: ৳${finalPrice}\n` : ''}${selectedCategory !== 'Auto' ? `ক্যাটাগরি: ${selectedCategory}` : 'ক্যাটাগরি: অটো-ডিটেক্ট'}`
+      : `📸 ছবি হতে পণ্যের সঠিক পরিচয় শনাক্তকরণ ও এআই ক্যাটালগ তৈরি...\n${finalPrice > 0 ? `দাম: ৳${finalPrice}\n` : ''}${selectedCategory !== 'Auto' ? `ক্যাটাগরি: ${selectedCategory}` : 'ক্যাটাগরি: অটো-ডিটেক্ট'}`;
+
     setChatHistory((prev) => [
       ...prev,
       {
         id: userMsgId,
         sender: 'user',
-        text: `শিরোনাম: ${finalTitle}\nদাম: ৳${finalPrice}${selectedCategory !== 'Auto' ? `\nক্যাটাগরি: ${selectedCategory}` : ''}`,
+        text: displayUserText,
         images: userImages.length > 0 ? userImages : undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
@@ -160,7 +164,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
 
       const enrichedDraft = {
         ...draft,
-        image: userImages[0] || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop',
+        image: userImages[0] || 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?q=80&w=800&auto=format&fit=crop',
         additionalImages: userImages.length > 1 ? userImages.slice(1) : []
       };
 
@@ -172,7 +176,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
         {
           id: `ai-${Date.now()}`,
           sender: 'ai',
-          text: `✨ Gemini 3.8 Flash দ্বারা আপনার পোশাকের যাবতীয় তথ্য সম্পন্ন হয়েছে!\n\n**${draft.title}** (${draft.category})\n- বিক্রয় মূল্য: ৳${draft.price} (মূল মূল্য: ৳${draft.originalPrice})\n- কোড (SKU): ${draft.sku}\n- সাইজ: ${draft.sizes.join(', ')}\n\nনিচের **"পাবলিশ করুন"** বাটনে ক্লিক করলেই সরাসরি স্টোরে যুক্ত হয়ে যাবে।`,
+          text: `✨ Gemini AI দ্বারা আপনার পণ্যের যাবতীয় তথ্য প্রস্তুত হয়েছে!\n\n**${draft.title}** (${draft.category})\n- বিক্রয় মূল্য: ৳${draft.price} (মূল মূল্য: ৳${draft.originalPrice})\n- কোড (SKU): ${draft.sku}\n- সাইজ/পরিমাপ: ${draft.sizes.join(', ')}\n- উপাদান: ${draft.material}\n\nনিচের **"1-Click পাবলিশ করুন"** বাটনে চাপলেই সরাসরি স্টোরে যুক্ত হয়ে যাবে।`,
           generatedDraft: enrichedDraft as any,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
@@ -407,17 +411,28 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-amber-400"
               >
-                <option value="Auto">Auto-Detect Category</option>
+                <option value="Auto">✨ অটো-ডিটেক্ট (যে কোনো পণ্য - বালতি, পোশাক, জুতো ইত্যাদি)</option>
+                <option value="Household & Living">গৃহস্থালী ও প্লাস্টিক সামগ্রী (Household / বালতি)</option>
+                <option value="Footwear">জুতো ও স্নিকার্স (Footwear)</option>
                 <option value="Panjabi">Panjabi (পাঞ্জাবি)</option>
                 <option value="Saree">Saree (শাড়ি)</option>
                 <option value="Three-Piece">Three-Piece (থ্রি-পিস)</option>
                 <option value="Kurtis">Kurtis (কুর্তি)</option>
                 <option value="Tops">Tops / Shirts</option>
-                <option value="Outerwear">Outerwear / Jackets</option>
+                <option value="Accessories">Accessories & Bags</option>
+                <option value="Electronics">Electronics & Appliances</option>
+                <option value="General">অন্যান্য সাধারণ পণ্য (General)</option>
               </select>
 
               {/* Quick Preset Buttons */}
               <div className="hidden sm:flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => applyPresetImage('https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?q=80&w=800&auto=format&fit=crop', 'ভার্জিন প্লাস্টিক বালতি ১৬ লিটার', 450)}
+                  className="px-2 py-1 bg-neutral-850 hover:bg-neutral-800 text-[10px] text-amber-300 rounded border border-neutral-750"
+                >
+                  + বালতি (Bucket)
+                </button>
                 <button
                   type="button"
                   onClick={() => applyPresetImage('https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop', 'কটন পাঞ্জাবি ব্লু', 1850)}
@@ -431,13 +446,6 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
                   className="px-2 py-1 bg-neutral-850 hover:bg-neutral-800 text-[10px] text-amber-300 rounded border border-neutral-750"
                 >
                   + শাড়ি
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyPresetImage('https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop', 'ডিজাইনার লন থ্রি-পিস', 2400)}
-                  className="px-2 py-1 bg-neutral-850 hover:bg-neutral-800 text-[10px] text-amber-300 rounded border border-neutral-750"
-                >
-                  + থ্রি-পিস
                 </button>
               </div>
             </div>
@@ -466,7 +474,7 @@ export const AdminAiProductCreator: React.FC<AdminAiProductCreatorProps> = ({
                 type="text"
                 value={heading}
                 onChange={(e) => setHeading(e.target.value)}
-                placeholder="পোশাকের নাম লিখুন (যেমন: রয়েল ব্লু কটন পাঞ্জাবি)..."
+                placeholder="পণ্যের নাম (ঐচ্ছিক / Optional - ফাঁকা রাখলে ছবি দেখে এআই নিজেই নাম নির্ধারণ করবে)..."
                 className="flex-1 bg-neutral-950 border border-neutral-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-amber-400"
               />
 

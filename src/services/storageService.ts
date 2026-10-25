@@ -362,7 +362,14 @@ export const StorageService = {
     return sanitized;
   },
 
-  updateOrderStatus(orderId: string, status: Order['status'], trackingNumber?: string): void {
+  updateOrderStatus(
+    orderId: string,
+    status: Order['status'],
+    trackingNumber?: string,
+    courierPartner?: string,
+    currentLocationName?: string,
+    estimatedDeliveryDate?: string
+  ): void {
     const orders = this.getOrders();
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -370,8 +377,24 @@ export const StorageService = {
       if (trackingNumber !== undefined) {
         order.trackingNumber = trackingNumber;
       }
+      if (courierPartner !== undefined) {
+        order.courierPartner = courierPartner;
+      }
+      if (currentLocationName !== undefined) {
+        order.currentLocationName = currentLocationName;
+      }
+      if (estimatedDeliveryDate !== undefined) {
+        order.estimatedDeliveryDate = estimatedDeliveryDate;
+      }
       this.saveOrders(orders);
-      FirestoreSyncService.updateOrderStatus(orderId, status, trackingNumber).catch(err => {
+      FirestoreSyncService.updateOrderStatus(
+        orderId,
+        status,
+        trackingNumber,
+        courierPartner,
+        currentLocationName,
+        estimatedDeliveryDate
+      ).catch(err => {
         console.warn('Background Firestore order status sync notice:', err);
       });
     }

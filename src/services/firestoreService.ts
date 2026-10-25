@@ -529,6 +529,9 @@ export class FirestoreSyncService {
       autoVerified: Boolean(shouldAutoApprove),
       deliveryZone: String(order.deliveryZone || 'Inside Dhaka'),
       trackingNumber: order.trackingNumber ? String(order.trackingNumber).trim() : '',
+      courierPartner: order.courierPartner ? String(order.courierPartner).trim() : 'Pathao Courier',
+      currentLocationName: order.currentLocationName ? String(order.currentLocationName).trim() : '',
+      estimatedDeliveryDate: order.estimatedDeliveryDate ? String(order.estimatedDeliveryDate).trim() : '',
       notes: order.notes ? String(order.notes).trim() : '',
       createdAt: String(order.createdAt || new Date().toISOString()),
       updatedAt: new Date().toISOString(),
@@ -589,8 +592,15 @@ export class FirestoreSyncService {
     }
   }
 
-  // Update order status with audio confirmation
-  static async updateOrderStatus(orderId: string, status: string, trackingNumber?: string): Promise<void> {
+  // Update order status with audio confirmation and courier details
+  static async updateOrderStatus(
+    orderId: string,
+    status: string,
+    trackingNumber?: string,
+    courierPartner?: string,
+    currentLocationName?: string,
+    estimatedDeliveryDate?: string
+  ): Promise<void> {
     try {
       const orderRef = doc(db, ORDERS_COLLECTION, orderId);
       const updateData: Record<string, any> = { 
@@ -599,6 +609,15 @@ export class FirestoreSyncService {
       };
       if (trackingNumber !== undefined) {
         updateData.trackingNumber = String(trackingNumber).trim();
+      }
+      if (courierPartner !== undefined) {
+        updateData.courierPartner = String(courierPartner).trim();
+      }
+      if (currentLocationName !== undefined) {
+        updateData.currentLocationName = String(currentLocationName).trim();
+      }
+      if (estimatedDeliveryDate !== undefined) {
+        updateData.estimatedDeliveryDate = String(estimatedDeliveryDate).trim();
       }
       await updateDoc(orderRef, updateData);
       luxuryAudio.playStatusChime();

@@ -45,9 +45,14 @@ interface AdminDashboardProps {
   onExitAdmin: () => void;
   onLogoutAdmin: () => void;
   onSaveProduct: (product: Product) => void;
-  onDeleteProduct: (id: string) => void;
-  onUpdateOrderStatus: (orderId: string, status: Order['status'], trackingNumber?: string) => void;
-  onSaveCustomer: (customer: Customer) => void;
+  onUpdateOrderStatus: (
+    orderId: string,
+    status: Order['status'],
+    trackingNumber?: string,
+    courierPartner?: string,
+    currentLocationName?: string,
+    estimatedDeliveryDate?: string
+  ) => void;
   onSaveConfig: (updated: StoreConfig) => void;
   onSaveCoupon: (coupon: Coupon) => void;
   onDeleteCoupon: (id: string) => void;

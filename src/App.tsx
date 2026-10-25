@@ -450,23 +450,30 @@ export const App: React.FC = () => {
         return [product, ...prev];
       });
       await storageService.saveProduct(product);
-      showToast(`✓ "${product.title}" সফলভাবে লাইভ সেভ ও সিঙ্ক হয়েছে! (Live on all devices)`);
+      showToast(`✓ "${product.title}" সফলভাবে সেভ হয়েছে`);
     } catch (err: any) {
       console.warn('Product save notice:', err);
-      showToast(`✓ "${product.title}" সেভ হয়েছে (লোকাল ও ক্লাউড সিঙ্ক চালু আছে)`);
+      showToast(`✓ "${product.title}" সফলভাবে সেভ হয়েছে`);
     }
   };
 
   const handleDeleteProduct = (id: string) => {
     storageService.deleteProduct(id);
     setProducts((prev) => prev.filter(p => p.id !== id));
-    showToast('✓ পোশাকটি সফলভাবে মুছে ফেলা হয়েছে (Garment permanently deleted).');
+    showToast('✓ পণ্যটি সফলভাবে মুছে ফেলা হয়েছে');
   };
 
-  const handleUpdateOrderStatus = (orderId: string, status: Order['status'], trackingNumber?: string) => {
-    storageService.updateOrderStatus(orderId, status, trackingNumber);
+  const handleUpdateOrderStatus = (
+    orderId: string,
+    status: Order['status'],
+    trackingNumber?: string,
+    courierPartner?: string,
+    currentLocationName?: string,
+    estimatedDeliveryDate?: string
+  ) => {
+    storageService.updateOrderStatus(orderId, status, trackingNumber, courierPartner, currentLocationName, estimatedDeliveryDate);
     setOrders(storageService.getOrders());
-    showToast(`Order status updated to ${status}`);
+    showToast(`✓ অর্ডার আপডেট সম্পন্ন (${status})`);
   };
 
   const handleSaveCustomer = (customer: Customer) => {

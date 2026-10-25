@@ -5,7 +5,14 @@ import { Truck, CheckCircle2, Clock, Search, Eye, Filter, Sparkles, X, MapPin } 
 interface AdminOrdersProps {
   orders: Order[];
   config: StoreConfig;
-  onUpdateOrderStatus: (orderId: string, status: Order['status'], trackingNumber?: string) => void;
+  onUpdateOrderStatus: (
+    orderId: string,
+    status: Order['status'],
+    trackingNumber?: string,
+    courierPartner?: string,
+    currentLocationName?: string,
+    estimatedDeliveryDate?: string
+  ) => void;
 }
 
 export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpdateOrderStatus }) => {
@@ -13,6 +20,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpda
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editTrackingId, setEditTrackingId] = useState('');
+  const [editCourierPartner, setEditCourierPartner] = useState('Pathao Courier');
+  const [editLocation, setEditLocation] = useState('');
+  const [editEstimatedDelivery, setEditEstimatedDelivery] = useState('');
+  const [savedFeedback, setSavedFeedback] = useState(false);
 
   const filteredOrders = orders.filter((o) => {
     const matchStatus = filterStatus === 'All' || o.status === filterStatus;
@@ -29,12 +40,31 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpda
   const handleOpenDetail = (order: Order) => {
     setSelectedOrder(order);
     setEditTrackingId(order.trackingNumber || '');
+    setEditCourierPartner(order.courierPartner || 'Pathao Courier');
+    setEditLocation(order.currentLocationName || (order.status === 'Shipped' ? 'ঢাকা তেজগাঁও সেন্ট্রাল সর্টিং হাব (ইন-ট্রানজিট)' : ''));
+    setEditEstimatedDelivery(order.estimatedDeliveryDate || '');
+    setSavedFeedback(false);
   };
 
   const handleSaveTracking = () => {
     if (selectedOrder) {
-      onUpdateOrderStatus(selectedOrder.id, selectedOrder.status, editTrackingId);
-      setSelectedOrder({ ...selectedOrder, trackingNumber: editTrackingId });
+      onUpdateOrderStatus(
+        selectedOrder.id,
+        selectedOrder.status,
+        editTrackingId,
+        editCourierPartner,
+        editLocation,
+        editEstimatedDelivery
+      );
+      setSelectedOrder({
+        ...selectedOrder,
+        trackingNumber: editTrackingId,
+        courierPartner: editCourierPartner,
+        currentLocationName: editLocation,
+        estimatedDeliveryDate: editEstimatedDelivery,
+      });
+      setSavedFeedback(true);
+      setTimeout(() => setSavedFeedback(false), 3500);
     }
   };
 
@@ -316,24 +346,105 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, config, onUpda
                 </div>
               </div>
 
-              {/* Tracking Number Input */}
-              <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-2">
-                <label className="font-bold uppercase tracking-wider text-neutral-300 block">
-                  Carrier Courier Tracking Number
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={editTrackingId}
-                    onChange={(e) => setEditTrackingId(e.target.value)}
-                    placeholder="e.g. 1Z9999999294682741"
-                    className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-400"
-                  />
+              {/* Carrier Courier Tracking & Live Location Management */}
+              <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold uppercase tracking-wider text-amber-400 text-xs flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-amber-400" />
+                    <span>কুরিয়ার ট্র্যাকিং কোড ও লাইভ লোকেশন আপডেট</span>
+                  </label>
+                  {savedFeedback && (
+                    <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-800 animate-pulse flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>সফলভাবে লাইভ আপডেট সম্পন্ন হয়েছে!</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-neutral-400 block mb-1">কুরিয়ার পার্টনার (Courier Service):</span>
+                    <select
+                      value={editCourierPartner}
+                      onChange={(e) => setEditCourierPartner(e.target.value)}
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-400"
+                    >
+                      <option value="Pathao Courier">Pathao Courier (পাঠাও)</option>
+                      <option value="Steadfast Courier">Steadfast Courier (স্টেডফাস্ট)</option>
+                      <option value="RedX Logistics">RedX Logistics (রেডএক্স)</option>
+                      <option value="Paperfly">Paperfly (পেপারফ্লাই)</option>
+                      <option value="Sundarban Courier">Sundarban Courier (সুন্দরবন)</option>
+                      <option value="SA Paribahan">SA Paribahan (এসএ পরিবহন)</option>
+                      <option value="DHL Express">DHL Express (ইন্টারন্যাশনাল)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-neutral-400 block mb-1">কুরিয়ার ট্র্যাকিং / কনসাইনমেন্ট নম্বর (Waybill Code):</span>
+                    <input
+                      type="text"
+                      value={editTrackingId}
+                      onChange={(e) => setEditTrackingId(e.target.value)}
+                      placeholder="e.g. PT-9823412 বা STEAD-829104"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-neutral-400 block mb-1">বর্তমান লাইভ লোকেশন / ট্রানজিট হাব (Current Location):</span>
+                    <input
+                      type="text"
+                      value={editLocation}
+                      onChange={(e) => setEditLocation(e.target.value)}
+                      placeholder="যেমনঃ ঢাকা তেজগাঁও সেন্ট্রাল সর্টিং হাব"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-neutral-400 block mb-1">সম্ভাব্য ডেলিভারি সময় (Estimated Delivery Time):</span>
+                    <input
+                      type="text"
+                      value={editEstimatedDelivery}
+                      onChange={(e) => setEditEstimatedDelivery(e.target.value)}
+                      placeholder="যেমনঃ ২৪ থেকে ৪৮ ঘণ্টার মধ্যে / আগামীকাল বিকাল ৫টা"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Location Chips */}
+                <div>
+                  <span className="text-[10px] text-neutral-500 block mb-1.5">দ্রুত লোকেশন সেট করুন (Quick Suggestions):</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      'আউরা অলিয়ার সেন্ট্রাল ওয়্যারহাউস (প্যাকিং সম্পন্ন)',
+                      'ঢাকা তেজগাঁও সেন্ট্রাল সর্টিং হাব (ইন-ট্রানজিট)',
+                      'লোকাল ডিস্ট্রিবিউশন হাব (গন্তব্যের পথে)',
+                      'ডেলিভারি রাইডারের ব্যাগে (আউট ফর ডেলিভারি)',
+                      'কাস্টমারের ঠিকানায় সফলভাবে ডেলিভার্ড'
+                    ].map((loc, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setEditLocation(loc)}
+                        className="px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-amber-300 border border-neutral-800 rounded text-[10px] transition-colors"
+                      >
+                        + {loc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
                   <button
                     onClick={handleSaveTracking}
-                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold uppercase rounded-lg transition-colors"
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-neutral-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5"
                   >
-                    Save Tracking
+                    <CheckCircle2 className="w-4 h-4 text-neutral-950" />
+                    <span>Save & Update (লাইভ সেভ করুন)</span>
                   </button>
                 </div>
               </div>

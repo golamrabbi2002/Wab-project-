@@ -84,6 +84,9 @@ export interface Order {
   autoVerified?: boolean;
   deliveryZone?: string;
   trackingNumber?: string;
+  courierPartner?: string;
+  currentLocationName?: string;
+  estimatedDeliveryDate?: string;
   createdAt: string;
   notes?: string;
 }
