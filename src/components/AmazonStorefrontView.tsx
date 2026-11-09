@@ -107,13 +107,25 @@ export const AmazonStorefrontView: React.FC<AmazonStorefrontViewProps> = ({
       }
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = (p.title || '').toLowerCase().includes(q);
-      const matchSub = (p.subtitle || '').toLowerCase().includes(q);
-      const matchCat = (p.category || '').toLowerCase().includes(q);
-      const matchDesc = (p.description || '').toLowerCase().includes(q);
-      const matchMat = (p.material || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchSub && !matchCat && !matchDesc && !matchMat) return false;
+      const rawQ = searchQuery.toLowerCase().trim();
+      // Remove brand keywords if combined with specific item, e.g. "bismillah panjabi" -> "panjabi"
+      const cleanQ = rawQ
+        .replace(/bismillah\s*collection/gi, '')
+        .replace(/বিসমিল্লাহ\s*কালেকশন/gi, '')
+        .replace(/bismillah/gi, '')
+        .replace(/বিসমিল্লাহ/gi, '')
+        .trim();
+
+      // If user is searching specifically for the brand itself ("bismillah"), match all products
+      if (cleanQ) {
+        const q = cleanQ;
+        const matchTitle = (p.title || '').toLowerCase().includes(q);
+        const matchSub = (p.subtitle || '').toLowerCase().includes(q);
+        const matchCat = (p.category || '').toLowerCase().includes(q);
+        const matchDesc = (p.description || '').toLowerCase().includes(q);
+        const matchMat = (p.material || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchSub && !matchCat && !matchDesc && !matchMat) return false;
+      }
     }
     return true;
   }).sort((a, b) => {

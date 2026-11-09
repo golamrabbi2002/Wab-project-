@@ -77,14 +77,24 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         if (selectedCategory !== 'All' && p.category !== selectedCategory) return false;
         // Search query
         if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const matchTitle = p.title.toLowerCase().includes(q);
-          const matchSubtitle = p.subtitle?.toLowerCase().includes(q);
-          const matchDesc = p.description.toLowerCase().includes(q);
-          const matchCategory = p.category.toLowerCase().includes(q);
-          const matchMaterial = p.material?.toLowerCase().includes(q);
-          if (!matchTitle && !matchSubtitle && !matchDesc && !matchCategory && !matchMaterial) {
-            return false;
+          const rawQ = searchQuery.toLowerCase().trim();
+          const cleanQ = rawQ
+            .replace(/bismillah\s*collection/gi, '')
+            .replace(/বিসমিল্লাহ\s*কালেকশন/gi, '')
+            .replace(/bismillah/gi, '')
+            .replace(/বিসমিল্লাহ/gi, '')
+            .trim();
+
+          if (cleanQ) {
+            const q = cleanQ;
+            const matchTitle = p.title.toLowerCase().includes(q);
+            const matchSubtitle = p.subtitle?.toLowerCase().includes(q);
+            const matchDesc = p.description.toLowerCase().includes(q);
+            const matchCategory = p.category.toLowerCase().includes(q);
+            const matchMaterial = p.material?.toLowerCase().includes(q);
+            if (!matchTitle && !matchSubtitle && !matchDesc && !matchCategory && !matchMaterial) {
+              return false;
+            }
           }
         }
         // In-stock

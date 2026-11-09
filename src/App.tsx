@@ -487,6 +487,7 @@ export const App: React.FC = () => {
   const handleSaveConfig = (updated: StoreConfig) => {
     storageService.saveConfig(updated);
     setConfig(updated);
+    FirestoreSyncService.saveConfig(updated).catch(console.warn);
     showToast('Brand settings & customizations applied live!');
   };
 
@@ -812,25 +813,6 @@ export const App: React.FC = () => {
             />
           </main>
 
-          {/* Structured Schema.org JSON-LD Script for Google & AI Search Bots */}
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(generateStoreJsonLd(config, products)) }}
-          />
-
-          {/* SEO 1,500+ Keyword Index, Domain Variations & Schema Directory */}
-          <SeoDirectorySection config={config} products={products} />
-
-          {/* Invisible Ethical Honeypot Canary Traps */}
-          <div style={{ display: 'none', position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
-            <a href="#/system-root-login" rel="nofollow" tabIndex={-1}>Root Terminal & SSH Web Shell</a>
-            <a href="#/wp-admin" rel="nofollow" tabIndex={-1}>Legacy WordPress Administration Panel</a>
-            <a href="#/api/v1/debug" rel="nofollow" tabIndex={-1}>Core API Debug & Environment Dump</a>
-            <a href="#/db-backup.sql" rel="nofollow" tabIndex={-1}>PostgreSQL Database Backup Archive</a>
-            <a href="#/phpmyadmin" rel="nofollow" tabIndex={-1}>Direct Database SQL Manager</a>
-            <a href="#/secret-admin-portal" rel="nofollow" tabIndex={-1}>Internal Super Admin Gateway</a>
-          </div>
-
           {/* Footer */}
           <Footer
             config={config}
@@ -840,6 +822,25 @@ export const App: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Structured Schema.org JSON-LD Script for Google & AI Search Bots (Always Rendered on Both Themes) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(generateStoreJsonLd(config, products)) }}
+      />
+
+      {/* SEO 1,500+ Keyword Index, Domain Variations & Schema Directory (Always Rendered on Both Themes) */}
+      <SeoDirectorySection config={config} products={products} />
+
+      {/* Invisible Ethical Honeypot Canary Traps */}
+      <div style={{ display: 'none', position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+        <a href="#/system-root-login" rel="nofollow" tabIndex={-1}>Root Terminal & SSH Web Shell</a>
+        <a href="#/wp-admin" rel="nofollow" tabIndex={-1}>Legacy WordPress Administration Panel</a>
+        <a href="#/api/v1/debug" rel="nofollow" tabIndex={-1}>Core API Debug & Environment Dump</a>
+        <a href="#/db-backup.sql" rel="nofollow" tabIndex={-1}>PostgreSQL Database Backup Archive</a>
+        <a href="#/phpmyadmin" rel="nofollow" tabIndex={-1}>Direct Database SQL Manager</a>
+        <a href="#/secret-admin-portal" rel="nofollow" tabIndex={-1}>Internal Super Admin Gateway</a>
+      </div>
 
       {/* Bismillah Draggable & Swappable AI Shopping Assistant (Text-Based) */}
       <AiShoppingAssistant
