@@ -63,6 +63,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiBotName, setAiBotName] = useState(config.aiBotName || 'Bismillah AI');
   const [aiTone, setAiTone] = useState<'logical_robot' | 'polite_assistant' | 'formal'>(config.aiTone || 'logical_robot');
+  const [storefrontTheme, setStorefrontTheme] = useState<'amazon' | 'classic'>(config.storefrontTheme || 'amazon');
 
   // Bangladesh & Global Delivery and Payment numbers
   const [deliveryDhakaCity, setDeliveryDhakaCity] = useState(config.deliveryDhakaCity ?? 70);
@@ -119,6 +120,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
     setGeminiApiKey(config.geminiApiKey || '');
     setAiBotName(config.aiBotName || 'Bismillah AI');
     setAiTone(config.aiTone || 'logical_robot');
+    setStorefrontTheme(config.storefrontTheme || 'amazon');
   }, [config]);
 
   // Quick Currency Preset handler
@@ -191,6 +193,7 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
       geminiApiKey: geminiApiKey.trim(),
       aiBotName: SecurityService.sanitizeText(aiBotName || 'Bismillah AI', 50),
       aiTone: aiTone || 'logical_robot',
+      storefrontTheme: storefrontTheme || 'amazon',
     };
 
     onSaveConfig(updated);
@@ -364,9 +367,81 @@ export const AdminStoreSettings: React.FC<AdminStoreSettingsProps> = ({ config, 
             </div>
             <ul className="list-disc list-inside space-y-1 text-neutral-400">
               <li><strong className="text-neutral-200">মানুষের মতো স্বাভাবিক কথোপকথন:</strong> এআই গ্রাহকদের সাথে একজন দক্ষ ও অমায়িক সেলস কনসালট্যান্টের মতো আন্তরিক বাংলায় কথা বলবে।</li>
-              <li><strong className="text-neutral-200">বিশ্বের শীর্ষ ২০ সেলস এক্সপার্টের জ্ঞান:</strong> Brian Tracy, Zig Ziglar, Chris Voss, Neil Rackham, Robert Cialdini ও Dale Carnegie-এর মতো সেলস গুরুদের সাইকোলজি ও স্ট্র্যাটেজি প্রয়োগ করে গ্রাহকের আস্থা ও সন্তুষ্টি অর্জন করবে।</li>
-              <li><strong className="text-neutral-200">১০০% স্টোর ডাটাবেজ নির্ভরতা:</strong> বিশ্বমানের সেলস টেকনিক ব্যবহার করলেও প্রোডাক্ট, দাম, স্টক ও ডেলিভারি পলিসি সবসময় এই ওয়েবসাইটের অভ্যন্তরীণ ডাটাবেজ অনুযায়ী নির্ভুল থাকবে।</li>
+              <li><strong className="text-neutral-200">১০০% ব্র্যান্ড ও স্টোর প্রমোশন:</strong> এআই শুধুমাত্র এই স্টোরের পণ্য ও অফার সাজেস্ট করবে। অন্য কোনো ওয়েবসাইট বা মার্কেটপ্লেস থেকে কেনার পরামর্শ কখনোই দেবে না।</li>
+              <li><strong className="text-neutral-200">টেক্সট-ফার্স্ট এআই মোড:</strong> টোকেন খরচ বাঁচাতে এবং নিরবচ্ছিন্ন চ্যাটের জন্য এআই সম্পূর্ণ টেক্সট ভিত্তিক মোডে পরিচালিত হচ্ছে। ভয়েস ফিচারটি ব্যাকএন্ডে সংরক্ষিত রয়েছে।</li>
+              <li><strong className="text-neutral-200">১০০% স্টোর ডাটাবেজ নির্ভরতা:</strong> প্রোডাক্ট, দাম, স্টক ও ডেলিভারি পলিসি সবসময় এই ওয়েবসাইটের অভ্যন্তরীণ ডাটাবেজ অনুযায়ী নির্ভুল থাকবে।</li>
             </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 1.5: STOREFRONT THEME & LAUNCHER DESIGN */}
+      <div className="bg-neutral-950 border border-amber-500/30 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+        <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
+          <div className="p-2 bg-amber-500/10 text-[#febd69] rounded-lg">
+            <Sliders className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span>ওয়েবসাইট ডিজাইন থিম (Storefront Layout)</span>
+              <span className="text-[10px] bg-amber-500/20 text-[#febd69] px-2 py-0.5 rounded-full font-mono font-bold">
+                Dynamic Theme Engine
+              </span>
+            </h3>
+            <p className="text-neutral-400">
+              আপনার পছন্দমতো Amazon.com মার্কেটপ্লেস লেআউট অথবা ক্লাসিক বুটিক ফ্যাশন থিম বেছে নিন।
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            onClick={() => setStorefrontTheme('amazon')}
+            className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+              storefrontTheme === 'amazon'
+                ? 'bg-neutral-900 border-[#febd69] shadow-lg ring-1 ring-[#febd69]'
+                : 'bg-neutral-900/60 border-neutral-800 hover:border-neutral-700'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-white text-sm flex items-center gap-1.5">
+                  <span>🛒 Amazon.com মার্কেটপ্লেস থিম</span>
+                  <span className="text-[10px] bg-[#febd69] text-neutral-950 font-bold px-1.5 py-0.2 rounded">সুপারফাস্ট</span>
+                </span>
+                {storefrontTheme === 'amazon' && <Check className="w-4 h-4 text-[#febd69]" />}
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-relaxed">
+                অ্যামাজন স্টাইল ডার্ক নেভবার (#131921), মাল্টি-ক্যাটাগরি সার্চবার, আজকের ডিল কার্ড, স্টার রেটিং ও ইনস্ট্যান্ট ইয়েলো কার্ট বাটন।
+              </p>
+            </div>
+            <span className={`text-[11px] font-bold mt-3 ${storefrontTheme === 'amazon' ? 'text-[#febd69]' : 'text-neutral-500'}`}>
+              {storefrontTheme === 'amazon' ? '✓ বর্তমানে সক্রিয় আছে' : 'ক্লিক করে সক্রিয় করুন'}
+            </span>
+          </div>
+
+          <div
+            onClick={() => setStorefrontTheme('classic')}
+            className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+              storefrontTheme === 'classic'
+                ? 'bg-neutral-900 border-amber-400 shadow-lg ring-1 ring-amber-400'
+                : 'bg-neutral-900/60 border-neutral-800 hover:border-neutral-700'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-white text-sm flex items-center gap-1.5">
+                  <span>🏛️ ক্লাসিক বুটিক ফ্যাশন থিম</span>
+                </span>
+                {storefrontTheme === 'classic' && <Check className="w-4 h-4 text-amber-400" />}
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-relaxed">
+                পূর্বের রাজকীয় লাক্সারি ফ্যাশন হাউজ লেআউট, আর্কিটেকচারাল হিরো ব্যানার, ফুল-স্ক্রিন প্রোডাক্ট গ্রিড ও এলিগেন্ট ফন্ট।
+              </p>
+            </div>
+            <span className={`text-[11px] font-bold mt-3 ${storefrontTheme === 'classic' ? 'text-amber-400' : 'text-neutral-500'}`}>
+              {storefrontTheme === 'classic' ? '✓ বর্তমানে সক্রিয় আছে' : 'ক্লিক করে সক্রিয় করুন'}
+            </span>
           </div>
         </div>
       </div>

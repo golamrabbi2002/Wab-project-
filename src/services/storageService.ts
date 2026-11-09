@@ -24,7 +24,7 @@ const memoryCache: Record<string, any> = {
   [KEYS.CART]: []
 };
 
-const CURRENT_CATALOG_VERSION = 'bismillah_real_v3_2026';
+const CURRENT_CATALOG_VERSION = 'bismillah_100_products_v4_2026';
 
 function checkCatalogUpgrade(): void {
   try {

@@ -15,7 +15,7 @@ export interface Product {
   description: string;
   material: string;
   careInstructions: string;
-  badges?: ('New' | 'Sale' | 'Bestseller' | 'Limited')[];
+  badges?: ('New' | 'Sale' | 'Bestseller' | 'Limited' | 'Trending' | 'Hot Deal' | 'Masterpiece' | 'Essential' | 'Eco Friendly')[];
   featured?: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -124,12 +124,13 @@ export interface StoreConfig {
   googleDriveFolderUrl?: string;
   autoSyncGoogleSheets?: boolean;
   autoSyncGoogleDrive?: boolean;
-  // Bangladesh & Global Delivery and Payment Settings
   deliveryDhakaCity?: number;
   deliveryOutsideDhaka?: number;
   bkashMerchantNumber?: string;
   nagadMerchantNumber?: string;
   rocketMerchantNumber?: string;
+  // Theme switcher: 'amazon' (Amazon e-commerce launcher design) | 'classic' (Bismillah Boutique Atelier)
+  storefrontTheme?: 'amazon' | 'classic';
   updatedAt?: string;
 }
 

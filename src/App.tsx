@@ -19,6 +19,7 @@ import { PolicyModal } from './components/PolicyModal';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { SizeGuideModal } from './components/SizeGuideModal';
 import { AiShoppingAssistant } from './components/AiShoppingAssistant';
+import { AmazonStorefrontView } from './components/AmazonStorefrontView';
 import { generateStoreJsonLd } from './services/seoKeywords';
 import { SecurityService } from './services/securityService';
 import {
@@ -132,6 +133,7 @@ export const App: React.FC = () => {
   const [isCustomerAccountOpen, setIsCustomerAccountOpen] = useState(false);
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [policyModalType, setPolicyModalType] = useState<'shipping' | 'returns' | 'privacy' | 'terms' | null>(null);
 
@@ -675,132 +677,171 @@ export const App: React.FC = () => {
   // -------------------------------------------------------------
   // PUBLIC STOREFRONT VIEW (/)
   // -------------------------------------------------------------
+  const currentTheme = config.storefrontTheme || 'amazon';
+
+  const handleSwitchTheme = (theme: 'amazon' | 'classic') => {
+    const updated = { ...config, storefrontTheme: theme };
+    setConfig(updated);
+    storageService.saveConfig(updated);
+    FirestoreSyncService.saveConfig(updated).catch(console.warn);
+    showToast(theme === 'amazon' ? 'মার্কেটপ্লেস থিম সক্রিয় হয়েছে' : 'ক্লাসিক বুটিক থিম সক্রিয় হয়েছে');
+  };
+
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-neutral-900 flex flex-col font-sans selection:bg-neutral-950 selection:text-white">
-      
-      {/* Store Announcement Notification Bar */}
-      <AnnouncementBar config={config} />
-
-      {/* Top Navbar */}
-      <Navbar
-        config={config}
-        cartCount={cartCount}
-        wishlistCount={currentCustomer?.wishlist?.length || 0}
-        customer={currentCustomer}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenAuth={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
-        onOpenWishlist={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
-        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
-        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
-        onSelectCategory={(cat) => {
-          setSelectedCategory(cat);
-          const el = document.getElementById('shop') || document.getElementById('catalog-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onCategorySelect={(cat) => {
-          setSelectedCategory(cat);
-          const el = document.getElementById('shop') || document.getElementById('catalog-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
-        selectedCategory={selectedCategory}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-
-      {/* Hero Banner */}
-      <HeroBanner
-        config={config}
-        onExplore={() => {
-          const el = document.getElementById('shop') || document.getElementById('catalog-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onExploreClick={() => {
-          const el = document.getElementById('shop') || document.getElementById('catalog-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onSignIn={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
-      />
-
-      {/* Main Catalogue Section */}
-      <main id="shop" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        
-        {/* Curated Capsule Feature Strip */}
-        <div className="mb-12 bg-white rounded-2xl p-6 sm:p-8 border border-neutral-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800">
-              Autumn / Winter Capsule
-            </span>
-            <h3 className="font-serif text-xl sm:text-2xl font-bold text-neutral-950">
-              Quiet Luxury, Architectural Tailoring
-            </h3>
-            <p className="text-xs text-neutral-600 max-w-xl leading-relaxed">
-              Explore pure organic wools, raw silks, and structural silhouettes meticulously crafted in limited atelier batches.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-right hidden sm:block">
-              <span className="text-[11px] font-mono text-neutral-400 block">Complimentary Shipping</span>
-              <span className="text-xs font-bold text-neutral-900">Orders over {config.currencySymbol}{config.freeShippingThreshold}</span>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedCategory('All');
-                setSortBy('newest');
-              }}
-              className="px-5 py-3 bg-neutral-950 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-98 flex items-center gap-2"
-            >
-              <span>View Latest Drop</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Product Grid with Filters, Search, and Sorting */}
-        <ProductGrid
+    <>
+      {currentTheme === 'amazon' ? (
+        <AmazonStorefrontView
           products={products}
           config={config}
+          cartCount={cartCount}
+          wishlistCount={currentCustomer?.wishlist?.length || 0}
+          customer={currentCustomer}
           selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          onSelectCategory={(cat) => {
+            setSelectedCategory(cat);
+            const el = document.getElementById('amazon-deals-grid');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenAuth={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
+          onOpenWishlist={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
+          onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+          onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
           onQuickView={(p) => setQuickViewProduct(p)}
-          onAddToCart={handleAddToCart}
+          onAddToCart={(p, size) => handleAddToCart(p, size || p.sizes?.[0] || 'Standard', 1)}
           onToggleWishlist={handleToggleWishlist}
           wishlist={currentCustomer?.wishlist || []}
+          onOpenAiAssistant={() => setIsAiModalOpen(true)}
+          onSwitchTheme={handleSwitchTheme}
         />
-      </main>
+      ) : (
+        <div className="min-h-screen bg-[#faf9f6] text-neutral-900 flex flex-col font-sans selection:bg-neutral-950 selection:text-white">
+          {/* Store Announcement Notification Bar */}
+          <AnnouncementBar config={config} />
 
-      {/* Structured Schema.org JSON-LD Script for Google & AI Search Bots */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(generateStoreJsonLd(config, products)) }}
-      />
+          {/* Top Navbar */}
+          <Navbar
+            config={config}
+            cartCount={cartCount}
+            wishlistCount={currentCustomer?.wishlist?.length || 0}
+            customer={currentCustomer}
+            onOpenCart={() => setIsCartOpen(true)}
+            onOpenAuth={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
+            onOpenWishlist={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
+            onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+            onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+            onSelectCategory={(cat) => {
+              setSelectedCategory(cat);
+              const el = document.getElementById('shop') || document.getElementById('catalog-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onCategorySelect={(cat) => {
+              setSelectedCategory(cat);
+              const el = document.getElementById('shop') || document.getElementById('catalog-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            selectedCategory={selectedCategory}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
 
-      {/* SEO 1,500+ Keyword Index, Domain Variations & Schema Directory */}
-      <SeoDirectorySection config={config} products={products} />
+          {/* Hero Banner */}
+          <HeroBanner
+            config={config}
+            onExplore={() => {
+              const el = document.getElementById('shop') || document.getElementById('catalog-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onExploreClick={() => {
+              const el = document.getElementById('shop') || document.getElementById('catalog-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onSignIn={() => (currentCustomer ? setIsCustomerAccountOpen(true) : setIsAuthModalOpen(true))}
+          />
 
-      {/* Invisible Ethical Honeypot Canary Traps (Indexed only by automated bot crawlers & vulnerability scanners) */}
-      <div style={{ display: 'none', position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
-        <a href="#/system-root-login" rel="nofollow" tabIndex={-1}>Root Terminal & SSH Web Shell</a>
-        <a href="#/wp-admin" rel="nofollow" tabIndex={-1}>Legacy WordPress Administration Panel</a>
-        <a href="#/api/v1/debug" rel="nofollow" tabIndex={-1}>Core API Debug & Environment Dump</a>
-        <a href="#/db-backup.sql" rel="nofollow" tabIndex={-1}>PostgreSQL Database Backup Archive</a>
-        <a href="#/phpmyadmin" rel="nofollow" tabIndex={-1}>Direct Database SQL Manager</a>
-        <a href="#/secret-admin-portal" rel="nofollow" tabIndex={-1}>Internal Super Admin Gateway</a>
-      </div>
+          {/* Main Catalogue Section */}
+          <main id="shop" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            {/* Curated Capsule Feature Strip */}
+            <div className="mb-12 bg-white rounded-2xl p-6 sm:p-8 border border-neutral-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800">
+                  Autumn / Winter Capsule
+                </span>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-neutral-950">
+                  Quiet Luxury, Architectural Tailoring
+                </h3>
+                <p className="text-xs text-neutral-600 max-w-xl leading-relaxed">
+                  Explore pure organic wools, raw silks, and structural silhouettes meticulously crafted in limited atelier batches.
+                </p>
+              </div>
 
-      {/* Footer */}
-      <Footer
-        config={config}
-        onOpenPolicy={(type) => setPolicyModalType(type)}
-        onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
-        onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
-      />
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right hidden sm:block">
+                  <span className="text-[11px] font-mono text-neutral-400 block">Complimentary Shipping</span>
+                  <span className="text-xs font-bold text-neutral-900">Orders over {config.currencySymbol}{config.freeShippingThreshold}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedCategory('All');
+                    setSortBy('newest');
+                  }}
+                  className="px-5 py-3 bg-neutral-950 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-98 flex items-center gap-2"
+                >
+                  <span>View Latest Drop</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
 
-      {/* Bismillah AI Shopping Assistant Concierge */}
+            {/* Product Grid with Filters, Search, and Sorting */}
+            <ProductGrid
+              products={products}
+              config={config}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              onQuickView={(p) => setQuickViewProduct(p)}
+              onAddToCart={handleAddToCart}
+              onToggleWishlist={handleToggleWishlist}
+              wishlist={currentCustomer?.wishlist || []}
+            />
+          </main>
+
+          {/* Structured Schema.org JSON-LD Script for Google & AI Search Bots */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(generateStoreJsonLd(config, products)) }}
+          />
+
+          {/* SEO 1,500+ Keyword Index, Domain Variations & Schema Directory */}
+          <SeoDirectorySection config={config} products={products} />
+
+          {/* Invisible Ethical Honeypot Canary Traps */}
+          <div style={{ display: 'none', position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+            <a href="#/system-root-login" rel="nofollow" tabIndex={-1}>Root Terminal & SSH Web Shell</a>
+            <a href="#/wp-admin" rel="nofollow" tabIndex={-1}>Legacy WordPress Administration Panel</a>
+            <a href="#/api/v1/debug" rel="nofollow" tabIndex={-1}>Core API Debug & Environment Dump</a>
+            <a href="#/db-backup.sql" rel="nofollow" tabIndex={-1}>PostgreSQL Database Backup Archive</a>
+            <a href="#/phpmyadmin" rel="nofollow" tabIndex={-1}>Direct Database SQL Manager</a>
+            <a href="#/secret-admin-portal" rel="nofollow" tabIndex={-1}>Internal Super Admin Gateway</a>
+          </div>
+
+          {/* Footer */}
+          <Footer
+            config={config}
+            onOpenPolicy={(type) => setPolicyModalType(type)}
+            onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
+            onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+          />
+        </div>
+      )}
+
+      {/* Bismillah Draggable & Swappable AI Shopping Assistant (Text-Based) */}
       <AiShoppingAssistant
         products={products}
         config={config}
@@ -808,6 +849,8 @@ export const App: React.FC = () => {
         onAddToCart={(p, size) => handleAddToCart(p, size || p.sizes?.[0] || 'Standard', 1)}
         onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+        isOpenExternal={isAiModalOpen}
+        onCloseExternal={() => setIsAiModalOpen(false)}
       />
 
       {/* MODALS & DRAWERS */}
@@ -845,6 +888,8 @@ export const App: React.FC = () => {
         product={quickViewProduct}
         allProducts={products}
         config={config}
+        customer={currentCustomer}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
         onClose={() => setQuickViewProduct(null)}
         onAddToCart={handleAddToCart}
         onToggleWishlist={handleToggleWishlist}
@@ -903,7 +948,7 @@ export const App: React.FC = () => {
           <span>{toast.message}</span>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

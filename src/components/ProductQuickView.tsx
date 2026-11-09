@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Product, StoreConfig, Review } from '../types';
+import { Product, StoreConfig, Review, Customer } from '../types';
 import { 
   X, Heart, ShoppingBag, Star, Check, ShieldCheck, Truck, RefreshCw, 
   Sparkles, Ruler, ZoomIn, MessageSquare, Plus, CheckCircle2, User, Send, Loader2
@@ -16,6 +16,8 @@ interface ProductQuickViewProps {
   onAddToCart: (product: Product, size: string, quantity: number) => void;
   isWishlisted: boolean;
   onToggleWishlist: (id: string) => void;
+  customer?: Customer | null;
+  onOpenAuth?: () => void;
 }
 
 export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
@@ -27,6 +29,8 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
   onAddToCart,
   isWishlisted,
   onToggleWishlist,
+  customer = null,
+  onOpenAuth,
 }) => {
   const [activeImage, setActiveImage] = useState<string>(product?.image || '');
   const [selectedSize, setSelectedSize] = useState<string>(product?.sizes?.[0] || 'M');
@@ -42,7 +46,6 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
 
   // Reviews State
   const [userRating, setUserRating] = useState(5);
-  const [reviewerName, setReviewerName] = useState('');
   const [reviewComment, setReviewComment] = useState('');
   const [cloudReviews, setCloudReviews] = useState<Review[]>([]);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -115,16 +118,20 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
     }, 1000);
   };
 
+  const currentAuthorName = customer
+    ? (customer.name?.trim() || customer.email.split('@')[0] || 'ভেরিফাইড ক্রেতা')
+    : '';
+
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewerName.trim() || !reviewComment.trim() || isSubmittingReview) return;
+    if (!customer || !currentAuthorName || !reviewComment.trim() || isSubmittingReview) return;
     setIsSubmittingReview(true);
     setReviewSuccessMessage('');
 
     const newRev: Review = {
       id: `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       productId: product.id,
-      author: reviewerName.trim(),
+      author: currentAuthorName,
       rating: userRating,
       date: 'Just now',
       comment: reviewComment.trim(),
@@ -133,17 +140,16 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
 
     try {
       await FirestoreSyncService.saveReview(newRev);
-      setReviewerName('');
       setReviewComment('');
       setReviewSubmitted(true);
-      setReviewSuccessMessage('ধন্যবাদ! আপনার রিভিউ গুগল ফায়ারবেস ক্লাউডে সংরক্ষিত হয়েছে এবং তাৎক্ষণিক পাবলিশ হয়েছে।');
+      setReviewSuccessMessage('ধন্যবাদ! আপনার রিভিউ সফলভাবে প্রকাশিত হয়েছে।');
       setTimeout(() => setReviewSubmitted(false), 5000);
     } catch (err) {
       console.warn('Error saving review to Firestore:', err);
       // Fallback in memory
       setCloudReviews((prev) => [newRev, ...prev]);
       setReviewSubmitted(true);
-      setReviewSuccessMessage('আপনার রিভিউ যোগ করা হয়েছে!');
+      setReviewSuccessMessage('ধন্যবাদ! আপনার রিভিউ সফলভাবে প্রকাশিত হয়েছে।');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -162,7 +168,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
     <>
       <div className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/80 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 lg:p-6 animate-fadeIn">
         {/* Modal Container: On Mobile full scrollable page/sheet, On Desktop dual column grid */}
-        <div className="relative bg-white w-full max-w-5xl sm:rounded-3xl shadow-2xl overflow-y-auto lg:overflow-hidden border-0 sm:border border-neutral-200 min-h-screen sm:min-h-0 max-h-none sm:max-h-[92vh] flex flex-col lg:grid lg:grid-cols-12">
+        <div className="relative bg-white w-full max-w-5xl sm:rounded-3xl shadow-2xl overflow-y-auto lg:overflow-hidden border-0 sm:border border-neutral-200 min-h-screen sm:min-h-0 max-h-none sm:max-h-[92vh] flex flex-col lg:grid lg:grid-cols-12 pb-6 sm:pb-0">
           
           {/* Close Button - Sticky/Fixed on Mobile so user can close anytime */}
           <button
@@ -490,71 +496,94 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                 
                 {activeTab === 'reviews' && (
                   <div className="space-y-4">
-                    {/* Write Review Form */}
-                    <form onSubmit={handleAddReview} className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-neutral-900 uppercase">Write a Verified Buyer Review</span>
-                        <div className="flex gap-1 text-amber-400">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              type="button"
-                              key={star}
-                              onClick={() => setUserRating(star)}
-                              className="focus:outline-none"
-                            >
-                              <Star className={`w-3.5 h-3.5 ${star <= userRating ? 'fill-amber-400 text-amber-400' : 'text-neutral-300'}`} />
-                            </button>
-                          ))}
+                    {/* Write Review Form - Only for Logged In Customers */}
+                    {!customer ? (
+                      <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-center space-y-2.5">
+                        <div className="w-10 h-10 bg-amber-100 text-amber-900 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                          <User className="w-5 h-5 text-amber-800" />
                         </div>
+                        <div className="space-y-1">
+                          <h5 className="font-bold text-xs text-neutral-900">রিভিউ দিতে লগইন করুন</h5>
+                          <p className="text-[11px] text-neutral-600 max-w-sm mx-auto leading-relaxed">
+                            আমাদের স্টোরে কেবলমাত্র ভেরিফাইড ক্রেতাগণ পণ্যের রিভিউ ও রেটিং প্রকাশ করতে পারেন।
+                          </p>
+                        </div>
+                        {onOpenAuth && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onOpenAuth();
+                            }}
+                            className="px-4 py-2 bg-neutral-950 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <User className="w-3.5 h-3.5 text-amber-400" />
+                            <span>অ্যাকাউন্টে লগইন বা সাইন-আপ করুন</span>
+                          </button>
+                        )}
                       </div>
+                    ) : (
+                      <form onSubmit={handleAddReview} className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-neutral-900">
+                              রিভিউ দিচ্ছেন: <strong className="text-amber-800">{currentAuthorName}</strong>
+                            </span>
+                            <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">
+                              ভেরিফাইড অ্যাকাউন্ট
+                            </span>
+                          </div>
+                          <div className="flex gap-1 text-amber-400">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                type="button"
+                                key={star}
+                                onClick={() => setUserRating(star)}
+                                className="focus:outline-none cursor-pointer"
+                              >
+                                <Star className={`w-3.5 h-3.5 ${star <= userRating ? 'fill-amber-400 text-amber-400' : 'text-neutral-300'}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          value={reviewerName}
-                          onChange={(e) => setReviewerName(e.target.value)}
-                          placeholder="Your Name (যেমন: তানভীর আহমেদ)"
-                          required
-                          className="w-full p-2 bg-white border border-neutral-300 rounded-lg text-xs"
-                        />
-                        <input
-                          type="text"
-                          value={reviewComment}
-                          onChange={(e) => setReviewComment(e.target.value)}
-                          placeholder="পোশাকটির ফেব্রিক, বুনন ও ফিটিং কেমন লেগেছে?"
-                          required
-                          className="w-full p-2 bg-white border border-neutral-300 rounded-lg text-xs"
-                        />
-                      </div>
+                        <div>
+                          <input
+                            type="text"
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            placeholder="পোশাকটির ফেব্রিক, বুনন, ফিটিং ও মান সম্পর্কে আপনার অভিজ্ঞতা লিখুন..."
+                            required
+                            className="w-full p-2.5 bg-white border border-neutral-300 rounded-xl text-xs focus:ring-1 focus:ring-neutral-900 focus:outline-none"
+                          />
+                        </div>
 
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[10px] text-neutral-400 font-mono">
-                          ⚡ Firebase Cloud Real-time Synced
-                        </span>
-                        <button
-                          type="submit"
-                          disabled={isSubmittingReview}
-                          className="px-3.5 py-1.5 bg-neutral-950 hover:bg-neutral-800 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          {isSubmittingReview ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>পোস্টিং হচ্ছে...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-3.5 h-3.5" />
-                              <span>Submit Review</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </form>
+                        <div className="flex items-center justify-end pt-1">
+                          <button
+                            type="submit"
+                            disabled={isSubmittingReview || !reviewComment.trim()}
+                            className="px-4 py-2 bg-neutral-950 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-sm"
+                          >
+                            {isSubmittingReview ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>প্রকাশ হচ্ছে...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-3.5 h-3.5" />
+                                <span>রিভিউ সাবমিট করুন</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    )}
 
                     {reviewSubmitted && (
-                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2 animate-fadeIn">
+                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2 animate-fadeIn">
                         <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>{reviewSuccessMessage || 'Thank you! Your verified rating has been recorded in Cloud Firestore.'}</span>
+                        <span>{reviewSuccessMessage || 'ধন্যবাদ! আপনার রিভিউ সফলভাবে প্রকাশিত হয়েছে।'}</span>
                       </div>
                     )}
 
